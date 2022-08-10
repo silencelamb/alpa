@@ -386,6 +386,9 @@ def process_apply_gradient(apply_grad_jaxpr, microbatch_bound, pipeline_stages,
     meshes."""
     # TODO(yonghao): the condition of creating RDA variable should be extended.
 
+    print("apply_grad_jaxpr")
+    print(apply_grad_jaxpr)
+
     # Process apply gradient:
     # 1. change invars of apply grad to outvars of accumulate grad
     gradients = [
@@ -429,6 +432,12 @@ def process_apply_gradient(apply_grad_jaxpr, microbatch_bound, pipeline_stages,
         map(lambda x: get_var_mapping(out_map, x), global_outvars))
     n_stages = len(pipeline_stages) + len(sliced_apply_grad)
     dependency = gen_dependency_with_stages(pipeline_stages, sliced_apply_grad)
+
+    for i in range(len(sliced_apply_grad)):
+        print("=" * 10 + " apply_grad_" + str(i) + " " +  "=" * 10)
+        print(sliced_apply_grad[i].closed_jaxpr())
+
+    exit()
 
     return (sliced_apply_grad, n_stages, dependency, apply_grad_placement,
             global_outvars, donated_invars)

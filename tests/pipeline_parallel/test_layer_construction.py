@@ -20,8 +20,8 @@ class LayerConstructionTest(PipelineBasicTest):
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(LayerConstructionTest('test_mlp_layer_construction'))
-    suite.addTest(LayerConstructionTest('test_2_layer_bert_layer_construction'))
-    suite.addTest(LayerConstructionTest('test_8_layer_bert_layer_construction'))
+    #suite.addTest(LayerConstructionTest('test_2_layer_bert_layer_construction'))
+    #suite.addTest(LayerConstructionTest('test_8_layer_bert_layer_construction'))
     return suite
 
 
