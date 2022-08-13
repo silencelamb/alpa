@@ -12,6 +12,7 @@ from alpa.device_mesh import MeshHostWorker, RemoteArrayRef, next_array_uuids
 from alpa.global_env import global_config
 from alpa.device_mesh import PhysicalDeviceMeshGroup
 from alpa.mesh_executable import (AllocZeroBufferWorkerExecutable,
+                                  ApplyGradMeshWorkerExecutable,
                                   UtilMeshWorkerExecutable,
                                   MemzeroWorkerExecutable,
                                   PartialGradAccMeshWorkerExecutable,
@@ -19,10 +20,10 @@ from alpa.mesh_executable import (AllocZeroBufferWorkerExecutable,
 from alpa.parallel_plan import ClusterInfo, PipelinePlan, ParallelPlan
 from alpa.pipeline_parallel.layer_construction import LayerOption
 from alpa.pipeline_parallel.runtime_emitter import (
-    AllocateZeroWorkerExecutableConfig, ConcatWorkerExecutableConfig,
-    ExecutableConfig, MemZeroWorkerExecutableConfig,
-    PartialGradWorkerExecutableConfig, PipelineInstType, PipelineInstruction,
-    PipeshardConfig)
+    AllocateZeroWorkerExecutableConfig, ApplyGradWorkerExecutableConfig,
+    ConcatWorkerExecutableConfig, ExecutableConfig,
+    MemZeroWorkerExecutableConfig, PartialGradWorkerExecutableConfig,
+    PipelineInstType, PipelineInstruction, PipeshardConfig)
 from alpa.shard_parallel.auto_sharding import HloStatus
 from alpa.timer import timers
 from alpa.util import OrderedSet
@@ -410,6 +411,10 @@ class PipeshardMeshWorkerExecuable:
                                            task_config.stage_plan,
                                            task_config.donated_invars)
                 self.partial_grad_exec_uuids.add(task_config.exec_uuid)
+            elif isinstance(task_config, ApplyGradWorkerExecutableConfig):
+                self.worker.put_executable(task_config.exec_uuid,
+                                           ApplyGradMeshWorkerExecutable,
+                                           *task_config[1:])
             elif isinstance(task_config, MemZeroWorkerExecutableConfig):
                 assert len(self.acc_grad_buffers) == 0
                 # allocate buffers
