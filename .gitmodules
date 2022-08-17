@@ -3,4 +3,4 @@
 	url = https://github.com/google/jax.git
 [submodule "third_party/tensorflow-alpa"]
 	path = third_party/tensorflow-alpa
-	url = https://github.com/alpa-projects/tensorflow-alpa.git
+	url = https://github.com/silencelamb/tensorflow-alpa.git
