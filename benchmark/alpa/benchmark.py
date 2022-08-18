@@ -6,6 +6,7 @@ import time
 
 import numpy as np
 
+from alpa.global_env import get_global_config, set_global_config
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
 
@@ -133,7 +134,13 @@ if __name__ == "__main__":
                         dest="use_separate_process")
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
+    parser.add_argument("--only-mapping", action="store_true")
     args = parser.parse_args()
+
+    # set global_config, only_mapping
+    global_config = get_global_config()
+    global_config.only_mapping = args.only_mapping
+    set_global_config(global_config)
 
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 

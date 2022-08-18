@@ -2,6 +2,7 @@
 from collections import namedtuple, defaultdict
 from dataclasses import dataclass
 import enum
+import imp
 import logging
 from typing import Any, Callable, Dict, Optional, Sequence, Union, Set
 
@@ -24,6 +25,7 @@ from alpa.pipeline_parallel.stage_construction import ManualStageOption
 from alpa.shard_parallel.auto_sharding import AutoShardingOption
 from alpa.util import (DisjointDict, OrderedSet, get_shard_shape,
                        get_microbatch_sharding_spec, compile_concatenate)
+from alpa.global_env import get_global_config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -304,6 +306,8 @@ class PipelineInstEmitter:
         self._resharding_tasks = [
             [{} for _ in range(self.num_mesh)] for _ in range(self.num_mesh)
         ]
+        global_config = get_global_config()
+        self.only_mapping = global_config.only_mapping
 
     def _get_next_uuids(self, num) -> np.ndarray:
         """Get the next uuids as a numpy array of uuids."""

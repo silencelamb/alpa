@@ -13,6 +13,8 @@ from alpa.model.model_util import TrainState
 from alpa.model.gpt_model import FlaxGPTForLMModule
 from alpa.pipeline_parallel.stage_construction import get_last_dp_result
 from alpa.util import print_used_time
+from alpa.device_mesh import VirtualPhysicalMesh, get_global_virtual_physical_mesh
+from alpa.global_env import get_global_config, set_global_config
 
 from util import compute_gpt_parameter_count, compute_gpt_tflops
 from benchmark_parallel_utils import (
@@ -211,11 +213,21 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                    num_devices_per_host,
                                    aval_train_state=True,
                                    profile_driver_time=False):
+    # global config
+    global_config = get_global_config()
     # Connect to the cluster
-    virtual_mesh = get_global_cluster().get_virtual_physical_mesh(
-        host_ids=list(range(num_hosts)),
-        num_devices_per_host=num_devices_per_host)
-    set_global_virtual_physical_mesh(virtual_mesh)
+    if global_config.only_mapping:
+        g_vir_phy_mesh = get_global_virtual_physical_mesh()
+        virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
+                                           host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
+                                           num_devices_per_host=num_devices_per_host,
+                                           head_ip=g_vir_phy_mesh.head_ip)
+        set_global_virtual_physical_mesh(virtual_mesh)
+    else:
+        virtual_mesh = get_global_cluster().get_virtual_physical_mesh(
+            host_ids=list(range(num_hosts)),
+            num_devices_per_host=num_devices_per_host)
+        set_global_virtual_physical_mesh(virtual_mesh)   
 
     # Parallel configs
     if benchmark_case.parallel_mode == "load_solution":

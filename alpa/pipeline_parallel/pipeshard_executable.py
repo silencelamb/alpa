@@ -27,6 +27,7 @@ from alpa.pipeline_parallel.runtime_emitter import (
 from alpa.shard_parallel.auto_sharding import HloStatus
 from alpa.timer import timers
 from alpa.util import OrderedSet
+from alpa.global_env import get_global_config
 
 traceback_util.register_exclusion(__file__)
 
@@ -96,7 +97,10 @@ class PipeshardDriverExecutable:
         self.outs_handler = pipeshard_config.outs_handler
 
         ##### For cross-mesh resharding #####
-        self._instantiate_nccl_groups(pipeshard_config.device_str_groups)
+        global_config = get_global_config()
+        self.only_mapping = global_config.only_mapping
+        if not self.only_mapping:
+            self._instantiate_nccl_groups(pipeshard_config.device_str_groups)
         self.resharding_tasks = pipeshard_config.resharding_tasks
         if global_config.eagerly_create_communicators:
             for task in self.resharding_tasks:

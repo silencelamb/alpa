@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any
 from collections import namedtuple
 
 import numpy as np
+
 import jax
 from jax._src.tree_util import tree_flatten, tree_leaves, tree_unflatten
 
@@ -14,6 +15,7 @@ from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel,
 from alpa.timer import timers
 from alpa.util import (print_used_time, to_str_round,
                        count_communication_primitives, GB)
+from alpa.global_env import get_global_config
 
 BenchmarkCase = namedtuple("BenchmarkCase", [
     "batch_size", "model_config", "num_micro_batches", "parallel_mode",
@@ -315,8 +317,10 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
     else:
         compilation_times = None
 
-    executable.dump_debug_info("tmp")
-    executable.sync()
+    global_config = get_global_config()
+    if not global_config.only_mapping:
+        executable.dump_debug_info("tmp")
+        executable.sync()
     print_used_time("Compile (worker)")
     return executable, compilation_times
 
@@ -354,14 +358,20 @@ def compile_and_benchmark_pipeshard_training_executable(
         profile_driver_time=False):
     executable, compilation_times = compile_pipeshard_executable(
         parallel_mode, train_step, state, other_train_step_inputs)
-    latencies = benchmark_training_executable(
-        niter,
-        train_step,
-        executable,
-        state,
-        other_train_step_inputs,
-        profile_driver_time=profile_driver_time)
-    max_mem_allocated = executable.mesh_group.get_max_memory_allocated()
+   
+    global_config = get_global_config()
+    if global_config.only_mapping:
+        latencies = [66666.0]
+        max_mem_allocated = 22.0
+    else:
+        latencies = benchmark_training_executable(
+            niter,
+            train_step,
+            executable,
+            state,
+            other_train_step_inputs,
+            profile_driver_time=profile_driver_time)
+        max_mem_allocated = executable.mesh_group.get_max_memory_allocated()
 
     return latencies, max_mem_allocated, compilation_times, executable
 

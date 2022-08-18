@@ -1,4 +1,5 @@
 """All global configurations for this project."""
+import gc
 import os
 
 
@@ -31,8 +32,11 @@ class GlobalConfig:
         # resource is required until launching PipeshardExecutable.
         self.debug_with_pipeshard_runtime = False
         # Whether to use the whole cluster for stage profiling. If not, only
-        # use the given mesh.
-        self.profile_with_whole_ray_cluster = True
+        # use the given mesh. 
+        # it should be set as False, when we want to excute mapping in arbitrary mesh
+        self.profile_with_whole_ray_cluster = False
+        # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
+        self.only_mapping = True
         # Stage construction profiling time threshold.
         self.profile_timeout = 500
         # Stage construction profiling retry threshold.
@@ -85,6 +89,15 @@ class GlobalConfig:
 
 
 global_config = GlobalConfig()
+
+def get_global_config():
+    return global_config
+
+
+def set_global_config(global_config_new: GlobalConfig):
+    global global_config
+    global_config = global_config_new
+
 
 # Other environment setup
 is_worker = os.environ.get("ALPA_IS_WORKER", "False") == "True"

@@ -1,5 +1,6 @@
 """Compile executables for pipeshard parallelism."""
 import dataclasses
+from hashlib import pbkdf2_hmac
 import logging
 import time
 from typing import Callable, Sequence, Optional
@@ -34,6 +35,7 @@ from alpa.pipeline_parallel.stage_profiling import CompileWorkerPool
 from alpa.shard_parallel.auto_sharding import AutoShardingOption
 from alpa.util import (get_var_mapping, trace_jaxpr_with_micro_batch,
                        OrderedSet, GradFuncTransformContext)
+from alpa.global_env import get_global_config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

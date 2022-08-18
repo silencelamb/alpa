@@ -1,6 +1,8 @@
 """Cross mesh resharding for pipeline parallelism."""
+import imp
 import logging
 import math
+from multiprocessing.spawn import get_command_line
 from typing import List, Any
 
 import numpy as np
@@ -20,6 +22,7 @@ from alpa.pipeline_parallel.resharding_tensor import (VirtualDistributedArray,
                                                       TileSlice,
                                                       unflatten_tile_index)
 from alpa.util import OrderedSet, compile_allgather
+from alpa.global_env import get_global_config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -198,9 +201,11 @@ class SymbolicReshardingTask(ReshardingTask):
         self.send_worker_task_ids = {}
         self.recv_worker_task_ids = {}
 
-        # generate the above states
-        self._compile()
-        # print(self.__str__()+"\n")
+        global_config = get_global_config()
+        if not global_config.only_mapping:
+            # generate the above states
+            self._compile()
+            # print(self.__str__()+"\n")
 
     @property
     def sender_tasks(self):
