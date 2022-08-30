@@ -897,3 +897,14 @@ def estimate_hlo_module_cost(hlo_module,
             "gpu_cost_model::verbose": 0,
     }):
         return xe.estimate_hlo_module_cost(hlo_module)
+
+
+def hlo_module_cost_analysis(hlo_module,
+                             num_micro_batches=1,
+                             grad_sync_channel_ids=""):
+    """compute and network analysis of an HLO module, added by daixu."""
+    with XlaPassContext({
+            "gpu_cost_model::num_micro_batches": num_micro_batches,
+            "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
+    }):
+        return xe.hlo_module_cost_analysis(hlo_module)

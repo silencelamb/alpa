@@ -7,6 +7,7 @@ import numpy as np
 
 import jax
 from jax._src.tree_util import tree_flatten, tree_leaves, tree_unflatten
+from jax._src.lib import xla_bridge as xb
 
 import alpa
 from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel,
@@ -16,6 +17,10 @@ from alpa.timer import timers
 from alpa.util import (print_used_time, to_str_round,
                        count_communication_primitives, GB)
 from alpa.global_env import get_global_config
+from alpa.pipeline_parallel.pipeshard_executable import PipeshardDriverExecutable
+from alpa.shard_parallel.auto_sharding import run_backend_compilation
+from alpa.mesh_executable import get_grad_sync_channel_ids
+from alpa.mesh_profiling import hlo_module_cost_analysis
 
 BenchmarkCase = namedtuple("BenchmarkCase", [
     "batch_size", "model_config", "num_micro_batches", "parallel_mode",
@@ -349,6 +354,35 @@ def compile_shard_executable(physical_mesh, train_step, state,
     return executable, ilp_objective, alloc_mem
 
 
+def compute_network_anaysis(executable: PipeshardDriverExecutable):
+    xla_stages = executable.stages
+    for xla_computations in xla_stages:
+        """
+        Reference code: alpa/pipeline_parallel/stage_profiling.py
+        HloCostModelProfileWorker.compile()
+        """
+        spmd_partitioned_hlo = xla_computations.get_spmd_partitioned()
+        stage_plan = xla_computations.stage_plan
+        logical_mesh_shape = stage_plan.logical_mesh_shape
+        num_devices = np.prod(logical_mesh_shape)
+        compiled = run_backend_compilation(
+            xb.get_backend("gpu"),
+            spmd_partitioned_hlo,
+            stage_plan,
+            num_devices,
+            bypass_device_assignment_check=True)
+
+        hlo_module = compiled.hlo_modules()[0]
+        grad_sync_channel_ids = ""
+        if True:
+            grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
+        peak_memory = compiled.total_allocation_size()
+        analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(analysis_result)
+        print(f'peak_memory: {peak_memory}!!!!!!') 
+    
+
 def compile_and_benchmark_pipeshard_training_executable(
         parallel_mode,
         niter,
@@ -372,6 +406,9 @@ def compile_and_benchmark_pipeshard_training_executable(
             other_train_step_inputs,
             profile_driver_time=profile_driver_time)
         max_mem_allocated = executable.mesh_group.get_max_memory_allocated()
+
+    # add compute and network cost analysis
+    compute_network_anaysis(executable)
 
     return latencies, max_mem_allocated, compilation_times, executable
 
