@@ -1,9 +1,11 @@
 """Options of a benchmark case."""
 import time
-from typing import Optional, Dict, Any
+from typing import Iterable, Optional, Dict, Any
 from collections import namedtuple
+import os
 
 import numpy as np
+import pandas as pd
 
 import jax
 from jax._src.tree_util import tree_flatten, tree_leaves, tree_unflatten
@@ -308,6 +310,7 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
     print_used_time(None)
 
     executable = train_step.get_executable(state, *other_train_step_inputs)
+    executable: PipeshardDriverExecutable
     print_used_time("Compile (driver)")
 
     if parallel_mode == "search":
@@ -323,8 +326,44 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
         compilation_times = None
 
     global_config = get_global_config()
+
+    # save mapping result
+    input_placement_specs = executable.get_input_placement_specs()
+    for idx, specs in enumerate(input_placement_specs):
+        save_file = f"{global_config.maping_rst_dir}/input_placement_specs-{idx}.txt"
+        with open(save_file, 'w') as f:
+            f.write(str(specs))
+
+    output_placement_specs = executable.get_output_placement_specs()
+    from collections.abc import Iterable
+    if isinstance(output_placement_specs, Iterable):
+        for idx, specs in enumerate(output_placement_specs):
+            save_file = f"{global_config.maping_rst_dir}/output_placement_specs-{idx}.txt"
+            with open(save_file, 'w') as f:
+                f.write(str(specs))
+    else:
+        save_file = f"{global_config.maping_rst_dir}/output_placement_specs.txt"
+        with open(save_file, 'w') as f:
+            f.write(str(output_placement_specs))
+        
+    schedule_str = executable.schedule.pprint_schedule()
+    num_clock = executable.schedule.num_clock
+    save_file = f"{global_config.maping_rst_dir}/pprint_schedule_num_clock-{num_clock}.txt"
+    with open(save_file, 'w') as f:
+        f.write(schedule_str)
+
+    save_file = f"{global_config.maping_rst_dir}/mesh_stage_mapping.txt"
+    with open(save_file, 'w') as f:
+        _str = str(executable.schedule.mesh_stage_mapping)
+        f.write(_str+'\n')
+        _str = str(executable.schedule.stage_mesh_mapping)
+        f.write(_str)
+    
+
+    
+
     if not global_config.only_mapping:
-        executable.dump_debug_info("tmp")
+        executable.dump_debug_info(global_config.maping_rst_dir)
         executable.sync()
     print_used_time("Compile (worker)")
     return executable, compilation_times
@@ -356,7 +395,7 @@ def compile_shard_executable(physical_mesh, train_step, state,
 
 def compute_network_anaysis(executable: PipeshardDriverExecutable):
     xla_stages = executable.stages
-    for xla_computations in xla_stages:
+    for idx, xla_computations in enumerate(xla_stages):
         """
         Reference code: alpa/pipeline_parallel/stage_profiling.py
         HloCostModelProfileWorker.compile()
@@ -373,14 +412,20 @@ def compute_network_anaysis(executable: PipeshardDriverExecutable):
             bypass_device_assignment_check=True)
 
         hlo_module = compiled.hlo_modules()[0]
+        hlo_module_str = hlo_module.to_string()
+        
+        global_config = get_global_config()
+        with open(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}.hlo", 'w') as f:
+            f.write(hlo_module_str)
+            
         grad_sync_channel_ids = ""
         if True:
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
-        peak_memory = compiled.total_allocation_size()
+        peak_memory = compiled.total_allocation_size()/ GB
         analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)
-        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        print(analysis_result)
-        print(f'peak_memory: {peak_memory}!!!!!!') 
+        df = pd.DataFrame.from_dict(analysis_result)
+        df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_peak_memory-{peak_memory: .3f}GB.xlsx")
+        print(f'compute_network_anaysis: stage_{idx} peak_memory: {peak_memory: .3f} GB !!!!!!')
     
 
 def compile_and_benchmark_pipeshard_training_executable(

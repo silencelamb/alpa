@@ -36,7 +36,9 @@ class GlobalConfig:
         # it should be set as False, when we want to excute mapping in arbitrary mesh
         self.profile_with_whole_ray_cluster = False
         # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
-        self.only_mapping = True
+        self.only_mapping = False
+        # mapping result dir
+        self.maping_rst_dir = ""
         # Stage construction profiling time threshold.
         self.profile_timeout = 500
         # Stage construction profiling retry threshold.

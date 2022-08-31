@@ -1,4 +1,5 @@
 """The entry point of intra-op + inter-op parallelism benchmark."""
+from ast import arg
 import os
 import argparse
 from datetime import datetime
@@ -63,7 +64,8 @@ def benchmark_suite(suite_name,
 
     model_type = suite_name.split(".")[0]
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    output_name = f"{model_type}_alpa_{exp_name}_{date_str}.tsv"
+    global_config = get_global_config()
+    output_name = f"{global_config.maping_rst_dir}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
 
     # Run all cases
     for benchmark_case in suite:
@@ -135,14 +137,24 @@ if __name__ == "__main__":
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
     parser.add_argument("--only-mapping", action="store_true")
+    parser.add_argument("--mapping_rst_dir", type=str, default="")
     args = parser.parse_args()
+    num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 
     # set global_config, only_mapping
     global_config = get_global_config()
     global_config.only_mapping = args.only_mapping
-    set_global_config(global_config)
 
-    num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
+    # set mapping result save dir
+    if args.mapping_rst_dir == "":
+        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        args.mapping_rst_dir = f"tmp/{args.suite}-{num_devices_per_host}gpuX{num_hosts}-{date_str}"
+        print(args.mapping_rst_dir)
+    os.makedirs(args.mapping_rst_dir, exist_ok=True)
+
+    global_config.maping_rst_dir = args.mapping_rst_dir
+
+    set_global_config(global_config)
 
     benchmark_suite(args.suite, num_hosts, num_devices_per_host, args.exp_name,
                     args.niter, args.shard_only, args.local,
