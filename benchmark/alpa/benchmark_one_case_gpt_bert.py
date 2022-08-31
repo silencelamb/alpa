@@ -18,7 +18,7 @@ from alpa.global_env import get_global_config, set_global_config
 
 from util import compute_gpt_parameter_count, compute_gpt_tflops
 from benchmark_parallel_utils import (
-    get_pipeshard_parallel_method, get_shard_parallel_method,
+    BenchmarkCase, get_pipeshard_parallel_method, get_shard_parallel_method,
     compile_and_benchmark_pipeshard_training_executable,
     compile_and_benchmark_shard_training_executable)
 
@@ -207,7 +207,7 @@ def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
 
 
 def benchmark_gpt_bert_3d_internal(model_type,
-                                   benchmark_case,
+                                   benchmark_case: BenchmarkCase,
                                    niter,
                                    num_hosts,
                                    num_devices_per_host,
@@ -215,6 +215,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                    profile_driver_time=False):
     # global config
     global_config = get_global_config()
+
     # Connect to the cluster
     if global_config.only_mapping:
         g_vir_phy_mesh = get_global_virtual_physical_mesh()

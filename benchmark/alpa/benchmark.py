@@ -10,6 +10,7 @@ import numpy as np
 from alpa.global_env import get_global_config, set_global_config
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
+from benchmark_parallel_utils import BenchmarkCase
 
 from benchmark_one_case import benchmark_one_case
 import suite_auto_gpt
@@ -69,8 +70,19 @@ def benchmark_suite(suite_name,
 
     # Run all cases
     for benchmark_case in suite:
+        benchmark_case: BenchmarkCase
+        totol_batch_size = benchmark_case.batch_size
         model_config = benchmark_case.model_config
         num_micro_batches = benchmark_case.num_micro_batches
+        try:
+            auto_layers = benchmark_case.parallel_args.num_auto_layers
+        except AttributeError:
+            auto_layers = 'auto'
+
+        global_config.maping_rst_dir = f"{global_config.maping_rst_dir}/Batchsize_{totol_batch_size}" + \
+            f"-num_b_{num_micro_batches}-auto_layers_{auto_layers}"
+        os.makedirs(global_config.maping_rst_dir, exist_ok=True)
+        set_global_config(global_config)
         parallel_args = benchmark_case.parallel_args
 
         # Run one case

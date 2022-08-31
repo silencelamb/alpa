@@ -21,6 +21,11 @@ dist
 # vscode
 *vscode*
 
+# tmp
+tmp
+tmp*
+benchmark/alpa/tmp*
+
 # Build files
 alpa/pipeline_parallel/xla_custom_call_marker/build
 build
