@@ -73,13 +73,14 @@ last_forward_stage_layer_ids = None
 last_submesh_shapes = None
 last_logical_mesh_shapes = None
 last_autosharding_option_dicts = None
+last_dp_cost = None
 
 
 def get_last_dp_result():
     """Gets the DP result of the last run."""
     return (last_compute_cost_file_name, last_forward_stage_layer_ids,
             last_submesh_shapes, last_logical_mesh_shapes,
-            last_autosharding_option_dicts)
+            last_autosharding_option_dicts, last_dp_cost)
 
 
 @maybe_numba_jit
@@ -610,7 +611,7 @@ def cluster_layers_and_slice_mesh(
             donation_mapping, final_outvars, jax_apply_layers,
             apply_grad_global_info, num_micro_batches, default_as_option,
             stage_option)
-        _, solution = dp(num_layers, virtual_mesh.num_devices,
+        dp_cost, solution = dp(num_layers, virtual_mesh.num_devices,
                          num_micro_batches, submesh_choices,
                          num_autosharding_configs, compute_cost,
                          max_n_succ_stages)
@@ -641,12 +642,14 @@ def cluster_layers_and_slice_mesh(
         print("Result mesh_shapes:", submesh_shapes)
         print("Result logical_mesh_shapes:", logical_mesh_shapes)
         print("Result autosharding_option_dicts:", autosharding_option_dicts)
-        global last_forward_stage_layer_ids, last_submesh_shapes
+        print("Result dp_cost:", dp_cost)
+        global last_forward_stage_layer_ids, last_submesh_shapes, last_dp_cost
         global last_logical_mesh_shapes, last_autosharding_option_dicts
         last_forward_stage_layer_ids = forward_stage_layer_ids
         last_submesh_shapes = submesh_shapes
         last_logical_mesh_shapes = logical_mesh_shapes
         last_autosharding_option_dicts = autosharding_option_dicts
+        last_dp_cost = dp_cost
     elif isinstance(stage_option, ManualStageOption):
         # Check forward_stage_layer_ids is a partition of range(num_layers)
         forward_stage_layer_ids = stage_option.forward_stage_layer_ids

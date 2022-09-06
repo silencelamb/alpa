@@ -30,7 +30,7 @@ class GlobalConfig:
         ########## Options of pipeline_parallel ##########
         # Whether to debug with pipeshard runtime. If turned on, no physical
         # resource is required until launching PipeshardExecutable.
-        self.debug_with_pipeshard_runtime = False
+        self.debug_with_pipeshard_runtime = True
         # Whether to use the whole cluster for stage profiling. If not, only
         # use the given mesh. 
         # it should be set as False, when we want to excute mapping in arbitrary mesh
