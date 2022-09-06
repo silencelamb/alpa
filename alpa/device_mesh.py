@@ -55,7 +55,7 @@ from alpa.timer import timers
 from alpa.util import (benchmark_func, list_gpu_info, OrderedSet,
                        update_jax_platform, is_ray_node_resource,
                        try_import_ray_worker, create_placement_group,
-                       get_bundle_idx, retrieve_placement_group)
+                       get_bundle_idx, retrieve_placement_group, get_bundle2ip)
 
 ray_worker = try_import_ray_worker()
 
@@ -121,7 +121,7 @@ class MeshHostWorker:
         self.launched = False
         self.distributed_client = (
             xla_client._xla.get_distributed_runtime_client(
-                server_address, host_id))
+                server_address, host_id, use_coordination_service=False))
         logger.debug(
             f"{host_id}: Trying to connect to xla runtime at {server_address}")
         self.distributed_client.connect()
@@ -208,10 +208,10 @@ class MeshHostWorker:
     def _get_buffers_with_local_ids(self, uuid: int, device_ids: Sequence[int]):
         bufs = self.buffers[uuid]
         if device_ids is None:
-            return bufs
+            return map(np.asarray, bufs)
         elif not isinstance(device_ids, Iterable):
-            return bufs[device_ids]
-        return [bufs[device_id] for device_id in device_ids]
+            return np.asarray(bufs[device_ids])
+        return [np.asarray(bufs[device_id]) for device_id in device_ids]
 
     def get_buffers(self,
                     uuids: Union[Sequence[int], int],
@@ -397,6 +397,16 @@ class MeshHostWorker:
     @staticmethod
     def destroy_collective_group(group_name: str = "default"):
         col.destroy_collective_group(group_name)
+
+    def create_and_set_cross_mesh_communicators(self, world_size, rank, backend,
+                                                group_name):
+        """Create collective communicators for the cross mesh group."""
+        if not col.is_group_initialized(group_name):
+            self.init_collective_group(world_size, rank, backend, group_name)
+        g = col.check_and_get_group(group_name)
+        devices = list(range(self.num_devices))
+        comms = g.get_nccl_collective_communicator(devices, "xla")
+        xe.set_cross_mesh_communicator(comms, "")
 
     def put_resharding_send_task(self, uuid, tasks, group_name):
         self.send_tasks[uuid] = ReshardingSendTask(tile_specs=tasks,
@@ -845,8 +855,9 @@ class LocalPhysicalDeviceMesh(PhysicalDeviceMesh):
 
     def get_outputs_handler(self, avals: Sequence[ShapedArray],
                             sharding_specs: Sequence[ShardingSpec]):
-        outs_handler = pxla.local_avals_to_results_handler(
-            sharding_specs, avals)
+        pmap_specs = pxla._get_pmap_sharding(np.arange(self.num_devices),
+                                             sharding_specs)
+        outs_handler = pxla.local_avals_to_results_handler(avals, pmap_specs)
         return outs_handler
 
     def set_runtime_random_seed(self, seed: int):
@@ -955,7 +966,7 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
         self.server_address = f"{self.head_ip}:{port}"
         logger.debug(f"Trying to start XLA gRPC server on port: {port}...")
         self.service_server = xla_client._xla.get_distributed_runtime_service(
-            self.server_address, self.num_hosts)
+            self.server_address, self.num_hosts, use_coordination_service=False)
         logger.debug(f"Success to start XLA gRPC server on port: {port}...")
         time.sleep(0.4)
 
@@ -1136,8 +1147,7 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
 
     def delete_remote_buffers(self, ary_refs: List["RemoteArrayRef"]):
         """Delete remote buffers."""
-        if (self.workers is None or not ray or not ray_worker or
-                not ray.is_initialized()):
+        if not self.workers or not ray or not ray_worker or not np.array:
             return
 
         # Put delete requests into a buffer
@@ -1149,10 +1159,13 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
         if (self.to_delete_remote_ref_ct >
                 global_config.delete_remote_arrays_threshold):
             to_delete_remote_refs = np.array(self.to_delete_remote_refs)
-            for host_id in range(self.num_hosts):
-                self.workers[host_id].delete_buffers.remote(
-                    to_delete_remote_refs)
-                self.to_delete_remote_refs = []
+            try:
+                for host_id in range(self.num_hosts):
+                    self.workers[host_id].delete_buffers.remote(
+                        to_delete_remote_refs)
+            except AttributeError:
+                pass
+            self.to_delete_remote_refs = []
             self.to_delete_remote_ref_ct = 0
 
     def block_until_ready_remote_buffers(self,
@@ -1257,11 +1270,14 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
 
     def delete_remote_executable(self, exec_uuid: int):
         """Delete remote worker executables of a driver executable."""
-        if ray is None or self.workers is None or not ray.is_initialized():
+        if not self.workers or not ray or not ray_worker or not np.array:
             return
 
-        for w in self.workers:
-            w.delete_executable.remote(exec_uuid)
+        try:
+            for w in self.workers:
+                w.delete_executable.remote(exec_uuid)
+        except AttributeError:
+            pass
 
     def set_runtime_random_seed(self, seed: int):
         for w in self.workers:
@@ -2006,7 +2022,7 @@ class DeviceCluster:
     This is the top interface for alpa to interact with ray cluster's resources.
     """
 
-    def __init__(self):
+    def __init__(self, devices_per_node: int = None, num_nodes: int = None):
         # pylint: disable=import-outside-toplevel
         ray_global_node = ray_worker._global_node
         try:
@@ -2019,10 +2035,13 @@ class DeviceCluster:
 
         # Gather host ids
         self.host_info = []
+        self.host_ips = []
+
         for node in ray.nodes():
             for key in node["Resources"]:
                 if is_ray_node_resource(key):
                     self.host_info.append(node)
+                    self.host_ips.append(key.split("node:")[-1])
 
         # Gather device info
         self.host_num_devices = []
@@ -2031,9 +2050,53 @@ class DeviceCluster:
             assert number.is_integer()
             self.host_num_devices.append(int(number))
 
+        # adjust the resource allocations
+        # if `num_nodes` is set, use it.
+        # otherwise, use the number of nodes in cluster
+        if num_nodes:
+            num_hosts = min(num_nodes, self.num_hosts)
+        else:
+            num_hosts = self.num_hosts
+
+        # if `devices_per_node` is set, use it.
+        if devices_per_node:
+            # verify that the number of devices per node is valid
+            num_valid = sum(num_device >= devices_per_node
+                            for num_device in self.host_num_devices)
+            if num_valid < num_nodes:
+                raise RuntimeError("The number of devices per node is invalid. "
+                                   f"There are only {num_valid} valid nodes.")
+            # NOTE: for simplicity, we assume `devices_per_node` are equal.
+            self.host_num_devices = [devices_per_node] * num_hosts
+
         # Create placement group
         self.placement_group = create_placement_group(self.num_hosts,
                                                       self.host_num_devices)
+
+        # update the Device Cluster info
+        if devices_per_node or num_nodes:
+            self._update_cluster_resource_from_placement_group()
+
+    def _update_cluster_resource_from_placement_group(self):
+        """Update the cluster resource from the placement group."""
+        # map: host ip to host info
+        self.dict_host_ip2info = dict(zip(self.host_ips, self.host_info))
+
+        # get bundle's ip address
+        ips = get_bundle2ip(self.placement_group)
+        bundle_specs = self.placement_group.bundle_specs
+
+        # filter out the bundle index with device (GPUs)
+        device_bundle_idx_list = [
+            i for i, bundle_spec in enumerate(bundle_specs)
+            if bundle_spec.get("GPU", 0) > 0
+        ]
+        self.host_ips = [
+            ips[bundle_idx] for bundle_idx in device_bundle_idx_list
+        ]
+
+        # filter nodes according to the placment group
+        self.host_info = [self.dict_host_ip2info[ip] for ip in ips]
 
     def delete_placement_group(self):
         """remove the placement group for the current device cluster."""
@@ -2118,16 +2181,20 @@ global_physical_mesh: PhysicalDeviceMesh = None
 global_virtual_physical_mesh: VirtualPhysicalMesh = None
 
 
-def init_global_cluster(cluster: str):
+def init_global_cluster(cluster: str,
+                        devices_per_node: int = None,
+                        num_nodes: int = None):
     global global_cluster, global_physical_mesh, global_virtual_physical_mesh
 
     if cluster == "local":
         global_physical_mesh = LocalPhysicalDeviceMesh()
     elif cluster == "ray":
         if not ray.is_initialized():
-            ray.init(address="auto", ignore_reinit_error=True)
+            ray.init(address="auto",
+                     ignore_reinit_error=True,
+                     namespace="alpa_ray_space")
         update_jax_platform("cpu")
-        global_cluster = DeviceCluster()
+        global_cluster = DeviceCluster(devices_per_node, num_nodes)
         global_virtual_physical_mesh = (
             global_cluster.get_virtual_physical_mesh())
 
@@ -2204,6 +2271,24 @@ def get_global_num_devices():
         return global_physical_mesh.num_devices
 
     raise RuntimeError("Please call alpa.init first")
+
+
+def create_and_record_cross_mesh_collective_communicators(
+        meshes: Sequence[DistributedPhysicalDeviceMesh]):
+    workers = []
+    device_strs = []
+    for mesh in meshes:
+        workers.extend(mesh.workers)
+        device_strs.extend(mesh.device_strs)
+    world_size = len(workers)
+    backend = "nccl"
+    group_name = ",".join(device_strs)
+    refs = []
+    for rank, worker in enumerate(workers):
+        ref = worker.create_and_set_cross_mesh_communicators.remote(
+            world_size, rank, backend, group_name)
+        refs.append(ref)
+    return refs
 
 
 ########################################
