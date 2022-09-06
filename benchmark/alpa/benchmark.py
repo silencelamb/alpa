@@ -160,7 +160,7 @@ if __name__ == "__main__":
     # set mapping result save dir
     if args.mapping_rst_dir == "":
         date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        args.mapping_rst_dir = f"tmp/{args.suite}-{num_devices_per_host}gpuX{num_hosts}-{date_str}"
+        args.mapping_rst_dir = f"tmp/{args.suite}-{num_devices_per_host}gpuX{num_hosts}-virtual-{args.only_mapping}-{date_str}"
         print(args.mapping_rst_dir)
     os.makedirs(args.mapping_rst_dir, exist_ok=True)
 

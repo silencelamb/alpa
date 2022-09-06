@@ -15,6 +15,7 @@ import alpa
 from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel,
                   ManualStageOption, AutoStageOption, AutoLayerOption,
                   global_config, PhysicalDeviceMesh)
+from alpa.pipeline_parallel.stage_construction import get_last_dp_result
 from alpa.timer import timers
 from alpa.util import (print_used_time, to_str_round,
                        count_communication_primitives, GB)
@@ -440,7 +441,8 @@ def compile_and_benchmark_pipeshard_training_executable(
    
     global_config = get_global_config()
     if global_config.only_mapping:
-        latencies = [66666.0]
+        _, _, _, _, _, dp_cost = get_last_dp_result()
+        latencies = dp_cost  # use dp_cost
         max_mem_allocated = 22.0
     else:
         latencies = benchmark_training_executable(

@@ -1,9 +1,7 @@
 """Generate the profiling result database.
-
 Usage:
 AWS p3.16:
 python3 gen_prof_database.py --max-comm-size-intra-node 32 --max-comm-size-inter-node 29
-
 AWS p4.24:
 python3 gen_prof_database.py --efa --max-comm-size-intra-node 33 --max-comm-size-inter-node 30 --max-fail-retry 8
 """
@@ -12,6 +10,7 @@ import ray
 import argparse
 
 import jax
+import alpa
 from alpa import DeviceCluster, ProfilingResultDatabase, global_config
 from alpa.util import run_cmd
 
@@ -56,8 +55,8 @@ if __name__ == "__main__":
     _ = jax.numpy.ones(1)
 
     # Connect to a ray cluster
-    ray.init(address="auto")
-    cluster = DeviceCluster()
+    alpa.init(cluster="ray")
+    cluster = alpa.get_global_cluster()
 
     prof_database = cluster.profile_all(args.cluster_key,
                                         args.max_comm_size_intra_node,
