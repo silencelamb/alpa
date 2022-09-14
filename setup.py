@@ -117,7 +117,7 @@ if __name__ == "__main__":
     class BinaryDistribution(setuptools.Distribution):
 
         def has_ext_modules(self):
-            return True
+            return False
 
     class InstallPlatlib(install):
 
@@ -146,10 +146,9 @@ if __name__ == "__main__":
         ],
         keywords=("alpa distributed parallel machine-learning model-parallelism"
                   "gpt-3 deep-learning language-model python"),
-        packages=find_packages(exclude=["playground"]),
+        packages=find_packages(exclude=["benchmark", "examples", "playground", "tests"]),
         python_requires='>=3.7',
         cmdclass={"install": InstallPlatlib},
-        distclass=BinaryDistribution,
         install_requires=install_require_list,
         extras_require={
             'dev': dev_require_list,
