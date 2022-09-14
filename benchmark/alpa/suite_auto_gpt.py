@@ -93,7 +93,8 @@ grid_search_suite = {
         get_search_cases(gpt_specs["2.6B"], [64, 128], [16])),
     16: get_search_cases(gpt_specs["6.7B"], [32, 64, 128, 256], [8]),
     32: get_search_cases(gpt_specs["15B"], [64, 128, 256, 512], [16]),
-    64: get_search_cases(gpt_specs["39B"], [128, 256, 512, 1024], [8]),
+    # 64: get_search_cases(gpt_specs["39B"], [128, 256, 512, 1024], [8]),
+    64: get_search_cases(gpt_specs["39B"], [512], [8]),
 }
 
 # Small test cases for correctness test

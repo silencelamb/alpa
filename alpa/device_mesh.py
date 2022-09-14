@@ -47,7 +47,7 @@ from ray.util.placement_group import remove_placement_group
 
 from alpa import mesh_profiling
 import alpa.collective as col
-from alpa.global_env import global_config
+from alpa.global_env import get_global_config, global_config
 from alpa.monkey_patch import set_override_backend
 from alpa.shard_parallel.auto_sharding import (LogicalDeviceMesh)
 from alpa.parallel_plan import PlacementSpec
@@ -931,6 +931,8 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
         self.launched = False
         self.service_server = None
         self.operation_executables = {}
+        global_config = get_global_config()
+        self.only_mapping = global_config.only_mapping
 
         if devices is not None:
             if len(devices) != len(host_ids):
@@ -973,11 +975,12 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
         # Launch workers
         self.workers = []
 
-        # retrieve the placement group
-        placement_group = retrieve_placement_group()
+        if not self.only_mapping:
+            # retrieve the placement group
+            placement_group = retrieve_placement_group()
 
-        # get the sorted bundle index list
-        device_bundle_idx_list = get_bundle_idx(placement_group, self.node_ips)
+            # get the sorted bundle index list
+            device_bundle_idx_list = get_bundle_idx(placement_group, self.node_ips)
 
         for i in range(self.num_hosts):
             # Set XLA environment variables
@@ -1018,25 +1021,40 @@ class DistributedPhysicalDeviceMesh(PhysicalDeviceMesh):
                     "LD_LIBRARY_PATH": os.environ.get("LD_LIBRARY_PATH",
                                                       ""),  # For libnccl-net.so
                 })
+            
+            if self.only_mapping:
+                # Launch the DaemonMoveWorker
+                node_resource = "node:" + self.host_info[i]["NodeManagerAddress"]
+                cls = ray.remote(resources={node_resource: 1e-3})(DaemonMoveWorker)
+                move_worker = cls.remote()
 
-            bundle_index = device_bundle_idx_list[i]
+                # Launch the MeshHostWorker
+                cls = ray.remote(num_gpus=self.num_devices_per_host,
+                                resources={node_resource: 1e-3})(MeshHostWorker)
+                worker = cls.options(runtime_env={
+                    "env_vars": env_vars
+                }).remote(self.server_address, self.num_hosts, i, self.mesh_id,
+                        move_worker, global_config.runtime_random_seed)
+            else:
+                bundle_index = device_bundle_idx_list[i]
 
-            # Launch the DaemonMoveWorker
-            cls = ray.remote(num_cpus=0)(DaemonMoveWorker)
-            move_worker = cls.options(
-                placement_group=placement_group,
-                placement_group_bundle_index=bundle_index).remote()
+                # Launch the DaemonMoveWorker
+                cls = ray.remote(num_cpus=0)(DaemonMoveWorker)
+                move_worker = cls.options(
+                    placement_group=placement_group,
+                    placement_group_bundle_index=bundle_index).remote()
 
-            # Launch the MeshHostWorker
-            cls = ray.remote(num_cpus=0,
-                             num_gpus=self.num_devices_per_host)(MeshHostWorker)
-            worker = cls.options(placement_group=placement_group,
-                                 placement_group_bundle_index=bundle_index,
-                                 runtime_env={
-                                     "env_vars": env_vars
-                                 }).remote(self.server_address, self.num_hosts,
-                                           i, self.mesh_id, move_worker,
-                                           global_config.runtime_random_seed)
+                # Launch the MeshHostWorker
+                cls = ray.remote(num_cpus=0,
+                                num_gpus=self.num_devices_per_host)(MeshHostWorker)
+                worker = cls.options(placement_group=placement_group,
+                                    placement_group_bundle_index=bundle_index,
+                                    runtime_env={
+                                        "env_vars": env_vars
+                                    }).remote(self.server_address, self.num_hosts,
+                                            i, self.mesh_id, move_worker,
+                                            global_config.runtime_random_seed)
+
             self.workers.append(worker)
         self.launched = True
 
@@ -1865,6 +1883,11 @@ class VirtualPhysicalMesh:
             threads.append(t)
         for i in range(len(sliced_virtual_meshes)):
             threads[i].join()
+            
+        # for i in range(len(sliced_virtual_meshes)):
+        #     import pdb; pdb.set_trace()
+        #     print("===================================", i)
+        #     physical_meshes[i] = sliced_virtual_meshes[i].get_physical_mesh(i)
 
         self.launched_physical_mesh_group = (PhysicalDeviceMeshGroup(
             physical_meshes, self))
