@@ -455,7 +455,7 @@ def compile_and_benchmark_pipeshard_training_executable(
         max_mem_allocated = executable.mesh_group.get_max_memory_allocated()
 
     # add compute and network cost analysis
-    # compute_network_anaysis(executable)
+    compute_network_anaysis(executable)
 
     return latencies, max_mem_allocated, compilation_times, executable
 
