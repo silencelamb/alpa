@@ -764,6 +764,15 @@ def test_bert_layer():
         "rng": rngkey
     })
     print(jaxpr)
+    backend = jax.lib.xla_bridge.get_backend()
+    computation = jax.xla_computation(train_step)(optimizer, {
+        "hidden_states": hidden_states,
+        "attention_mask": attention_mask,
+        "label": label,
+        "rng": rngkey
+    })
+    e = backend.compile(computation)
+    print(e.hlo_modules()[0].to_string())
 
 
 def test_bert_mlm():
@@ -829,5 +838,5 @@ def test_bert_mlm():
 
 
 if __name__ == "__main__":
-    #test_bert_layer()
+    # test_bert_layer()
     test_bert_mlm()
