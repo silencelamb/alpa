@@ -49,7 +49,7 @@ class GlobalConfig:
         self.always_donate_micro_batch_vars = True
 
         ########## Options of pipeline runtime ##########
-        self.pipeline_check_alive = True
+        self.pipeline_check_alive = False
         # Whether to sync before and after the executable for accurate internal
         # timer
         self.pipeline_sync_for_timer = False
@@ -104,5 +104,6 @@ def set_global_config(global_config_new: GlobalConfig):
 # Other environment setup
 is_worker = os.environ.get("ALPA_IS_WORKER", "False") == "True"
 
-os.environ["XLA_FLAGS"] = os.environ.get(
-    "XLA_FLAGS", "") + " --xla_gpu_enable_async_all_reduce=false"
+os.environ["XLA_FLAGS"] = (os.environ.get("XLA_FLAGS", "") +
+                           " --xla_gpu_enable_async_all_reduce=false" +
+                           " --xla_gpu_force_compilation_parallelism=8")
