@@ -1634,6 +1634,7 @@ def get_num_available_gpus(pg: PlacementGroup):
 
 GB = 1 << 30  # Gigabyte
 MB = 1 << 20  # Megabyte
+TOPS =  10 ** 12 # TOPS
 
 
 def map_to_shape(array_pytree: PyTreeDef):

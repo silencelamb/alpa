@@ -1,7 +1,33 @@
 """All global configurations for this project."""
 import gc
 import os
+from enum import Enum
 
+
+GB = 1 << 30  # Gigabyte
+MB = 1 << 20  # Megabyte
+TOPS =  10 ** 12 # TOPS
+
+class PrimitiveType(Enum):
+    INVALID = 0
+    PRED = 1
+    S8 = 2
+    S16 = 3
+    S32 = 4
+    S64 = 5
+    U8 = 6
+    U16 = 7
+    U32 = 8
+    U64 = 9
+    F16 = 10
+    F32 = 11
+    BF16 = 16
+    F64 = 12
+    C64 = 15
+    C128 = 18
+    TUPLE = 13
+    OPAQUE_TYPE = 14
+    TOKEN = 17   
 
 class GlobalConfig:
     """The global configuration of alpa."""
@@ -35,10 +61,6 @@ class GlobalConfig:
         # use the given mesh. 
         # it should be set as False, when we want to excute mapping in arbitrary mesh
         self.profile_with_whole_ray_cluster = False
-        # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
-        self.only_mapping = False
-        # mapping result dir
-        self.maping_rst_dir = ""
         # Stage construction profiling time threshold.
         self.profile_timeout = 500
         # Stage construction profiling retry threshold.
@@ -88,6 +110,43 @@ class GlobalConfig:
         ########## Options of logging ##########
         self.print_compilation_time = False
         self.print_auto_layer_stats = True
+
+        ########## Options of mapping ################
+        # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
+        self.only_mapping = False
+        # mapping result dir
+        self.maping_rst_dir = ""
+        # whether using analytical performance model
+        self.use_analytical_perf_model = True
+        self.hardware = "gpu"
+        self.gpu_config = {
+            "analytical_perf::hardware": "gpu",
+            "analytical_perf::compute_dict": {
+                PrimitiveType.F16.value: 156 * TOPS,
+                PrimitiveType.F32.value: 312 * TOPS,
+            },
+            "analytical_perf_gpu::card_num": 8,
+            "analytical_perf_gpu::card_mem": 40 * GB,
+            "analytical_perf_gpu::card_bw": 600 * GB,
+            # "analytical_perf_gpu::node_bw": int(25/8 * GB),   # alpa 里是 25Gbps
+            "analytical_perf_gpu::node_bw": 600 * GB,   # alpa 里是 25Gbps 
+            "analytical_perf::cmp_ul": 0.7,
+            "analytical_perf::bw_ul": 0.7
+        }
+        self.wsc_config = {
+            "analytical_perf::hardware": "wsc",
+            "analytical_perf::compute_dict": {
+                PrimitiveType.F16.value: int( 256/36 * TOPS),
+                PrimitiveType.F32.value: int( 20/36  * TOPS),
+            },
+            "analytical_perf_wsc::tile_r_num": 6,
+            "analytical_perf_wsc::tile_c_num": 6,
+            "analytical_perf_wsc::tile_mem": 10 ** 9,
+            "analytical_perf_wsc::tile_bw": 200 * GB,
+            "analytical_perf_wsc::die_bw": 200 * GB,
+            "analytical_perf::cmp_ul": 0.8,
+            "analytical_perf::bw_ul": 0.8
+        }
 
 
 global_config = GlobalConfig()

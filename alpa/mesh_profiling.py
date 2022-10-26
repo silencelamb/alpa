@@ -11,6 +11,7 @@ import ray
 
 from alpa.util import (GB, print_used_time, XlaPassContext, to_str_round,
                        run_with_timeout)
+from alpa.global_env import get_global_config
 
 ops = xc.ops
 
@@ -897,13 +898,28 @@ def estimate_hlo_module_cost(hlo_module,
                              grad_sync_channel_ids=""):
     """Estimate the cost of an HLO module with the HLO instruction level cost
     model."""
-    with XlaPassContext({
-            "gpu_cost_model::profiling_results": profiling_results,
-            "gpu_cost_model::num_micro_batches": num_micro_batches,
-            "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
-            "gpu_cost_model::verbose": 0,
-    }):
-        return xe.estimate_hlo_module_cost(hlo_module)
+    global_env = get_global_config()
+    if (global_env.use_analytical_perf_model):
+        if global_env.hardware == "gpu":
+            hardware_config = global_env.gpu_config
+        else:
+            hardware_config = global_env.wsc_config
+        common_text = {
+            "analytical_perf::num_micro_batches": num_micro_batches,
+            "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
+            "analytical_perf::verbose": 0,
+        }
+        print(hardware_config | common_text)
+        with XlaPassContext(hardware_config | common_text):
+            return xe.analytical_perf_of_hlo_module(hlo_module)
+    else:
+        with XlaPassContext({
+                "gpu_cost_model::profiling_results": profiling_results,
+                "gpu_cost_model::num_micro_batches": num_micro_batches,
+                "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
+                "gpu_cost_model::verbose": 0,
+        }):
+            return xe.estimate_hlo_module_cost(hlo_module)
 
 
 def hlo_module_cost_analysis(hlo_module,
