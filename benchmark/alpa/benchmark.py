@@ -66,7 +66,7 @@ def benchmark_suite(suite_name,
     model_type = suite_name.split(".")[0]
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     global_config = get_global_config()
-    output_name = f"{global_config.maping_rst_dir}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
+    output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
 
     # Run all cases
     for benchmark_case in suite:
@@ -79,7 +79,7 @@ def benchmark_suite(suite_name,
         except AttributeError:
             auto_layers = 'auto'
 
-        global_config.maping_rst_dir = f"{global_config.maping_rst_dir}/Batchsize_{totol_batch_size}" + \
+        global_config.maping_rst_dir = f"{global_config.rst_folder}/Batchsize_{totol_batch_size}" + \
             f"-num_b_{num_micro_batches}-auto_layers_{auto_layers}"
         os.makedirs(global_config.maping_rst_dir, exist_ok=True)
         set_global_config(global_config)
@@ -148,9 +148,11 @@ if __name__ == "__main__":
                         dest="use_separate_process")
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
-    parser.add_argument("--only-mapping", action="store_true")
-    parser.add_argument("--use-analytical-perf-model", action="store_true")
-    parser.add_argument("--mapping_rst_dir", type=str, default="")
+    parser.add_argument("--only-mapping", action="store_true", dest="only_mapping")
+    parser.add_argument("--use-analytical-perf-model", action="store_true", dest="use_analytical_perf_model")
+    parser.add_argument("--rst_folder", type=str, default="")
+    parser.add_argument("--hardware", type=str, default="gpu")
+    parser.add_argument("--force_use_fp16", action="store_true")
     args = parser.parse_args()
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 
@@ -162,15 +164,29 @@ if __name__ == "__main__":
     global_config.use_analytical_perf_model = args.use_analytical_perf_model
 
     # set mapping result save dir
-    if args.mapping_rst_dir == "":
-        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        args.mapping_rst_dir = f"tmp/{args.suite}-{num_devices_per_host}gpuX{num_hosts}-virtual-{args.only_mapping}-{date_str}"
-        print(args.mapping_rst_dir)
-    os.makedirs(args.mapping_rst_dir, exist_ok=True)
+    if args.rst_folder == "":
+        args.rst_folder = "tmp"
+    
+    date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    if args.only_mapping:
+        if global_config.use_analytical_perf_model:
+            actual_or_virtual = f"perf@{global_config.hardware}"
+        else:
+            actual_or_virtual = "costmodel"
+    else:
+        actual_or_virtual =  "actualA100"
+    args.rst_folder = f"{args.rst_folder}/{args.suite}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
+    print(args.rst_folder)
+    os.makedirs(args.rst_folder, exist_ok=True)
 
-    global_config.maping_rst_dir = args.mapping_rst_dir
+    global_config.rst_folder = args.rst_folder
+    global_config.hardware = args.hardware
+    global_config.force_use_fp16 = args.force_use_fp16
 
     set_global_config(global_config)
+    global_config = get_global_config()
+    print(global_config.use_analytical_perf_model)
+
 
     benchmark_suite(args.suite, num_hosts, num_devices_per_host, args.exp_name,
                     args.niter, args.shard_only, args.local,

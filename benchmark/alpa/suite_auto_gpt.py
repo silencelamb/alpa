@@ -84,17 +84,26 @@ perf_test_suite = {
 }
 
 # Grid search on hyperparameters
+# grid_search_suite = {
+#     2: (get_search_cases(gpt_specs["760M"], [32, 64, 128, 256], [6]) +
+#         get_search_cases(gpt_specs["760M"], [32, 64], [12])),
+#     4: (get_search_cases(gpt_specs["1.3B"], [32, 64, 128], [6]) +
+#         get_search_cases(gpt_specs["1.3B"], [32, 64], [12])),
+#     8: (get_search_cases(gpt_specs["2.6B"], [64, 128, 256], [8]) +
+#         get_search_cases(gpt_specs["2.6B"], [64, 128], [16])),
+#     16: get_search_cases(gpt_specs["6.7B"], [32, 64, 128, 256], [8]),
+#     32: get_search_cases(gpt_specs["15B"], [64, 128, 256, 512], [16]),
+#     64: get_search_cases(gpt_specs["39B"], [128, 256, 512, 1024], [8]),
+# }
+
 grid_search_suite = {
-    2: (get_search_cases(gpt_specs["760M"], [32, 64, 128, 256], [6]) +
-        get_search_cases(gpt_specs["760M"], [32, 64], [12])),
-    4: (get_search_cases(gpt_specs["1.3B"], [32, 64, 128], [6]) +
-        get_search_cases(gpt_specs["1.3B"], [32, 64], [12])),
-    8: (get_search_cases(gpt_specs["2.6B"], [64, 128, 256], [8]) +
-        get_search_cases(gpt_specs["2.6B"], [64, 128], [16])),
-    16: get_search_cases(gpt_specs["6.7B"], [32, 64, 128, 256], [8]),
-    32: get_search_cases(gpt_specs["15B"], [64, 128, 256, 512], [16]),
-    # 64: get_search_cases(gpt_specs["39B"], [128, 256, 512, 1024], [8]),
-    64: get_search_cases(gpt_specs["39B"], [512], [8]),
+    1: get_search_cases(gpt_specs["350M"], [512], [1]),
+    2: get_search_cases(gpt_specs["760M"], [128], [6]),
+    4: get_search_cases(gpt_specs["1.3B"], [128], [6]),
+    8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
+    16: get_search_cases(gpt_specs["6.7B"], [64], [8]),
+    32: get_search_cases(gpt_specs["15B"], [128], [16]),
+    64: get_search_cases(gpt_specs["39B"], [1024], [16]),
 }
 
 # Small test cases for correctness test

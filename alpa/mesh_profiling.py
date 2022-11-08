@@ -893,20 +893,23 @@ def profile_all(device_cluster,
 
 
 def estimate_hlo_module_cost(hlo_module,
+                             g_config,
                              profiling_results=None,
                              num_micro_batches=1,
                              grad_sync_channel_ids=""):
     """Estimate the cost of an HLO module with the HLO instruction level cost
     model."""
-    global_env = get_global_config()
-    if (global_env.use_analytical_perf_model):
-        if global_env.hardware == "gpu":
-            hardware_config = global_env.gpu_config
+    global_config = g_config
+    print(global_config.force_use_fp16)
+    if (global_config.use_analytical_perf_model):
+        if global_config.hardware == "gpu":
+            hardware_config = global_config.gpu_config
         else:
-            hardware_config = global_env.wsc_config
+            hardware_config = global_config.wsc_config
         common_text = {
             "analytical_perf::num_micro_batches": num_micro_batches,
             "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
+            "analytical_perf::force_use_fp16": global_config.force_use_fp16,
             "analytical_perf::verbose": 0,
         }
         print(hardware_config | common_text)

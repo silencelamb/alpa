@@ -18,7 +18,7 @@ from ray.util import ActorPool
 
 from alpa.device_mesh import (DistributedArray, PhysicalDeviceMesh,
                               VirtualPhysicalMesh, _shard_device_array)
-from alpa.global_env import global_config
+from alpa.global_env import global_config, get_global_config
 from alpa.mesh_executable import (PartialGradAccMeshDriverExecutable,
                                   get_grad_sync_channel_ids)
 from alpa.mesh_profiling import (ProfilingResultDatabase,
@@ -358,11 +358,12 @@ class ProfileWorkerPool(BaseWorkerPoolWrapper):
 class HloCostModelProfileWorker:
     """A ray actor to estimate the cost of HLO Proto based on cost model."""
 
-    def __init__(self, prof_result, num_devices, num_micro_batches):
+    def __init__(self, prof_result, num_devices, num_micro_batches, g_config):
         self.backend = xb.get_backend("gpu")
         self.prof_result = prof_result
         self.num_devices = num_devices
         self.num_micro_batches = num_micro_batches
+        self.g_config = g_config
 
     def profile(self, stage_id, compiled_output, profile_info,
                 intermediate_size, initial_size):
@@ -385,9 +386,10 @@ class HloCostModelProfileWorker:
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
         peak_memory = compiled.total_allocation_size()
         available_memory = self.prof_result.available_memory_per_device
-        cost = estimate_hlo_module_cost(hlo_module, self.prof_result,
+        cost = estimate_hlo_module_cost(hlo_module, self.g_config, self.prof_result,
                                         self.num_micro_batches,
-                                        grad_sync_channel_ids)
+                                        grad_sync_channel_ids
+                                        )
         del compiled
 
         #with open(f"/home/ubuntu/efs/alpa/benchmark/alpa/tmp/"
@@ -422,13 +424,14 @@ class HloCostModelProfileWorkerPool(BaseWorkerPoolWrapper):
         env_vars = {"XLA_FLAGS": "--xla_gpu_autotune_level=0"}
         worker_cls = ray.remote(num_cpus=0,
                                 num_gpus=gpu_per_cpu)(HloCostModelProfileWorker)
+        g_config = get_global_config()
         self.actors = [
             worker_cls.options(
                 runtime_env={
                     "env_vars": env_vars
                 },
                 placement_group=placement_group,
-            ).remote(prof_result, mesh_num_devices, num_micro_batches)
+            ).remote(prof_result, mesh_num_devices, num_micro_batches, g_config)
             for _ in range(num_cpus)
         ]
         self.pool = ActorPool(self.actors)
