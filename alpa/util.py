@@ -37,6 +37,7 @@ import ray
 from ray.util.placement_group import get_current_placement_group,\
     PlacementGroup
 import tqdm
+import pandas as pd
 
 import alpa
 from alpa.global_env import global_config, is_worker
@@ -1312,8 +1313,15 @@ def write_tsv(heads: Sequence[str],
 
     values = [str(x) for x in values]
 
-    with open(filename, "a", encoding="utf-8") as fout:
-        fout.write("\t".join(values) + "\n")
+    # with open(filename, "a", encoding="utf-8") as fout:
+    #     fout.write("\t".join(values) + "\n")
+    
+    result_dict = dict(zip(heads, values))
+    df = pd.DataFrame.from_dict([result_dict])
+    if os.path.exists(filename):
+        old_df = pd.read_excel(filename, header=0)
+        df = pd.concat(old_df, df)
+    df.to_excel(filename.replace('.tsv', '.xlsx'))
 
     if print_line:
         line = ""

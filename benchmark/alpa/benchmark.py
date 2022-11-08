@@ -149,6 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
     parser.add_argument("--only-mapping", action="store_true")
+    parser.add_argument("--use-analytical-perf-model", action="store_true")
     parser.add_argument("--mapping_rst_dir", type=str, default="")
     args = parser.parse_args()
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
@@ -156,6 +157,9 @@ if __name__ == "__main__":
     # set global_config, only_mapping
     global_config = get_global_config()
     global_config.only_mapping = args.only_mapping
+
+    # set whether use analytical model
+    global_config.use_analytical_perf_model = args.use_analytical_perf_model
 
     # set mapping result save dir
     if args.mapping_rst_dir == "":

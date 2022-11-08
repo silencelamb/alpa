@@ -893,7 +893,7 @@ def profile_all(device_cluster,
 
 
 def estimate_hlo_module_cost(hlo_module,
-                             profiling_results,
+                             profiling_results=None,
                              num_micro_batches=1,
                              grad_sync_channel_ids=""):
     """Estimate the cost of an HLO module with the HLO instruction level cost
@@ -911,7 +911,7 @@ def estimate_hlo_module_cost(hlo_module,
         }
         print(hardware_config | common_text)
         with XlaPassContext(hardware_config | common_text):
-            return xe.analytical_perf_of_hlo_module(hlo_module)
+            cost = xe.analytical_perf_of_hlo_module(hlo_module)
     else:
         with XlaPassContext({
                 "gpu_cost_model::profiling_results": profiling_results,
@@ -919,7 +919,9 @@ def estimate_hlo_module_cost(hlo_module,
                 "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
                 "gpu_cost_model::verbose": 0,
         }):
-            return xe.estimate_hlo_module_cost(hlo_module)
+            cost =  xe.estimate_hlo_module_cost(hlo_module)
+    print(cost)
+    return cost
 
 
 def hlo_module_cost_analysis(hlo_module,
