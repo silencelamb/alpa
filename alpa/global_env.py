@@ -119,7 +119,7 @@ class GlobalConfig:
         # mapping result dir
         self.maping_rst_dir = ""
         # whether using analytical performance model
-        self.use_analytical_perf_model = True
+        self.use_analytical_perf_model = False
         self.hardware = "gpu"
         # self.hardware = "wsc"
         self.force_use_fp16 = False
@@ -132,10 +132,12 @@ class GlobalConfig:
             },
             "analytical_perf_gpu::card_num": 8,
             "analytical_perf_gpu::card_mem": 80 * GB,
-            "analytical_perf_gpu::card_bw": 600 * GB,
+            # "analytical_perf_gpu::card_bw": 600 * GB,
+            "analytical_perf_gpu::card_bw": 200 * GB,
             # "analytical_perf_gpu::card_bw": 900 * GB,
-            # "analytical_perf_gpu::node_bw": int(25/8 * GB),   # alpa 里是 25Gbps
-            "analytical_perf_gpu::node_bw": 600 * GB,   # nv link
+            "analytical_perf_gpu::node_bw": int(25/8 * GB),   # alpa 里是 25Gbps
+            # "analytical_perf_gpu::node_bw": 200 * GB,
+            # "analytical_perf_gpu::node_bw": 600 * GB,   # nv link
             "analytical_perf::cmp_ul": 0.7,
             "analytical_perf::bw_ul": 0.7
         }

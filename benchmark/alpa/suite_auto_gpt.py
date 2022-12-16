@@ -101,9 +101,12 @@ grid_search_suite = {
     2: get_search_cases(gpt_specs["760M"], [128], [6]),
     4: get_search_cases(gpt_specs["1.3B"], [128], [6]),
     8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
-    16: get_search_cases(gpt_specs["6.7B"], [64], [8]),
+    # 16: get_search_cases(gpt_specs["6.7B"], [64], [8]),
+    16: get_search_cases(gpt_specs["6.7B"], [128], [8]),
+    # 16: get_search_cases(gpt_specs["15B"], [128], [8]),
     32: get_search_cases(gpt_specs["15B"], [128], [16]),
     64: get_search_cases(gpt_specs["39B"], [1024], [16]),
+    1024: get_search_cases(gpt_specs["39B"], [32], [64]),
 }
 
 # Small test cases for correctness test

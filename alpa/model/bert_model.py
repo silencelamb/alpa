@@ -17,7 +17,7 @@ from alpa.model.model_util import (FlaxBaseModelOutput,
                                    FlaxMaskedLMOutput, TrainState)
 from alpa.model.model_util import TrainState
 from alpa.pipeline_parallel.primitive_def import mark_pipeline_boundary
-
+from jax_graph import _jaxpr_graph
 
 class BertConfig:
 
@@ -764,6 +764,11 @@ def test_bert_layer():
         "rng": rngkey
     })
     print(jaxpr)
+    # import pdb; pdb.set_trace()
+    g = _jaxpr_graph(jaxpr.jaxpr)
+    g.format = 'pdf'
+    g.render(directory='./')
+    
 
 
 def test_bert_mlm():
@@ -829,5 +834,5 @@ def test_bert_mlm():
 
 
 if __name__ == "__main__":
-    #test_bert_layer()
-    test_bert_mlm()
+    test_bert_layer()
+    # test_bert_mlm()

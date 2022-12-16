@@ -107,7 +107,15 @@ if __name__ == "__main__":
     m = 4
     n = 3
     schedules = generate_gpipe_schedule(m, n)
+    # import pdb; pdb.set_trace()
     pprint_schedule(schedules)
     print("\n")
+    m = 4
+    n = 2
     schedules = generate_1f1b_schedule(m, n)
+    import json
+    with open(f'1f1b_schedules_batch{m}_stage{n}.json', 'w') as f:
+        json.dump(schedules, f)
+    # jason_str = json.dumps(schedules)
+    # print(jason_str)
     pprint_schedule(schedules)
