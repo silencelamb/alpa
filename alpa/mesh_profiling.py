@@ -931,8 +931,17 @@ def hlo_module_cost_analysis(hlo_module,
                              num_micro_batches=1,
                              grad_sync_channel_ids=""):
     """compute and network analysis of an HLO module, added by daixu."""
-    with XlaPassContext({
-            "gpu_cost_model::num_micro_batches": num_micro_batches,
-            "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
-    }):
+    global_config = get_global_config()
+    if global_config.hardware == "gpu":
+        hardware_config = global_config.gpu_config
+    else:
+        hardware_config = global_config.wsc_config
+    common_text = {
+        "gpu_cost_model::num_micro_batches": num_micro_batches,
+        "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
+        "analytical_perf::force_use_fp16": global_config.force_use_fp16,
+        "analytical_perf::verbose": 0,
+    }
+    print(hardware_config | common_text)
+    with XlaPassContext(hardware_config | common_text):
         return xe.hlo_module_cost_analysis(hlo_module)

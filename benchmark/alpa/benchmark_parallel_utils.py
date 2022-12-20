@@ -424,6 +424,7 @@ def compute_network_anaysis(executable: PipeshardDriverExecutable):
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
         peak_memory = compiled.total_allocation_size()/ GB
         analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)
+        # import pdb; pdb.set_trace()
         df = pd.DataFrame.from_dict(analysis_result)
         df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_peak_memory-{peak_memory: .3f}GB.xlsx")
         print(f'compute_network_anaysis: stage_{idx} peak_memory: {peak_memory: .3f} GB !!!!!!')

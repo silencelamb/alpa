@@ -17,7 +17,7 @@ from alpa.model.model_util import (FlaxBaseModelOutput,
                                    FlaxMaskedLMOutput, TrainState)
 from alpa.model.model_util import TrainState
 from alpa.pipeline_parallel.primitive_def import mark_pipeline_boundary
-from jax_graph import _jaxpr_graph
+from .jax_graph import _jaxpr_graph
 
 class BertConfig:
 

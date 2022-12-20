@@ -1,0 +1,806 @@
+digraph {
+	size="6,10!"
+	a [label="int32[]" color=mediumspringgreen style=filled]
+	b [label="float32[768]" color=mediumspringgreen style=filled]
+	c [label="float32[768]" color=mediumspringgreen style=filled]
+	d [label="float32[768]" color=mediumspringgreen style=filled]
+	e [label="float32[768,768]" color=mediumspringgreen style=filled]
+	f [label="float32[2304]" color=mediumspringgreen style=filled]
+	g [label="float32[768,2304]" color=mediumspringgreen style=filled]
+	h [label="float32[3072]" color=mediumspringgreen style=filled]
+	i [label="float32[768,3072]" color=mediumspringgreen style=filled]
+	j [label="float32[768]" color=mediumspringgreen style=filled]
+	k [label="float32[768]" color=mediumspringgreen style=filled]
+	l [label="float32[768]" color=mediumspringgreen style=filled]
+	m [label="float32[3072,768]" color=mediumspringgreen style=filled]
+	n [label="int32[64,64]" color=mediumspringgreen style=filled]
+	o [label="float32[64,64,768]" color=mediumspringgreen style=filled]
+	p [label="float32[64,64,768]" color=mediumspringgreen style=filled]
+	q [label="uint32[2]" color=mediumspringgreen style=filled]
+	r [label=dot_general color=lightskyblue shape=box style=filled]
+	o -> r
+	g -> r
+	s [label=reshape color=lightskyblue shape=box style=filled]
+	f -> s
+	t [label=add color=lightskyblue shape=box style=filled]
+	r -> t
+	s -> t
+	u [label=reshape color=lightskyblue shape=box style=filled]
+	t -> u
+	v [label=slice color=lightskyblue shape=box style=filled]
+	u -> v
+	w [label=slice color=lightskyblue shape=box style=filled]
+	u -> w
+	x [label=slice color=lightskyblue shape=box style=filled]
+	u -> x
+	y [label=reshape color=lightskyblue shape=box style=filled]
+	v -> y
+	z [label=reshape color=lightskyblue shape=box style=filled]
+	w -> z
+	ba [label=reshape color=lightskyblue shape=box style=filled]
+	x -> ba
+	bb [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	n -> bb
+	139998889787920 [label="int32[]" color=goldenrod1 style=filled]
+	bc [label=gt color=lightskyblue shape=box style=filled]
+	bb -> bc
+	139998889787920 -> bc
+	139999598625872 [label="float32[]" color=goldenrod1 style=filled]
+	bd [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139999598625872 -> bd
+	be [label=convert_element_type color=lightskyblue shape=box style=filled]
+	bd -> be
+	139999598627952 [label="float32[]" color=goldenrod1 style=filled]
+	bf [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139999598627952 -> bf
+	bg [label=convert_element_type color=lightskyblue shape=box style=filled]
+	bf -> bg
+	bh [label=select_n color=lightskyblue shape=box style=filled]
+	bc -> bh
+	bg -> bh
+	be -> bh
+	139999598626928 [label="float32[]" color=goldenrod1 style=filled]
+	bi [label=sqrt color=lightskyblue shape=box style=filled]
+	139999598626928 -> bi
+	bj [label=convert_element_type color=lightskyblue shape=box style=filled]
+	bi -> bj
+	bk [label=div color=lightskyblue shape=box style=filled]
+	y -> bk
+	bj -> bk
+	id0 [label=xla_call color=lightskyblue shape=box style=filled]
+	bk -> id0
+	ba -> id0
+	bl [label="float32[64,12,64,64]" color=cornflowerblue style=filled]
+	id0 -> bl
+	bm [label=add color=lightskyblue shape=box style=filled]
+	bl -> bm
+	bh -> bm
+	bn [label=reduce_max color=lightskyblue shape=box style=filled]
+	bm -> bn
+	bo [label=reshape color=lightskyblue shape=box style=filled]
+	bn -> bo
+	bp [label=eq color=lightskyblue shape=box style=filled]
+	bm -> bp
+	bo -> bp
+	bq [label=convert_element_type color=lightskyblue shape=box style=filled]
+	bp -> bq
+	_ [label=reduce_sum color=lightskyblue shape=box style=filled]
+	bq -> _
+	br [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	bn -> br
+	bs [label=stop_gradient color=lightskyblue shape=box style=filled]
+	br -> bs
+	bt [label=sub color=lightskyblue shape=box style=filled]
+	bm -> bt
+	bs -> bt
+	bu [label=exp color=lightskyblue shape=box style=filled]
+	bt -> bu
+	bv [label=reduce_sum color=lightskyblue shape=box style=filled]
+	bu -> bv
+	bw [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	bv -> bw
+	bx [label=div color=lightskyblue shape=box style=filled]
+	bu -> bx
+	bw -> bx
+	by [label=integer_pow color=lightskyblue shape=box style=filled]
+	bw -> by
+	id1 [label=xla_call color=lightskyblue shape=box style=filled]
+	bx -> id1
+	z -> id1
+	bz [label="float32[64,64,12,64]" color=cornflowerblue style=filled]
+	id1 -> bz
+	ca [label=reshape color=lightskyblue shape=box style=filled]
+	bz -> ca
+	cb [label=dot_general color=lightskyblue shape=box style=filled]
+	ca -> cb
+	e -> cb
+	cc [label=reshape color=lightskyblue shape=box style=filled]
+	d -> cc
+	cd [label=add color=lightskyblue shape=box style=filled]
+	cb -> cd
+	cc -> cd
+	ce [label=add color=lightskyblue shape=box style=filled]
+	cd -> ce
+	o -> ce
+	cf [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ce -> cf
+	139998889980912 [label="float32[]" color=goldenrod1 style=filled]
+	cg [label=div color=lightskyblue shape=box style=filled]
+	cf -> cg
+	139998889980912 -> cg
+	ch [label=integer_pow color=lightskyblue shape=box style=filled]
+	ce -> ch
+	ci [label=integer_pow color=lightskyblue shape=box style=filled]
+	ce -> ci
+	139998889516176 [label="float32[]" color=goldenrod1 style=filled]
+	cj [label=mul color=lightskyblue shape=box style=filled]
+	139998889516176 -> cj
+	ci -> cj
+	ck [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ch -> ck
+	139998889544656 [label="float32[]" color=goldenrod1 style=filled]
+	cl [label=div color=lightskyblue shape=box style=filled]
+	ck -> cl
+	139998889544656 -> cl
+	cm [label=integer_pow color=lightskyblue shape=box style=filled]
+	cg -> cm
+	cn [label=integer_pow color=lightskyblue shape=box style=filled]
+	cg -> cn
+	139998889982448 [label="float32[]" color=goldenrod1 style=filled]
+	co [label=mul color=lightskyblue shape=box style=filled]
+	139998889982448 -> co
+	cn -> co
+	cp [label=sub color=lightskyblue shape=box style=filled]
+	cl -> cp
+	cm -> cp
+	139998889315472 [label="float32[]" color=goldenrod1 style=filled]
+	cq [label=max color=lightskyblue shape=box style=filled]
+	139998889315472 -> cq
+	cp -> cq
+	cr [label=eq color=lightskyblue shape=box style=filled]
+	cp -> cr
+	cq -> cr
+	139998889539504 [label="float32[]" color=goldenrod1 style=filled]
+	cs [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889539504 -> cs
+	139998889539888 [label="float32[]" color=goldenrod1 style=filled]
+	ct [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889539888 -> ct
+	cu [label=select_n color=lightskyblue shape=box style=filled]
+	cr -> cu
+	ct -> cu
+	cs -> cu
+	139998889315472 [label="float32[]" color=goldenrod1 style=filled]
+	cv [label=eq color=lightskyblue shape=box style=filled]
+	139998889315472 -> cv
+	cq -> cv
+	139998889540656 [label="float32[]" color=goldenrod1 style=filled]
+	cw [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889540656 -> cw
+	139998889541040 [label="float32[]" color=goldenrod1 style=filled]
+	cx [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889541040 -> cx
+	cy [label=select_n color=lightskyblue shape=box style=filled]
+	cv -> cy
+	cx -> cy
+	cw -> cy
+	cz [label=div color=lightskyblue shape=box style=filled]
+	cu -> cz
+	cy -> cz
+	da [label=reshape color=lightskyblue shape=box style=filled]
+	cg -> da
+	db [label=reshape color=lightskyblue shape=box style=filled]
+	cq -> db
+	dc [label=sub color=lightskyblue shape=box style=filled]
+	ce -> dc
+	da -> dc
+	139998889389584 [label="float32[]" color=goldenrod1 style=filled]
+	dd [label=add color=lightskyblue shape=box style=filled]
+	db -> dd
+	139998889389584 -> dd
+	de [label=rsqrt color=lightskyblue shape=box style=filled]
+	dd -> de
+	df [label=div color=lightskyblue shape=box style=filled]
+	de -> df
+	dd -> df
+	139998889519312 [label="float32[]" color=goldenrod1 style=filled]
+	dg [label=mul color=lightskyblue shape=box style=filled]
+	139998889519312 -> dg
+	df -> dg
+	dh [label=reshape color=lightskyblue shape=box style=filled]
+	c -> dh
+	di [label=mul color=lightskyblue shape=box style=filled]
+	de -> di
+	dh -> di
+	dj [label=mul color=lightskyblue shape=box style=filled]
+	dc -> dj
+	di -> dj
+	dk [label=reshape color=lightskyblue shape=box style=filled]
+	b -> dk
+	dl [label=add color=lightskyblue shape=box style=filled]
+	dj -> dl
+	dk -> dl
+	dm [label=dot_general color=lightskyblue shape=box style=filled]
+	dl -> dm
+	i -> dm
+	dn [label=reshape color=lightskyblue shape=box style=filled]
+	h -> dn
+	do [label=add color=lightskyblue shape=box style=filled]
+	dm -> do
+	dn -> do
+	139998889979728 [label="float32[]" color=goldenrod1 style=filled]
+	dp [label=div color=lightskyblue shape=box style=filled]
+	do -> dp
+	139998889979728 -> dp
+	dq [label=erf color=lightskyblue shape=box style=filled]
+	dp -> dq
+	dr [label=integer_pow color=lightskyblue shape=box style=filled]
+	dp -> dr
+	ds [label=neg color=lightskyblue shape=box style=filled]
+	dr -> ds
+	dt [label=exp color=lightskyblue shape=box style=filled]
+	ds -> dt
+	139998889403088 [label="float32[]" color=goldenrod1 style=filled]
+	du [label=add color=lightskyblue shape=box style=filled]
+	dq -> du
+	139998889403088 -> du
+	dv [label=mul color=lightskyblue shape=box style=filled]
+	do -> dv
+	du -> dv
+	139998889404816 [label="float32[]" color=goldenrod1 style=filled]
+	dw [label=div color=lightskyblue shape=box style=filled]
+	dv -> dw
+	139998889404816 -> dw
+	dx [label=copy color=lightskyblue shape=box style=filled]
+	dw -> dx
+	dy [label=dot_general color=lightskyblue shape=box style=filled]
+	dx -> dy
+	m -> dy
+	dz [label=reshape color=lightskyblue shape=box style=filled]
+	l -> dz
+	ea [label=add color=lightskyblue shape=box style=filled]
+	dy -> ea
+	dz -> ea
+	eb [label=add color=lightskyblue shape=box style=filled]
+	ea -> eb
+	dl -> eb
+	ec [label=reduce_sum color=lightskyblue shape=box style=filled]
+	eb -> ec
+	139998889280016 [label="float32[]" color=goldenrod1 style=filled]
+	ed [label=div color=lightskyblue shape=box style=filled]
+	ec -> ed
+	139998889280016 -> ed
+	ee [label=integer_pow color=lightskyblue shape=box style=filled]
+	eb -> ee
+	ef [label=integer_pow color=lightskyblue shape=box style=filled]
+	eb -> ef
+	139998889699248 [label="float32[]" color=goldenrod1 style=filled]
+	eg [label=mul color=lightskyblue shape=box style=filled]
+	139998889699248 -> eg
+	ef -> eg
+	eh [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ee -> eh
+	139998889287824 [label="float32[]" color=goldenrod1 style=filled]
+	ei [label=div color=lightskyblue shape=box style=filled]
+	eh -> ei
+	139998889287824 -> ei
+	ej [label=integer_pow color=lightskyblue shape=box style=filled]
+	ed -> ej
+	ek [label=integer_pow color=lightskyblue shape=box style=filled]
+	ed -> ek
+	139998889739248 [label="float32[]" color=goldenrod1 style=filled]
+	el [label=mul color=lightskyblue shape=box style=filled]
+	139998889739248 -> el
+	ek -> el
+	em [label=sub color=lightskyblue shape=box style=filled]
+	ei -> em
+	ej -> em
+	139998889405104 [label="float32[]" color=goldenrod1 style=filled]
+	en [label=max color=lightskyblue shape=box style=filled]
+	139998889405104 -> en
+	em -> en
+	eo [label=eq color=lightskyblue shape=box style=filled]
+	em -> eo
+	en -> eo
+	139998889314608 [label="float32[]" color=goldenrod1 style=filled]
+	ep [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889314608 -> ep
+	139998889315376 [label="float32[]" color=goldenrod1 style=filled]
+	eq [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889315376 -> eq
+	er [label=select_n color=lightskyblue shape=box style=filled]
+	eo -> er
+	eq -> er
+	ep -> er
+	139998889405104 [label="float32[]" color=goldenrod1 style=filled]
+	es [label=eq color=lightskyblue shape=box style=filled]
+	139998889405104 -> es
+	en -> es
+	139998889315856 [label="float32[]" color=goldenrod1 style=filled]
+	et [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889315856 -> et
+	139998889312496 [label="float32[]" color=goldenrod1 style=filled]
+	eu [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	139998889312496 -> eu
+	ev [label=select_n color=lightskyblue shape=box style=filled]
+	es -> ev
+	eu -> ev
+	et -> ev
+	ew [label=div color=lightskyblue shape=box style=filled]
+	er -> ew
+	ev -> ew
+	ex [label=reshape color=lightskyblue shape=box style=filled]
+	ed -> ex
+	ey [label=reshape color=lightskyblue shape=box style=filled]
+	en -> ey
+	ez [label=sub color=lightskyblue shape=box style=filled]
+	eb -> ez
+	ex -> ez
+	139998889019600 [label="float32[]" color=goldenrod1 style=filled]
+	fa [label=add color=lightskyblue shape=box style=filled]
+	ey -> fa
+	139998889019600 -> fa
+	fb [label=rsqrt color=lightskyblue shape=box style=filled]
+	fa -> fb
+	fc [label=div color=lightskyblue shape=box style=filled]
+	fb -> fc
+	fa -> fc
+	139998889303664 [label="float32[]" color=goldenrod1 style=filled]
+	fd [label=mul color=lightskyblue shape=box style=filled]
+	139998889303664 -> fd
+	fc -> fd
+	fe [label=reshape color=lightskyblue shape=box style=filled]
+	k -> fe
+	ff [label=mul color=lightskyblue shape=box style=filled]
+	fb -> ff
+	fe -> ff
+	fg [label=mul color=lightskyblue shape=box style=filled]
+	ez -> fg
+	ff -> fg
+	fh [label=reshape color=lightskyblue shape=box style=filled]
+	j -> fh
+	fi [label=add color=lightskyblue shape=box style=filled]
+	fg -> fi
+	fh -> fi
+	fj [label=sub color=lightskyblue shape=box style=filled]
+	fi -> fj
+	p -> fj
+	fk [label=integer_pow color=lightskyblue shape=box style=filled]
+	fj -> fk
+	fl [label=integer_pow color=lightskyblue shape=box style=filled]
+	fj -> fl
+	139998889302896 [label="float32[]" color=goldenrod1 style=filled]
+	fm [label=mul color=lightskyblue shape=box style=filled]
+	139998889302896 -> fm
+	fl -> fm
+	fn [label=reduce_sum color=lightskyblue shape=box style=filled]
+	fk -> fn
+	139998889386896 [label="float32[]" color=goldenrod1 style=filled]
+	_ [label=div color=lightskyblue shape=box style=filled]
+	fn -> _
+	139998889386896 -> _
+	139998889020944 [label="float32[]" color=goldenrod1 style=filled]
+	139998889386896 [label="float32[]" color=goldenrod1 style=filled]
+	fo [label=div color=lightskyblue shape=box style=filled]
+	139998889020944 -> fo
+	139998889386896 -> fo
+	fp [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	fo -> fp
+	fq [label=mul color=lightskyblue shape=box style=filled]
+	fp -> fq
+	fm -> fq
+	fr [label=reduce_sum color=lightskyblue shape=box style=filled]
+	fq -> fr
+	fs [label=reshape color=lightskyblue shape=box style=filled]
+	fr -> fs
+	ft [label=reshape color=lightskyblue shape=box style=filled]
+	fs -> ft
+	fu [label=mul color=lightskyblue shape=box style=filled]
+	ez -> fu
+	fq -> fu
+	fv [label=mul color=lightskyblue shape=box style=filled]
+	fq -> fv
+	ff -> fv
+	fw [label=mul color=lightskyblue shape=box style=filled]
+	fb -> fw
+	fu -> fw
+	fx [label=reduce_sum color=lightskyblue shape=box style=filled]
+	fw -> fx
+	fy [label=reshape color=lightskyblue shape=box style=filled]
+	fx -> fy
+	fz [label=mul color=lightskyblue shape=box style=filled]
+	fu -> fz
+	fe -> fz
+	ga [label=reduce_sum color=lightskyblue shape=box style=filled]
+	fz -> ga
+	gb [label=reshape color=lightskyblue shape=box style=filled]
+	ga -> gb
+	gc [label=reshape color=lightskyblue shape=box style=filled]
+	fy -> gc
+	gd [label=mul color=lightskyblue shape=box style=filled]
+	gb -> gd
+	fd -> gd
+	ge [label=reshape color=lightskyblue shape=box style=filled]
+	gd -> ge
+	gf [label=mul color=lightskyblue shape=box style=filled]
+	ge -> gf
+	ew -> gf
+	gg [label=neg color=lightskyblue shape=box style=filled]
+	gf -> gg
+	gh [label=mul color=lightskyblue shape=box style=filled]
+	gg -> gh
+	el -> gh
+	139998889287824 [label="float32[]" color=goldenrod1 style=filled]
+	gi [label=div color=lightskyblue shape=box style=filled]
+	gf -> gi
+	139998889287824 -> gi
+	gj [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	gi -> gj
+	gk [label=mul color=lightskyblue shape=box style=filled]
+	gj -> gk
+	eg -> gk
+	gl [label=neg color=lightskyblue shape=box style=filled]
+	fv -> gl
+	gm [label=reduce_sum color=lightskyblue shape=box style=filled]
+	gl -> gm
+	gn [label=reshape color=lightskyblue shape=box style=filled]
+	gm -> gn
+	go [label=add_any color=lightskyblue shape=box style=filled]
+	gk -> go
+	fv -> go
+	gp [label=reshape color=lightskyblue shape=box style=filled]
+	gn -> gp
+	gq [label=add_any color=lightskyblue shape=box style=filled]
+	gh -> gq
+	gp -> gq
+	139998889280016 [label="float32[]" color=goldenrod1 style=filled]
+	gr [label=div color=lightskyblue shape=box style=filled]
+	gq -> gr
+	139998889280016 -> gr
+	gs [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	gr -> gs
+	gt [label=add_any color=lightskyblue shape=box style=filled]
+	go -> gt
+	gs -> gt
+	gu [label=reduce_sum color=lightskyblue shape=box style=filled]
+	gt -> gu
+	gv [label=reshape color=lightskyblue shape=box style=filled]
+	gu -> gv
+	gw [label=reshape color=lightskyblue shape=box style=filled]
+	gv -> gw
+	gx [label=dot_general color=lightskyblue shape=box style=filled]
+	gt -> gx
+	dx -> gx
+	gy [label=transpose color=lightskyblue shape=box style=filled]
+	gx -> gy
+	gz [label=dot_general color=lightskyblue shape=box style=filled]
+	gt -> gz
+	m -> gz
+	ha [label=copy color=lightskyblue shape=box style=filled]
+	gz -> ha
+	139998889404816 [label="float32[]" color=goldenrod1 style=filled]
+	hb [label=div color=lightskyblue shape=box style=filled]
+	ha -> hb
+	139998889404816 -> hb
+	hc [label=mul color=lightskyblue shape=box style=filled]
+	do -> hc
+	hb -> hc
+	hd [label=mul color=lightskyblue shape=box style=filled]
+	hb -> hd
+	du -> hd
+	139998889739632 [label="float32[]" color=goldenrod1 style=filled]
+	he [label=mul color=lightskyblue shape=box style=filled]
+	139998889739632 -> he
+	hc -> he
+	hf [label=mul color=lightskyblue shape=box style=filled]
+	he -> hf
+	dt -> hf
+	139998889979728 [label="float32[]" color=goldenrod1 style=filled]
+	hg [label=div color=lightskyblue shape=box style=filled]
+	hf -> hg
+	139998889979728 -> hg
+	hh [label=add_any color=lightskyblue shape=box style=filled]
+	hd -> hh
+	hg -> hh
+	hi [label=reduce_sum color=lightskyblue shape=box style=filled]
+	hh -> hi
+	hj [label=reshape color=lightskyblue shape=box style=filled]
+	hi -> hj
+	hk [label=reshape color=lightskyblue shape=box style=filled]
+	hj -> hk
+	hl [label=dot_general color=lightskyblue shape=box style=filled]
+	hh -> hl
+	dl -> hl
+	hm [label=transpose color=lightskyblue shape=box style=filled]
+	hl -> hm
+	hn [label=dot_general color=lightskyblue shape=box style=filled]
+	hh -> hn
+	i -> hn
+	ho [label=add_any color=lightskyblue shape=box style=filled]
+	gt -> ho
+	hn -> ho
+	hp [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ho -> hp
+	hq [label=reshape color=lightskyblue shape=box style=filled]
+	hp -> hq
+	hr [label=reshape color=lightskyblue shape=box style=filled]
+	hq -> hr
+	hs [label=mul color=lightskyblue shape=box style=filled]
+	dc -> hs
+	ho -> hs
+	ht [label=mul color=lightskyblue shape=box style=filled]
+	ho -> ht
+	di -> ht
+	hu [label=mul color=lightskyblue shape=box style=filled]
+	de -> hu
+	hs -> hu
+	hv [label=reduce_sum color=lightskyblue shape=box style=filled]
+	hu -> hv
+	hw [label=reshape color=lightskyblue shape=box style=filled]
+	hv -> hw
+	hx [label=mul color=lightskyblue shape=box style=filled]
+	hs -> hx
+	dh -> hx
+	hy [label=reduce_sum color=lightskyblue shape=box style=filled]
+	hx -> hy
+	hz [label=reshape color=lightskyblue shape=box style=filled]
+	hy -> hz
+	ia [label=reshape color=lightskyblue shape=box style=filled]
+	hw -> ia
+	ib [label=mul color=lightskyblue shape=box style=filled]
+	hz -> ib
+	dg -> ib
+	ic [label=reshape color=lightskyblue shape=box style=filled]
+	ib -> ic
+	id [label=mul color=lightskyblue shape=box style=filled]
+	ic -> id
+	cz -> id
+	ie [label=neg color=lightskyblue shape=box style=filled]
+	id -> ie
+	if [label=mul color=lightskyblue shape=box style=filled]
+	ie -> if
+	co -> if
+	139998889544656 [label="float32[]" color=goldenrod1 style=filled]
+	ig [label=div color=lightskyblue shape=box style=filled]
+	id -> ig
+	139998889544656 -> ig
+	ih [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	ig -> ih
+	ii [label=mul color=lightskyblue shape=box style=filled]
+	ih -> ii
+	cj -> ii
+	ij [label=neg color=lightskyblue shape=box style=filled]
+	ht -> ij
+	ik [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ij -> ik
+	il [label=reshape color=lightskyblue shape=box style=filled]
+	ik -> il
+	im [label=add_any color=lightskyblue shape=box style=filled]
+	ii -> im
+	ht -> im
+	in [label=reshape color=lightskyblue shape=box style=filled]
+	il -> in
+	io [label=add_any color=lightskyblue shape=box style=filled]
+	if -> io
+	in -> io
+	139998889980912 [label="float32[]" color=goldenrod1 style=filled]
+	ip [label=div color=lightskyblue shape=box style=filled]
+	io -> ip
+	139998889980912 -> ip
+	iq [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	ip -> iq
+	ir [label=add_any color=lightskyblue shape=box style=filled]
+	im -> ir
+	iq -> ir
+	is [label=reduce_sum color=lightskyblue shape=box style=filled]
+	ir -> is
+	it [label=reshape color=lightskyblue shape=box style=filled]
+	is -> it
+	iu [label=reshape color=lightskyblue shape=box style=filled]
+	it -> iu
+	iv [label=dot_general color=lightskyblue shape=box style=filled]
+	ir -> iv
+	ca -> iv
+	iw [label=transpose color=lightskyblue shape=box style=filled]
+	iv -> iw
+	ix [label=dot_general color=lightskyblue shape=box style=filled]
+	ir -> ix
+	e -> ix
+	iy [label=reshape color=lightskyblue shape=box style=filled]
+	ix -> iy
+	id2 [label=xla_call color=lightskyblue shape=box style=filled]
+	bx -> id2
+	z -> id2
+	iy -> id2
+	iz [label="float32[64,12,64,64]" color=cornflowerblue style=filled]
+	id2 -> iz
+	ja [label="float32[64,64,12,64]" color=cornflowerblue style=filled]
+	id2 -> ja
+	jb [label=reshape color=lightskyblue shape=box style=filled]
+	ja -> jb
+	139998889314992 [label="float32[]" color=goldenrod1 style=filled]
+	jc [label=pad color=lightskyblue shape=box style=filled]
+	jb -> jc
+	139998889314992 -> jc
+	jd [label=mul color=lightskyblue shape=box style=filled]
+	iz -> jd
+	by -> jd
+	je [label=mul color=lightskyblue shape=box style=filled]
+	jd -> je
+	bu -> je
+	jf [label=reduce_sum color=lightskyblue shape=box style=filled]
+	je -> jf
+	jg [label=reshape color=lightskyblue shape=box style=filled]
+	jf -> jg
+	jh [label=neg color=lightskyblue shape=box style=filled]
+	jg -> jh
+	ji [label=div color=lightskyblue shape=box style=filled]
+	iz -> ji
+	bw -> ji
+	jj [label=reduce_sum color=lightskyblue shape=box style=filled]
+	jh -> jj
+	jk [label=broadcast_in_dim color=lightskyblue shape=box style=filled]
+	jj -> jk
+	jl [label=add_any color=lightskyblue shape=box style=filled]
+	ji -> jl
+	jk -> jl
+	jm [label=mul color=lightskyblue shape=box style=filled]
+	jl -> jm
+	bu -> jm
+	id3 [label=xla_call color=lightskyblue shape=box style=filled]
+	ba -> id3
+	bk -> id3
+	jm -> id3
+	jn [label="float32[64,64,12,64]" color=cornflowerblue style=filled]
+	id3 -> jn
+	jo [label="float32[64,64,12,64]" color=cornflowerblue style=filled]
+	id3 -> jo
+	jp [label=reshape color=lightskyblue shape=box style=filled]
+	jo -> jp
+	139998888971024 [label="float32[]" color=goldenrod1 style=filled]
+	jq [label=pad color=lightskyblue shape=box style=filled]
+	jp -> jq
+	139998888971024 -> jq
+	jr [label=add_any color=lightskyblue shape=box style=filled]
+	jc -> jr
+	jq -> jr
+	js [label=div color=lightskyblue shape=box style=filled]
+	jn -> js
+	bj -> js
+	jt [label=reshape color=lightskyblue shape=box style=filled]
+	js -> jt
+	139998889017872 [label="float32[]" color=goldenrod1 style=filled]
+	ju [label=pad color=lightskyblue shape=box style=filled]
+	jt -> ju
+	139998889017872 -> ju
+	jv [label=add_any color=lightskyblue shape=box style=filled]
+	jr -> jv
+	ju -> jv
+	jw [label=reshape color=lightskyblue shape=box style=filled]
+	jv -> jw
+	jx [label=reduce_sum color=lightskyblue shape=box style=filled]
+	jw -> jx
+	jy [label=reshape color=lightskyblue shape=box style=filled]
+	jx -> jy
+	jz [label=reshape color=lightskyblue shape=box style=filled]
+	jy -> jz
+	ka [label=dot_general color=lightskyblue shape=box style=filled]
+	jw -> ka
+	o -> ka
+	kb [label=transpose color=lightskyblue shape=box style=filled]
+	ka -> kb
+	139998889550928 [label="float32[]" color=goldenrod1 style=filled]
+	kc [label=mul color=lightskyblue shape=box style=filled]
+	139998889550928 -> kc
+	hr -> kc
+	kd [label=sub color=lightskyblue shape=box style=filled]
+	b -> kd
+	kc -> kd
+	139998889324784 [label="float32[]" color=goldenrod1 style=filled]
+	ke [label=mul color=lightskyblue shape=box style=filled]
+	139998889324784 -> ke
+	ia -> ke
+	kf [label=sub color=lightskyblue shape=box style=filled]
+	c -> kf
+	ke -> kf
+	139998889325072 [label="float32[]" color=goldenrod1 style=filled]
+	kg [label=mul color=lightskyblue shape=box style=filled]
+	139998889325072 -> kg
+	iu -> kg
+	kh [label=sub color=lightskyblue shape=box style=filled]
+	d -> kh
+	kg -> kh
+	139998889325360 [label="float32[]" color=goldenrod1 style=filled]
+	ki [label=mul color=lightskyblue shape=box style=filled]
+	139998889325360 -> ki
+	iw -> ki
+	kj [label=sub color=lightskyblue shape=box style=filled]
+	e -> kj
+	ki -> kj
+	139998889325648 [label="float32[]" color=goldenrod1 style=filled]
+	kk [label=mul color=lightskyblue shape=box style=filled]
+	139998889325648 -> kk
+	jz -> kk
+	kl [label=sub color=lightskyblue shape=box style=filled]
+	f -> kl
+	kk -> kl
+	139998889325936 [label="float32[]" color=goldenrod1 style=filled]
+	km [label=mul color=lightskyblue shape=box style=filled]
+	139998889325936 -> km
+	kb -> km
+	kn [label=sub color=lightskyblue shape=box style=filled]
+	g -> kn
+	km -> kn
+	139998889326224 [label="float32[]" color=goldenrod1 style=filled]
+	ko [label=mul color=lightskyblue shape=box style=filled]
+	139998889326224 -> ko
+	hk -> ko
+	kp [label=sub color=lightskyblue shape=box style=filled]
+	h -> kp
+	ko -> kp
+	139998889326512 [label="float32[]" color=goldenrod1 style=filled]
+	kq [label=mul color=lightskyblue shape=box style=filled]
+	139998889326512 -> kq
+	hm -> kq
+	kr [label=sub color=lightskyblue shape=box style=filled]
+	i -> kr
+	kq -> kr
+	139998889326800 [label="float32[]" color=goldenrod1 style=filled]
+	ks [label=mul color=lightskyblue shape=box style=filled]
+	139998889326800 -> ks
+	ft -> ks
+	kt [label=sub color=lightskyblue shape=box style=filled]
+	j -> kt
+	ks -> kt
+	139998889327088 [label="float32[]" color=goldenrod1 style=filled]
+	ku [label=mul color=lightskyblue shape=box style=filled]
+	139998889327088 -> ku
+	gc -> ku
+	kv [label=sub color=lightskyblue shape=box style=filled]
+	k -> kv
+	ku -> kv
+	139998889327376 [label="float32[]" color=goldenrod1 style=filled]
+	kw [label=mul color=lightskyblue shape=box style=filled]
+	139998889327376 -> kw
+	gw -> kw
+	kx [label=sub color=lightskyblue shape=box style=filled]
+	l -> kx
+	kw -> kx
+	139998889327664 [label="float32[]" color=goldenrod1 style=filled]
+	ky [label=mul color=lightskyblue shape=box style=filled]
+	139998889327664 -> ky
+	gy -> ky
+	kz [label=sub color=lightskyblue shape=box style=filled]
+	m -> kz
+	ky -> kz
+	139998889327952 [label="int32[]" color=goldenrod1 style=filled]
+	la [label=add color=lightskyblue shape=box style=filled]
+	a -> la
+	139998889327952 -> la
+	out_0 [label=out_0 color=black fillcolor=indianred1 style="filled,dashed"]
+	la -> out_0
+	out_1 [label=out_1 color=black fillcolor=indianred1 style="filled,dashed"]
+	kd -> out_1
+	out_2 [label=out_2 color=black fillcolor=indianred1 style="filled,dashed"]
+	kf -> out_2
+	out_3 [label=out_3 color=black fillcolor=indianred1 style="filled,dashed"]
+	kh -> out_3
+	out_4 [label=out_4 color=black fillcolor=indianred1 style="filled,dashed"]
+	kj -> out_4
+	out_5 [label=out_5 color=black fillcolor=indianred1 style="filled,dashed"]
+	kl -> out_5
+	out_6 [label=out_6 color=black fillcolor=indianred1 style="filled,dashed"]
+	kn -> out_6
+	out_7 [label=out_7 color=black fillcolor=indianred1 style="filled,dashed"]
+	kp -> out_7
+	out_8 [label=out_8 color=black fillcolor=indianred1 style="filled,dashed"]
+	kr -> out_8
+	out_9 [label=out_9 color=black fillcolor=indianred1 style="filled,dashed"]
+	kt -> out_9
+	out_10 [label=out_10 color=black fillcolor=indianred1 style="filled,dashed"]
+	kv -> out_10
+	out_11 [label=out_11 color=black fillcolor=indianred1 style="filled,dashed"]
+	kx -> out_11
+	out_12 [label=out_12 color=black fillcolor=indianred1 style="filled,dashed"]
+	kz -> out_12
+}

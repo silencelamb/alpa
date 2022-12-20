@@ -112,6 +112,9 @@ if __name__ == "__main__":
     print("\n")
     m = 4
     n = 2
+
+    m = 128
+    n = 3
     schedules = generate_1f1b_schedule(m, n)
     import json
     with open(f'1f1b_schedules_batch{m}_stage{n}.json', 'w') as f:
