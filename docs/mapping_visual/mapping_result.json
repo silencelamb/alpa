@@ -10,14 +10,16 @@
     "perf_benifit":
     {
         "scale_out": 1.3,
+        "compute_utilization": 2,
         "power_efficiency": 3,
+        "communication_ratio": 0.5, 
         "total_bandwidth": 3,
-        "area_efficiency": 3
+        "area": 0.3
     },
     "stages_num": 2,
     "stage_details": [
         {
-            "stage_id": 0,
+            "stage_id": 1,
             "submesh": [0, 0, 15, 47],
             "stage_statistics":
             {
@@ -26,125 +28,33 @@
                 "peak_memory": "200 MB",
                 "utilization": 0.9
             },
-            "subgraph":
-            [
-                {
-                  "op_name": "all-gather",
-                  "type": "communication",
-                  "size": 1048576,
-                  "estimated_time": 0.1
-                },
-                {
-                    "op_name": "cublas-gemm.3",
-                    "type": "compute",
-                    "size": 536870912,
-                    "estimated_time": 0.5
-                },
-                {
-                    "op_name": "cublas-gemm.5",
-                    "type": "compute",
-                    "size": 53687091200,
-                    "estimated_time": 1.1
-                },
-                {
-                    "op_name": "cublas-gemm.9",
-                    "type": "compute",
-                    "size": 25769803776,
-                    "estimated_time": 1.8
-                },
-                {
-                    "op_name": "cublas-batch-gemm.3",
-                    "type": "compute",
-                    "size": 1073741824,
-                    "estimated_time": 0.7
-                },
-                {
-                    "op_name": "cublas-batch-gemm.5",
-                    "type": "compute",
-                    "size": 1073741824,
-                    "estimated_time": 0.7
-                },
-                {
-                    "op_name": "all-reduce.3",
-                    "type": "communication",
-                    "size": 8192,
-                    "estimated_time": 0.05
-                }
-            ]
-        },
-        {
-            "stage_id": 1,
-            "submesh": [0, 16, 31, 47],
-            "stage_statistics":
-            {
-                "compute": "1.5 GFlops", 
-                "communication": "1024 MB",
-                "peak_memory": "200 MB",
-                "utilization": 0.9
-            },
-            "subgraph":
-            [
-                {
-                  "op_name": "all-gather",
-                  "type": "communication",
-                  "size": 1048576,
-                  "estimated_time": 0.1
-                },
-                {
-                    "op_name": "cublas-gemm.3",
-                    "type": "compute",
-                    "size": 536870912,
-                    "estimated_time": 0.5
-                },
-                {
-                    "op_name": "cublas-gemm.5",
-                    "type": "compute",
-                    "size": 53687091200,
-                    "estimated_time": 1.1
-                },
-                {
-                    "op_name": "cublas-gemm.9",
-                    "type": "compute",
-                    "size": 25769803776,
-                    "estimated_time": 1.8
-                },
-                {
-                    "op_name": "cublas-batch-gemm.3",
-                    "type": "compute",
-                    "size": 1073741824,
-                    "estimated_time": 0.7
-                },
-                {
-                    "op_name": "cublas-batch-gemm.5",
-                    "type": "compute",
-                    "size": 1073741824,
-                    "estimated_time": 0.7
-                },
-                {
-                    "op_name": "all-reduce.3",
-                    "type": "communication",
-                    "size": 8192,
-                    "estimated_time": 0.05
-                }
-            ]
+            "subgraph_ids": [0, 2]
         },
         {
             "stage_id": 2,
-            "submesh": [0, 16, 31, 47],
+            "submesh": [16, 0, 31, 47],
             "stage_statistics":
             {
                 "compute": "1.5 GFlops", 
                 "communication": "1024 MB",
                 "peak_memory": "200 MB",
-                "utilization": 0.9
+                "utilization": 0.8
             },
-            "subgraph":
-            [
+            "subgraph_ids": [1, 3]
+            
+        }
+    ],
+    "subgraphs": 
+    {
+        "0" : 
+        {
+            "fw_or_bw": "fw",
+            "graph": [
                 {
-                  "op_name": "all-gather",
-                  "type": "communication",
-                  "size": 1048576,
-                  "estimated_time": 0.1
+                "op_name": "all-gather",
+                "type": "communication",
+                "size": 1048576,
+                "estimated_time": 0.1
                 },
                 {
                     "op_name": "cublas-gemm.3",
@@ -184,23 +94,110 @@
                 }
             ]
         },
+        "1" : 
         {
-            "stage_id": 3,
-            "submesh": [0, 0, 15, 47],
-            "stage_statistics":
-            {
-                "compute": "1.5 GFlops", 
-                "communication": "1024 MB",
-                "peak_memory": "200 MB",
-                "utilization": 0.9
-            },
-            "subgraph":
+            "fw_or_bw": "fw",
+            "graph": 
             [
                 {
-                  "op_name": "all-gather",
-                  "type": "communication",
-                  "size": 1048576,
-                  "estimated_time": 0.1
+                "op_name": "all-gather",
+                "type": "communication",
+                "size": 1048576,
+                "estimated_time": 0.1
+                },
+                {
+                    "op_name": "cublas-gemm.3",
+                    "type": "compute",
+                    "size": 536870912,
+                    "estimated_time": 0.5
+                },
+                {
+                    "op_name": "cublas-gemm.5",
+                    "type": "compute",
+                    "size": 53687091200,
+                    "estimated_time": 1.1
+                },
+                {
+                    "op_name": "cublas-gemm.9",
+                    "type": "compute",
+                    "size": 25769803776,
+                    "estimated_time": 1.8
+                },
+                {
+                    "op_name": "cublas-batch-gemm.3",
+                    "type": "compute",
+                    "size": 1073741824,
+                    "estimated_time": 0.7
+                },
+                {
+                    "op_name": "cublas-batch-gemm.5",
+                    "type": "compute",
+                    "size": 1073741824,
+                    "estimated_time": 0.7
+                },
+                {
+                    "op_name": "all-reduce.3",
+                    "type": "communication",
+                    "size": 8192,
+                    "estimated_time": 0.05
+                }
+            ]
+        },
+        "2": {
+            "fw_or_bw": "bw",
+            "graph": [
+                {
+                "op_name": "all-gather",
+                "type": "communication",
+                "size": 1048576,
+                "estimated_time": 0.1
+                },
+                {
+                    "op_name": "cublas-gemm.3",
+                    "type": "compute",
+                    "size": 536870912,
+                    "estimated_time": 0.5
+                },
+                {
+                    "op_name": "cublas-gemm.5",
+                    "type": "compute",
+                    "size": 53687091200,
+                    "estimated_time": 1.1
+                },
+                {
+                    "op_name": "cublas-gemm.9",
+                    "type": "compute",
+                    "size": 25769803776,
+                    "estimated_time": 1.8
+                },
+                {
+                    "op_name": "cublas-batch-gemm.3",
+                    "type": "compute",
+                    "size": 1073741824,
+                    "estimated_time": 0.7
+                },
+                {
+                    "op_name": "cublas-batch-gemm.5",
+                    "type": "compute",
+                    "size": 1073741824,
+                    "estimated_time": 0.7
+                },
+                {
+                    "op_name": "all-reduce.3",
+                    "type": "communication",
+                    "size": 8192,
+                    "estimated_time": 0.05
+                }
+            ]
+        },
+        "3":  {
+            "fw_or_bw": "bw",
+            "graph": [
+                {
+                "op_name": "all-gather",
+                "type": "communication",
+                "size": 1048576,
+                "estimated_time": 0.1
                 },
                 {
                     "op_name": "cublas-gemm.3",
@@ -240,17 +237,17 @@
                 }
             ]
         }
-    ],
+    },
     "pipeline_schedule": [
-        [[0, 0], null], 
-        [[1, 0], [0, 1]], 
-        [null, [0, 2]], 
-        [[0, 3], [1, 1]], 
-        [[2, 0], [1, 2]], 
+        [[1, 0], null], 
+        [[2, 0], [1, 1]], 
+        [null, [1, 2]], 
         [[1, 3], [2, 1]], 
         [[3, 0], [2, 2]], 
         [[2, 3], [3, 1]], 
-        [null, [3, 2]], 
-        [[3, 3], null]
+        [[4, 0], [3, 2]], 
+        [[3, 3], [4, 1]], 
+        [null, [4, 2]], 
+        [[4, 3], null]
     ]
 }

@@ -4,6 +4,7 @@ import os
 import argparse
 from datetime import datetime
 import time
+import json
 
 import numpy as np
 
@@ -113,6 +114,9 @@ def benchmark_suite(suite_name,
             to_str_round(metadata, 2)
         ]
         write_tsv(heads, values, output_name)
+        result_dict = dict(zip(heads, values))
+        with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
+            json.dump(result_dict, f, indent=4)
 
         time.sleep(0.1)  # for ctrl+c to work
 
