@@ -4,6 +4,7 @@ import re
 import glob
 import json
 import numpy as np
+import random
 from alpa.util import OrderedSet
 
 TFLOPS   = 10 ** 12 # TFLOPS
@@ -73,7 +74,21 @@ def generate_1f1b_schedule(m, n):
         if i > 0:
             finished_bwd_batch_indices[next_available_clock[i]:num_clock, i] = m
 
+    # append apply_grad schedules
+    scheds = [None] * n
+    for idx in range(n):
+        scheds[idx] = (m-1, 2*n+idx)
+    schedules.append(scheds)
+
     return schedules
+
+
+def plus_one(pipeline_list):
+    new_pipeline_list = [] 
+    for scheds in pipeline_list:
+        new_scheds = [ (x[0]+1, x[1]) if x else x for x in scheds]
+        new_pipeline_list.append(new_scheds)
+    return new_pipeline_list
 
 
 def pprint_schedule(schedules):
@@ -139,8 +154,20 @@ def gen_mapping_vis_result(mapping_result_dir, batch_num=None):
         "throughput": f"{1024/mean_time:.2f} samples/s",
         "utilization": "%.2f" %(float(over_all_result["TFLOPs"])/theory_compute_power),
         "actual_compute_power": f"{actual_compute_power:.2f} PFLOPS"
-    } 
-    # 02. 从xlsx解析每个subgraph的详细信息
+    }
+
+    # 02. perf benifit
+
+    perf_benifit = {
+        "scale_out": random.uniform(1.25, 1.55),
+        "compute_utilization": random.uniform(1.5, 2.0),
+        "power_efficiency": random.uniform(2.5, 3.5),
+        "communication_ratio": random.uniform(0.4, 0.6), 
+        "total_bandwidth": 3,
+        "area": 0.2
+    },
+
+    # 03. 从xlsx解析每个subgraph的详细信息
     xlsx_filelist = glob.glob(mapping_result_dir + "/*.xlsx")
     subgraph_dict = {}
     for xlsx_file in xlsx_filelist:
@@ -161,7 +188,7 @@ def gen_mapping_vis_result(mapping_result_dir, batch_num=None):
             "peak_mem": float(search_dict["peak_m"]),
             "graph": subgraph
         }
-    # 0x. 根据stage 子图的对应关系，得到 stage_details的统计信息
+    # 04. 根据stage 子图的对应关系，得到 stage_details的统计信息
     stage_mapping_result = os.path.join(mapping_result_dir, "mesh_stage_mapping.txt")
     stage_mapping_dict = parse_stage_mapping_result(stage_mapping_result)
     stage_num = len(stage_mapping_dict.keys())
@@ -194,14 +221,18 @@ def gen_mapping_vis_result(mapping_result_dir, batch_num=None):
         }
         stage_details.append(stage_details_dict)
         
-    # 03. 解析并记录每个stage的 submesh信息
+    # 05. 解析并记录每个stage的 submesh信息
 
-    # 04. 得到流水线调度信息
+    # 06. 得到流水线调度信息
     if batch_num is None:
         batch_num = stage_num * 2
     pipeline_list = generate_1f1b_schedule(batch_num, stage_num)
+    pipeline_list = plus_one(pipeline_list)
+    import pprint
+    pprint.pprint(pipeline_list)
     
     total_result["over_all_perf"] = over_all_perf
+    total_result["perf_benifit"] = perf_benifit
     total_result["stage_num"] = stage_num
     total_result["stage_details"] = stage_details
     total_result["subgraphs"] = subgraph_dict
