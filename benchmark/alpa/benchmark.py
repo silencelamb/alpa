@@ -11,6 +11,7 @@ import numpy as np
 from alpa.global_env import get_global_config, set_global_config
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
+from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase
 
 from benchmark_one_case import benchmark_one_case
@@ -117,7 +118,7 @@ def benchmark_suite(suite_name,
         result_dict = dict(zip(heads, values))
         with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
             json.dump(result_dict, f, indent=4)
-
+        gen_mapping_vis_result(global_config.maping_rst_dir)
         time.sleep(0.1)  # for ctrl+c to work
 
 
