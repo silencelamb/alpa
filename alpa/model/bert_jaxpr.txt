@@ -1,0 +1,423 @@
+{ lambda ; a:i32[] b:f32[768] c:f32[768] d:f32[768] e:f32[768,768] f:f32[2304] g:f32[768,2304]
+    h:f32[3072] i:f32[768,3072] j:f32[768] k:f32[768] l:f32[768] m:f32[3072,768]
+    n:i32[64,64] o:f32[64,64,768] p:f32[64,64,768] q:u32[2]. let
+    r:f32[64,64,2304] = dot_general[
+      dimension_numbers=(((2,), (0,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] o g
+    s:f32[1,1,2304] = reshape[dimensions=None new_sizes=(1, 1, 2304)] f
+    t:f32[64,64,2304] = add r s
+    u:f32[64,64,768,3] = reshape[dimensions=None new_sizes=(64, 64, 768, 3)] t
+    v:f32[64,64,768,1] = slice[
+      limit_indices=(64, 64, 768, 1)
+      start_indices=(0, 0, 0, 0)
+      strides=None
+    ] u
+    w:f32[64,64,768,1] = slice[
+      limit_indices=(64, 64, 768, 2)
+      start_indices=(0, 0, 0, 1)
+      strides=None
+    ] u
+    x:f32[64,64,768,1] = slice[
+      limit_indices=(64, 64, 768, 3)
+      start_indices=(0, 0, 0, 2)
+      strides=None
+    ] u
+    y:f32[64,64,12,64] = reshape[dimensions=None new_sizes=(64, 64, 12, 64)] v
+    z:f32[64,64,12,64] = reshape[dimensions=None new_sizes=(64, 64, 12, 64)] w
+    ba:f32[64,64,12,64] = reshape[dimensions=None new_sizes=(64, 64, 12, 64)] x
+    bb:i32[64,1,1,64] = broadcast_in_dim[
+      broadcast_dimensions=(0, 3)
+      shape=(64, 1, 1, 64)
+    ] n
+    bc:bool[64,1,1,64] = gt bb 0
+    bd:f32[64,1,1,64] = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(64, 1, 1, 64)
+    ] 0.0
+    be:f32[64,1,1,64] = convert_element_type[new_dtype=float32 weak_type=False] bd
+    bf:f32[64,1,1,64] = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(64, 1, 1, 64)
+    ] -10000000000.0
+    bg:f32[64,1,1,64] = convert_element_type[new_dtype=float32 weak_type=False] bf
+    bh:f32[64,1,1,64] = select_n bc bg be
+    bi:f32[] = sqrt 64.0
+    bj:f32[] = convert_element_type[new_dtype=float32 weak_type=False] bi
+    bk:f32[64,64,12,64] = div y bj
+    bl:f32[64,12,64,64] = xla_call[
+      call_jaxpr={ lambda ; bm:f32[64,64,12,64] bn:f32[64,64,12,64]. let
+          bo:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((3,), (3,)), ((0, 2), (0, 2)))
+            precision=None
+            preferred_element_type=None
+          ] bm bn
+        in (bo,) }
+      name=_einsum
+    ] bk ba
+    bp:f32[64,12,64,64] = add bl bh
+    bq:f32[64,12,64] = reduce_max[axes=(3,)] bp
+    br:f32[64,12,64,1] = reshape[dimensions=None new_sizes=(64, 12, 64, 1)] bq
+    bs:bool[64,12,64,64] = eq bp br
+    bt:f32[64,12,64,64] = convert_element_type[
+      new_dtype=float32
+      weak_type=False
+    ] bs
+    _:f32[64,12,64] = reduce_sum[axes=(3,)] bt
+    bu:f32[64,12,64,1] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1, 2)
+      shape=(64, 12, 64, 1)
+    ] bq
+    bv:f32[64,12,64,1] = stop_gradient bu
+    bw:f32[64,12,64,64] = sub bp bv
+    bx:f32[64,12,64,64] = exp bw
+    by:f32[64,12,64] = reduce_sum[axes=(3,)] bx
+    bz:f32[64,12,64,1] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1, 2)
+      shape=(64, 12, 64, 1)
+    ] by
+    ca:f32[64,12,64,64] = div bx bz
+    cb:f32[64,12,64,1] = integer_pow[y=-2] bz
+    cc:f32[64,64,12,64] = xla_call[
+      call_jaxpr={ lambda ; cd:f32[64,12,64,64] ce:f32[64,64,12,64]. let
+          cf:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((1,), (3,)), ((0, 2), (0, 1)))
+            precision=None
+            preferred_element_type=None
+          ] ce cd
+          cg:f32[64,64,12,64] = transpose[permutation=(0, 3, 1, 2)] cf
+        in (cg,) }
+      name=_einsum
+    ] ca z
+    ch:f32[64,64,768] = reshape[dimensions=None new_sizes=(64, 64, 768)] cc
+    ci:f32[64,64,768] = dot_general[
+      dimension_numbers=(((2,), (0,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ch e
+    cj:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] d
+    ck:f32[64,64,768] = add ci cj
+    cl:f32[64,64,768] = add ck o
+    cm:f32[64,64] = reduce_sum[axes=(2,)] cl
+    cn:f32[64,64] = div cm 768.0
+    co:f32[64,64,768] = integer_pow[y=2] cl
+    cp:f32[64,64,768] = integer_pow[y=1] cl
+    cq:f32[64,64,768] = mul 2.0 cp
+    cr:f32[64,64] = reduce_sum[axes=(2,)] co
+    cs:f32[64,64] = div cr 768.0
+    ct:f32[64,64] = integer_pow[y=2] cn
+    cu:f32[64,64] = integer_pow[y=1] cn
+    cv:f32[64,64] = mul 2.0 cu
+    cw:f32[64,64] = sub cs ct
+    cx:f32[64,64] = max 0.0 cw
+    cy:bool[64,64] = eq cw cx
+    cz:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 1.0
+    da:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 0.0
+    db:f32[64,64] = select_n cy da cz
+    dc:bool[64,64] = eq 0.0 cx
+    dd:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 2.0
+    de:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 1.0
+    df:f32[64,64] = select_n dc de dd
+    dg:f32[64,64] = div db df
+    dh:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] cn
+    di:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] cx
+    dj:f32[64,64,768] = sub cl dh
+    dk:f32[64,64,1] = add di 9.999999960041972e-13
+    dl:f32[64,64,1] = rsqrt dk
+    dm:f32[64,64,1] = div dl dk
+    dn:f32[64,64,1] = mul -0.5 dm
+    do:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] c
+    dp:f32[64,64,768] = mul dl do
+    dq:f32[64,64,768] = mul dj dp
+    dr:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] b
+    ds:f32[64,64,768] = add dq dr
+    dt:f32[64,64,3072] = dot_general[
+      dimension_numbers=(((2,), (0,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ds i
+    du:f32[1,1,3072] = reshape[dimensions=None new_sizes=(1, 1, 3072)] h
+    dv:f32[64,64,3072] = add dt du
+    dw:f32[64,64,3072] = div dv 1.4142135381698608
+    dx:f32[64,64,3072] = erf dw
+    dy:f32[64,64,3072] = integer_pow[y=2] dw
+    dz:f32[64,64,3072] = neg dy
+    ea:f32[64,64,3072] = exp dz
+    eb:f32[64,64,3072] = add dx 1.0
+    ec:f32[64,64,3072] = mul dv eb
+    ed:f32[64,64,3072] = div ec 2.0
+    ee:f32[64,64,3072] = copy ed
+    ef:f32[64,64,768] = dot_general[
+      dimension_numbers=(((2,), (0,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ee m
+    eg:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] l
+    eh:f32[64,64,768] = add ef eg
+    ei:f32[64,64,768] = add eh ds
+    ej:f32[64,64] = reduce_sum[axes=(2,)] ei
+    ek:f32[64,64] = div ej 768.0
+    el:f32[64,64,768] = integer_pow[y=2] ei
+    em:f32[64,64,768] = integer_pow[y=1] ei
+    en:f32[64,64,768] = mul 2.0 em
+    eo:f32[64,64] = reduce_sum[axes=(2,)] el
+    ep:f32[64,64] = div eo 768.0
+    eq:f32[64,64] = integer_pow[y=2] ek
+    er:f32[64,64] = integer_pow[y=1] ek
+    es:f32[64,64] = mul 2.0 er
+    et:f32[64,64] = sub ep eq
+    eu:f32[64,64] = max 0.0 et
+    ev:bool[64,64] = eq et eu
+    ew:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 1.0
+    ex:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 0.0
+    ey:f32[64,64] = select_n ev ex ew
+    ez:bool[64,64] = eq 0.0 eu
+    fa:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 2.0
+    fb:f32[64,64] = broadcast_in_dim[broadcast_dimensions=() shape=(64, 64)] 1.0
+    fc:f32[64,64] = select_n ez fb fa
+    fd:f32[64,64] = div ey fc
+    fe:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] ek
+    ff:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] eu
+    fg:f32[64,64,768] = sub ei fe
+    fh:f32[64,64,1] = add ff 9.999999960041972e-13
+    fi:f32[64,64,1] = rsqrt fh
+    fj:f32[64,64,1] = div fi fh
+    fk:f32[64,64,1] = mul -0.5 fj
+    fl:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] k
+    fm:f32[64,64,768] = mul fi fl
+    fn:f32[64,64,768] = mul fg fm
+    fo:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] j
+    fp:f32[64,64,768] = add fn fo
+    fq:f32[64,64,768] = sub fp p
+    fr:f32[64,64,768] = integer_pow[y=2] fq
+    fs:f32[64,64,768] = integer_pow[y=1] fq
+    ft:f32[64,64,768] = mul 2.0 fs
+    fu:f32[] = reduce_sum[axes=(0, 1, 2)] fr
+    _:f32[] = div fu 3145728.0
+    fv:f32[] = div 1.0 3145728.0
+    fw:f32[64,64,768] = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(64, 64, 768)
+    ] fv
+    fx:f32[64,64,768] = mul fw ft
+    fy:f32[768] = reduce_sum[axes=(0, 1)] fx
+    fz:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] fy
+    ga:f32[768] = reshape[dimensions=None new_sizes=(768,)] fz
+    gb:f32[64,64,768] = mul fg fx
+    gc:f32[64,64,768] = mul fx fm
+    gd:f32[64,64,768] = mul fi gb
+    ge:f32[768] = reduce_sum[axes=(0, 1)] gd
+    gf:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] ge
+    gg:f32[64,64,768] = mul gb fl
+    gh:f32[64,64] = reduce_sum[axes=(2,)] gg
+    gi:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] gh
+    gj:f32[768] = reshape[dimensions=None new_sizes=(768,)] gf
+    gk:f32[64,64,1] = mul gi fk
+    gl:f32[64,64] = reshape[dimensions=None new_sizes=(64, 64)] gk
+    gm:f32[64,64] = mul gl fd
+    gn:f32[64,64] = neg gm
+    go:f32[64,64] = mul gn es
+    gp:f32[64,64] = div gm 768.0
+    gq:f32[64,64,768] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1)
+      shape=(64, 64, 768)
+    ] gp
+    gr:f32[64,64,768] = mul gq en
+    gs:f32[64,64,768] = neg gc
+    gt:f32[64,64] = reduce_sum[axes=(2,)] gs
+    gu:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] gt
+    gv:f32[64,64,768] = add_any gr gc
+    gw:f32[64,64] = reshape[dimensions=None new_sizes=(64, 64)] gu
+    gx:f32[64,64] = add_any go gw
+    gy:f32[64,64] = div gx 768.0
+    gz:f32[64,64,768] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1)
+      shape=(64, 64, 768)
+    ] gy
+    ha:f32[64,64,768] = add_any gv gz
+    hb:f32[768] = reduce_sum[axes=(0, 1)] ha
+    hc:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] hb
+    hd:f32[768] = reshape[dimensions=None new_sizes=(768,)] hc
+    he:f32[768,3072] = dot_general[
+      dimension_numbers=(((0, 1), (0, 1)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ha ee
+    hf:f32[3072,768] = transpose[permutation=(1, 0)] he
+    hg:f32[64,64,3072] = dot_general[
+      dimension_numbers=(((2,), (1,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ha m
+    hh:f32[64,64,3072] = copy hg
+    hi:f32[64,64,3072] = div hh 2.0
+    hj:f32[64,64,3072] = mul dv hi
+    hk:f32[64,64,3072] = mul hi eb
+    hl:f32[64,64,3072] = mul 1.128379225730896 hj
+    hm:f32[64,64,3072] = mul hl ea
+    hn:f32[64,64,3072] = div hm 1.4142135381698608
+    ho:f32[64,64,3072] = add_any hk hn
+    hp:f32[3072] = reduce_sum[axes=(0, 1)] ho
+    hq:f32[1,1,3072] = reshape[dimensions=None new_sizes=(1, 1, 3072)] hp
+    hr:f32[3072] = reshape[dimensions=None new_sizes=(3072,)] hq
+    hs:f32[3072,768] = dot_general[
+      dimension_numbers=(((0, 1), (0, 1)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ho ds
+    ht:f32[768,3072] = transpose[permutation=(1, 0)] hs
+    hu:f32[64,64,768] = dot_general[
+      dimension_numbers=(((2,), (1,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] ho i
+    hv:f32[64,64,768] = add_any ha hu
+    hw:f32[768] = reduce_sum[axes=(0, 1)] hv
+    hx:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] hw
+    hy:f32[768] = reshape[dimensions=None new_sizes=(768,)] hx
+    hz:f32[64,64,768] = mul dj hv
+    ia:f32[64,64,768] = mul hv dp
+    ib:f32[64,64,768] = mul dl hz
+    ic:f32[768] = reduce_sum[axes=(0, 1)] ib
+    id:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] ic
+    ie:f32[64,64,768] = mul hz do
+    if:f32[64,64] = reduce_sum[axes=(2,)] ie
+    ig:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] if
+    ih:f32[768] = reshape[dimensions=None new_sizes=(768,)] id
+    ii:f32[64,64,1] = mul ig dn
+    ij:f32[64,64] = reshape[dimensions=None new_sizes=(64, 64)] ii
+    ik:f32[64,64] = mul ij dg
+    il:f32[64,64] = neg ik
+    im:f32[64,64] = mul il cv
+    in:f32[64,64] = div ik 768.0
+    io:f32[64,64,768] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1)
+      shape=(64, 64, 768)
+    ] in
+    ip:f32[64,64,768] = mul io cq
+    iq:f32[64,64,768] = neg ia
+    ir:f32[64,64] = reduce_sum[axes=(2,)] iq
+    is:f32[64,64,1] = reshape[dimensions=None new_sizes=(64, 64, 1)] ir
+    it:f32[64,64,768] = add_any ip ia
+    iu:f32[64,64] = reshape[dimensions=None new_sizes=(64, 64)] is
+    iv:f32[64,64] = add_any im iu
+    iw:f32[64,64] = div iv 768.0
+    ix:f32[64,64,768] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1)
+      shape=(64, 64, 768)
+    ] iw
+    iy:f32[64,64,768] = add_any it ix
+    iz:f32[768] = reduce_sum[axes=(0, 1)] iy
+    ja:f32[1,1,768] = reshape[dimensions=None new_sizes=(1, 1, 768)] iz
+    jb:f32[768] = reshape[dimensions=None new_sizes=(768,)] ja
+    jc:f32[768,768] = dot_general[
+      dimension_numbers=(((0, 1), (0, 1)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] iy ch
+    jd:f32[768,768] = transpose[permutation=(1, 0)] jc
+    je:f32[64,64,768] = dot_general[
+      dimension_numbers=(((2,), (1,)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] iy e
+    jf:f32[64,64,12,64] = reshape[dimensions=None new_sizes=(64, 64, 12, 64)] je
+    jg:f32[64,12,64,64] jh:f32[64,64,12,64] = xla_call[
+      call_jaxpr={ lambda ; ji:f32[64,12,64,64] jj:f32[64,64,12,64] jk:f32[64,64,12,64]. let
+          jl:f32[64,12,64,64] = transpose[permutation=(0, 2, 3, 1)] jk
+          jm:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((2,), (3,)), ((0, 1), (0, 2)))
+            precision=None
+            preferred_element_type=None
+          ] jl jj
+          jn:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((3,), (2,)), ((0, 1), (0, 1)))
+            precision=None
+            preferred_element_type=None
+          ] jl ji
+          jo:f32[64,64,12,64] = transpose[permutation=(0, 3, 1, 2)] jn
+        in (jm, jo) }
+      name=_einsum
+    ] ca z jf
+    jp:f32[64,64,768,1] = reshape[dimensions=None new_sizes=(64, 64, 768, 1)] jh
+    jq:f32[64,64,768,3] = pad[
+      padding_config=((0, 0, 0), (0, 0, 0), (0, 0, 0), (1, 1, 0))
+    ] jp 0.0
+    jr:f32[64,12,64,64] = mul jg cb
+    js:f32[64,12,64,64] = mul jr bx
+    jt:f32[64,12,64] = reduce_sum[axes=(3,)] js
+    ju:f32[64,12,64,1] = reshape[dimensions=None new_sizes=(64, 12, 64, 1)] jt
+    jv:f32[64,12,64,1] = neg ju
+    jw:f32[64,12,64,64] = div jg bz
+    jx:f32[64,12,64] = reduce_sum[axes=(3,)] jv
+    jy:f32[64,12,64,64] = broadcast_in_dim[
+      broadcast_dimensions=(0, 1, 2)
+      shape=(64, 12, 64, 64)
+    ] jx
+    jz:f32[64,12,64,64] = add_any jw jy
+    ka:f32[64,12,64,64] = mul jz bx
+    kb:f32[64,64,12,64] kc:f32[64,64,12,64] = xla_call[
+      call_jaxpr={ lambda ; kd:f32[64,64,12,64] ke:f32[64,64,12,64] kf:f32[64,12,64,64]. let
+          kg:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((2,), (1,)), ((0, 1), (0, 2)))
+            precision=None
+            preferred_element_type=None
+          ] kf ke
+          kh:f32[64,64,12,64] = transpose[permutation=(0, 2, 1, 3)] kg
+          ki:f32[64,12,64,64] = dot_general[
+            dimension_numbers=(((3,), (1,)), ((0, 1), (0, 2)))
+            precision=None
+            preferred_element_type=None
+          ] kf kd
+          kj:f32[64,64,12,64] = transpose[permutation=(0, 2, 1, 3)] ki
+        in (kj, kh) }
+      name=_einsum
+    ] ba bk ka
+    kk:f32[64,64,768,1] = reshape[dimensions=None new_sizes=(64, 64, 768, 1)] kc
+    kl:f32[64,64,768,3] = pad[
+      padding_config=((0, 0, 0), (0, 0, 0), (0, 0, 0), (2, 0, 0))
+    ] kk 0.0
+    km:f32[64,64,768,3] = add_any jq kl
+    kn:f32[64,64,12,64] = div kb bj
+    ko:f32[64,64,768,1] = reshape[dimensions=None new_sizes=(64, 64, 768, 1)] kn
+    kp:f32[64,64,768,3] = pad[
+      padding_config=((0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 2, 0))
+    ] ko 0.0
+    kq:f32[64,64,768,3] = add_any km kp
+    kr:f32[64,64,2304] = reshape[dimensions=None new_sizes=(64, 64, 2304)] kq
+    ks:f32[2304] = reduce_sum[axes=(0, 1)] kr
+    kt:f32[1,1,2304] = reshape[dimensions=None new_sizes=(1, 1, 2304)] ks
+    ku:f32[2304] = reshape[dimensions=None new_sizes=(2304,)] kt
+    kv:f32[2304,768] = dot_general[
+      dimension_numbers=(((0, 1), (0, 1)), ((), ()))
+      precision=None
+      preferred_element_type=None
+    ] kr o
+    kw:f32[768,2304] = transpose[permutation=(1, 0)] kv
+    kx:f32[768] = mul 0.009999999776482582 hy
+    ky:f32[768] = sub b kx
+    kz:f32[768] = mul 0.009999999776482582 ih
+    la:f32[768] = sub c kz
+    lb:f32[768] = mul 0.009999999776482582 jb
+    lc:f32[768] = sub d lb
+    ld:f32[768,768] = mul 0.009999999776482582 jd
+    le:f32[768,768] = sub e ld
+    lf:f32[2304] = mul 0.009999999776482582 ku
+    lg:f32[2304] = sub f lf
+    lh:f32[768,2304] = mul 0.009999999776482582 kw
+    li:f32[768,2304] = sub g lh
+    lj:f32[3072] = mul 0.009999999776482582 hr
+    lk:f32[3072] = sub h lj
+    ll:f32[768,3072] = mul 0.009999999776482582 ht
+    lm:f32[768,3072] = sub i ll
+    ln:f32[768] = mul 0.009999999776482582 ga
+    lo:f32[768] = sub j ln
+    lp:f32[768] = mul 0.009999999776482582 gj
+    lq:f32[768] = sub k lp
+    lr:f32[768] = mul 0.009999999776482582 hd
+    ls:f32[768] = sub l lr
+    lt:f32[3072,768] = mul 0.009999999776482582 hf
+    lu:f32[3072,768] = sub m lt
+    lv:i32[] = add a 1
+  in (lv, ky, la, lc, le, lg, li, lk, lm, lo, lq, ls, lu) }

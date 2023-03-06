@@ -1,0 +1,14 @@
+digraph {
+	size="6,10!"
+	b [label="float32[5]" color=goldenrod1 style=filled]
+	a [label="float32[5]" color=mediumspringgreen style=filled]
+	c [label=mul color=lightskyblue shape=box style=filled]
+	a -> c
+	b -> c
+	id0 [label=xla_call color=lightskyblue shape=box style=filled]
+	c -> id0
+	d [label="float32[]" color=cornflowerblue style=filled]
+	id0 -> d
+	out_0 [label=out_0 color=black fillcolor=indianred1 style="filled,dashed"]
+	d -> out_0
+}
