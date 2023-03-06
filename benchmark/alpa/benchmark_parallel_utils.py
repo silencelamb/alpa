@@ -12,7 +12,7 @@ from jax._src.tree_util import tree_flatten, tree_leaves, tree_unflatten
 from jax._src.lib import xla_bridge as xb
 
 import alpa
-from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel,
+from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel, ConfigParallel,
                   ManualStageOption, AutoStageOption, AutoLayerOption,
                   global_config, PhysicalDeviceMesh)
 from alpa.pipeline_parallel.stage_construction import get_last_dp_result
@@ -23,7 +23,7 @@ from alpa.global_env import get_global_config
 from alpa.pipeline_parallel.pipeshard_executable import PipeshardDriverExecutable
 from alpa.shard_parallel.auto_sharding import run_backend_compilation
 from alpa.mesh_executable import get_grad_sync_channel_ids
-from alpa.mesh_profiling import hlo_module_cost_analysis
+from alpa.mesh_profiling import hlo_module_cost_analysis, estimate_hlo_module_cost
 
 BenchmarkCase = namedtuple("BenchmarkCase", [
     "batch_size", "model_config", "num_micro_batches", "parallel_mode",
@@ -49,6 +49,11 @@ LoadSolutionParallelArgs = namedtuple("LoadSolutionParallelArgs", [
     "forward_stage_layer_ids", "submesh_physical_shapes",
     "submesh_logical_shapes", "submesh_autosharding_option_dicts"
 ])
+
+ConfigParallelArgs = namedtuple("ConfigParallelArgs", [
+    "stage_num", "input_placement_specs", "pipeline_schedule", "stage_option", "use_remat"
+])
+
 
 
 def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
@@ -149,6 +154,20 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
                 submesh_physical_shapes=[physical_mesh_shape] * pp,
                 submesh_logical_shapes=[logical_mesh_shape] * pp,
                 submesh_autosharding_option_dicts=[{}] * pp))
+    elif parallel_mode == "config":
+        assert isinstance(parallel_args, ConfigParallelArgs)
+        stage_num, input_placement_specs, pipeline_schedule, stage_option, _ = parallel_args
+
+        method = ConfigParallel(
+            stage_num=stage_num,
+            input_placement_specs=input_placement_specs,
+            pipeline_schedule = "1f1b",
+            stage_option = stage_option,
+            num_micro_batches=num_micro_batches)
+        add_manual_layer_marker = None
+        add_manual_remat = None
+        num_manual_pipeline_stages = stage_num
+
     else:
         raise ValueError(f"Invalid parallel mode: {parallel_mode}")
 
@@ -329,11 +348,19 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
     global_config = get_global_config()
 
     # save mapping result
+    
+    save_file = f"{global_config.maping_rst_dir}/input_placement_specs.pkl"
+    input_placement_specs = executable.input_placement_specs
+    with open(save_file, 'wb') as f:
+        import pickle
+        pickle.dump(input_placement_specs, f)
+
     input_placement_specs = executable.get_input_placement_specs()
     for idx, specs in enumerate(input_placement_specs):
         save_file = f"{global_config.maping_rst_dir}/input_placement_specs-{idx}.txt"
         with open(save_file, 'w') as f:
             f.write(str(specs))
+    
 
     output_placement_specs = executable.get_output_placement_specs()
     from collections.abc import Iterable
@@ -395,13 +422,24 @@ def compile_shard_executable(physical_mesh, train_step, state,
 
 
 def compute_network_anaysis(executable: PipeshardDriverExecutable):
+    global_config = get_global_config()
     xla_stages = executable.stages
+    estimated_cost_sum = 0   # every op sum
+    estimated_cost = 0 # result for compare, using another api
+    max_mem = 0
+    max_stage_cost = 0
     for idx, xla_computations in enumerate(xla_stages):
         """
         Reference code: alpa/pipeline_parallel/stage_profiling.py
         HloCostModelProfileWorker.compile()
         """
+        # import ipdb; ipdb.set_trace()
+        sharding_annotated_module = xla_computations.get_hlo_text()
+        with open(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_annotated.hlo", 'w') as f:
+            f.write(sharding_annotated_module)
         spmd_partitioned_hlo = xla_computations.get_spmd_partitioned()
+        with open(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_spmd_partitioned.hlo", 'w') as f:
+            f.write(spmd_partitioned_hlo.to_string())
         stage_plan = xla_computations.stage_plan
         logical_mesh_shape = stage_plan.logical_mesh_shape
         num_devices = np.prod(logical_mesh_shape)
@@ -415,20 +453,29 @@ def compute_network_anaysis(executable: PipeshardDriverExecutable):
         hlo_module = compiled.hlo_modules()[0]
         hlo_module_str = hlo_module.to_string()
         
-        global_config = get_global_config()
-        with open(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}.hlo", 'w') as f:
+        
+        with open(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_optimized.hlo", 'w') as f:
             f.write(hlo_module_str)
             
         grad_sync_channel_ids = ""
         if True:
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
         peak_memory = compiled.total_allocation_size()/ GB
+        max_mem = max(max_mem, peak_memory)
+        estimated_cost_cur = 0
+        # estimated_cost_cur = estimate_hlo_module_cost(hlo_module, global_config, None, 1, grad_sync_channel_ids)
+        estimated_cost += estimated_cost_cur
+        max_stage_cost = max(max_stage_cost, estimated_cost_cur)
         analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)
         # import pdb; pdb.set_trace()
         df = pd.DataFrame.from_dict(analysis_result)
+        estimated_cost_cur = df['estimated_time'].sum()
+        max_stage_cost = max(max_stage_cost, estimated_cost_cur)
+        estimated_cost_sum += estimated_cost_cur
         df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_peak_memory-{peak_memory: .3f}GB.xlsx")
         print(f'compute_network_anaysis: stage_{idx} peak_memory: {peak_memory: .3f} GB !!!!!!')
     
+    return estimated_cost_sum, estimated_cost, max_stage_cost, max_mem
 
 def compile_and_benchmark_pipeshard_training_executable(
         parallel_mode,
@@ -441,10 +488,14 @@ def compile_and_benchmark_pipeshard_training_executable(
         parallel_mode, train_step, state, other_train_step_inputs)
    
     global_config = get_global_config()
+    
+    # add compute and network cost analysis
+    estimated_time_sum, estimated_time, max_stage_time, estimated_max_mem = compute_network_anaysis(executable)
+
     if global_config.only_mapping:
         _, _, _, _, _, dp_cost = get_last_dp_result()
-        latencies = dp_cost  # use dp_cost
-        max_mem_allocated = 22.0
+        latencies = dp_cost if dp_cost is not None else estimated_time  # use dp_cost
+        max_mem_allocated = estimated_max_mem
     else:
         latencies = benchmark_training_executable(
             niter,
@@ -455,10 +506,7 @@ def compile_and_benchmark_pipeshard_training_executable(
             profile_driver_time=profile_driver_time)
         max_mem_allocated = executable.mesh_group.get_max_memory_allocated()
 
-    # add compute and network cost analysis
-    compute_network_anaysis(executable)
-
-    return latencies, max_mem_allocated, compilation_times, executable
+    return latencies, max_mem_allocated, compilation_times, executable, estimated_time_sum, estimated_time, max_stage_time
 
 
 def compile_and_benchmark_shard_training_executable(physical_mesh,

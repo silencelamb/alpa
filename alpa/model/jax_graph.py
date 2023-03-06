@@ -60,8 +60,9 @@ if __name__ == "__main__":
     import jax.numpy as jnp
     f = lambda x: jnp.sum(x**2)
     x = jnp.ones(5)
-    # g = grad_graph(f, x)
+    g = grad_graph(f, x)
     # g = jaxpr_graph(f, x)
-    g = jaxpr_graph(jax.grad(f), x)
-    import pdb; pdb.set_trace()
-    g # will show inline in a notebook (alt: g.view() creates & opens Digraph.gv.pdf)
+    # g = jaxpr_graph(jax.grad(f), x)
+    # import pdb; pdb.set_trace()
+    g.format = 'pdf'
+    g.render(directory='./simple_test')

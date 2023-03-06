@@ -1,7 +1,8 @@
 """Benchmark suites for gpt with auto parallelization."""
 from suite_manual_gpt import gpt_specs
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
-                                      LoadSolutionParallelArgs)
+                                      LoadSolutionParallelArgs, ConfigParallelArgs)
+from alpa import ManualStageOption
 
 max_global_batch_size = 1024
 
@@ -25,6 +26,20 @@ def get_search_cases(model_spec, num_micro_batches_list, num_auto_layers_list):
                                num_auto_layers, auto_stage_option))
         for num_micro_batches in num_micro_batches_list
         for num_auto_layers in num_auto_layers_list
+    ]
+
+
+def get_config_cases(model_spec, num_micro_batches_list,  input_placement_specs_pkl, stage_option):
+    import pickle
+    with open(input_placement_specs_pkl, 'rb') as f:
+        input_placement_specs = pickle.load(f)
+    stage_num = len(stage_option.forward_stage_layer_ids)
+
+    return [
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches, "config",
+            ConfigParallelArgs(stage_num, input_placement_specs, '1f1b', stage_option, use_remat))
+        for num_micro_batches in num_micro_batches_list
     ]
 
 
@@ -112,4 +127,14 @@ grid_search_suite = {
 # Small test cases for correctness test
 correctness_test_suite = {
     8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
+}
+
+config_test_suite = {
+    2: get_config_cases(gpt_specs["760M"], [128], 
+                        'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
+                        stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1]], 
+                                                       submesh_physical_shapes=[[1, 1], [1, 1]], 
+                                                       submesh_logical_shapes=[[1, 1], [1, 1]], 
+                                                       submesh_autosharding_option_dicts=[{}, {}])
+                        )
 }

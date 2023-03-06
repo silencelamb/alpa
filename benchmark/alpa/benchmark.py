@@ -12,7 +12,7 @@ from alpa.global_env import get_global_config, set_global_config
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
 from gen_mapping_vis_result import gen_mapping_vis_result
-from benchmark_parallel_utils import BenchmarkCase
+from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 from benchmark_one_case import benchmark_one_case
 import suite_auto_gpt
@@ -32,6 +32,7 @@ benchmark_suites = {
     "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
     "gpt_inference.profile": suite_inference_gpt.profile_suite,
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
+    "gpt.config": suite_auto_gpt.config_test_suite, 
     "moe.tmp": suite_manual_moe.tmp_suite,
     "moe.tmp_auto": suite_auto_moe.tmp_suite,
     "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,
@@ -107,14 +108,18 @@ def benchmark_suite(suite_name,
             "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "TFLOPs",
             "Peak Mem (GB)", "Metadata"
         ]
+        if isinstance(parallel_args, ConfigParallelArgs):
+            parallel_args = parallel_args._replace(input_placement_specs=[])
+            
         values = [
             model_type, model_config, num_micro_batches, num_gpus,
             parallel_args, f"{np.mean(latencies):.3f}",
             f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
             f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
-            to_str_round(metadata, 2)
+            to_str_round(metadata, 6)
         ]
         write_tsv(heads, values, output_name)
+        values = [str(x) for x in values]
         result_dict = dict(zip(heads, values))
         with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
             json.dump(result_dict, f, indent=4)

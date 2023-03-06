@@ -255,7 +255,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                 fine_grained_remat_num_layers)
 
     (latencies, max_mem_allocated, compilation_times,
-     executable) = compile_and_benchmark_pipeshard_training_executable(
+     executable, estimated_time_sum, estimated_time, 
+     max_stage_cost) = compile_and_benchmark_pipeshard_training_executable(
          benchmark_case.parallel_mode,
          niter,
          train_step,
@@ -279,7 +280,11 @@ def benchmark_gpt_bert_3d_internal(model_type,
         "submesh_shapes": submesh_shapes,
         "logical_mesh_shapes": logical_mesh_shapes,
         "autosharding_option_dicts": autosharding_option_dicts,
-        "dp_cost": dp_cost
+        "dp_cost": dp_cost,
+        "estimated_time_sum": estimated_time_sum,
+        "estimated_time": estimated_time,
+        "max_stage_cost": max_stage_cost,
+        "estimated_total_time": estimated_time_sum + (benchmark_case.num_micro_batches-1) * max_stage_cost
     }
 
     return parameter_count, max_mem_allocated, latencies, tflops, metadata

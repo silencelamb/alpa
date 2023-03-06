@@ -24,6 +24,7 @@ import numpy as np
 
 from alpa.create_state_parallel import compile_create_state_executable
 from alpa.follow_parallel import compile_follow_parallel_executable
+from alpa.config_parallel import compile_config_parallel_executable
 from alpa.device_mesh import (PhysicalDeviceMesh, VirtualPhysicalMesh,
                               LocalPhysicalDeviceMesh, get_global_physical_mesh,
                               get_global_virtual_physical_mesh)
@@ -352,3 +353,61 @@ class FollowParallel(ParallelMethod):
             batch_invars, self.src_func, self.num_micro_batches,
             input_placement_specs, self.pipeline_schedule, self.layer_option,
             *avals)
+    
+
+class ConfigParallel(ParallelMethod):
+    """
+    Parallelize a function given its input placement specs and mesh group.
+
+    Args:
+        num_micro_batches: The number of micro batches.
+        get_input_placement_specs: A callaback function that returns
+          the input placement specs.
+        pipeline_schedule: The pipeline schedule.
+          Possible choices: {"1f1b", "gpipe", "inference"}
+        layer_option: Options of grouping basic operators to layers.
+          Possible choices: {"auto", "manual"}.
+    """
+
+    def __init__(self,
+                 virtual_mesh: Optional[VirtualPhysicalMesh] = None,
+                 stage_num: int = None,
+                 num_micro_batches: Optional[int] = None,
+                 input_placement_specs: tuple = None,
+                 pipeline_schedule: str = "1f1b",
+                 stage_option: Optional[StageOption] = None,
+                 layer_option: str = "follow"):
+        
+        self.virtual_mesh = virtual_mesh
+        self.stage_num = stage_num
+        self.num_micro_batches = num_micro_batches
+        self.input_placement_specs = input_placement_specs
+        self.pipeline_schedule = pipeline_schedule
+        self.stage_option = stage_option or UniformStageOption()
+        self.layer_option = layer_option
+
+    def compile_executable(
+        self,
+        fun: lu.WrappedFun,
+        in_tree: PyTreeDef,
+        out_tree_thunk: Callable[[], PyTreeDef],
+        static_argnums: Sequence[int],
+        donated_invars: Sequence[bool],
+        batch_invars: Sequence[bool],
+        *avals: Sequence[AbstractValue],
+    ):
+        # Resolve the polymorphism in arguments
+        if self.virtual_mesh is None:
+            virtual_mesh = get_global_virtual_physical_mesh()
+            assert virtual_mesh is not None, (
+                "Please run `alpa.init()` to initialize alpa.")
+        else:
+            virtual_mesh = self.virtual_mesh
+
+        assert isinstance(virtual_mesh, VirtualPhysicalMesh)
+        return compile_config_parallel_executable(
+            fun, self.stage_num, in_tree, out_tree_thunk, static_argnums, donated_invars,
+            batch_invars, virtual_mesh, self.num_micro_batches,
+            self.input_placement_specs, self.pipeline_schedule, self.layer_option, 
+            self.stage_option, *avals)
+

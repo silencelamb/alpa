@@ -90,7 +90,6 @@ def compile_pipeshard_executable(
         if pipeline_schedule == "inference":
             fun.f = f_backup
     debug_compilation_time("trace")
-
     pipeshard_config = compile_pipeshard_executable_internal(
         closed_jaxpr, full_batch_closed_jaxpr, micro_batch_size, donated_invars,
         batch_invars, virtual_mesh, num_microbatch, pipeline_schedule,
@@ -248,6 +247,9 @@ def compile_pipeshard_executable_internal(
     # Launch the physical mesh group
     if virtual_mesh.launched_physical_mesh_group is None:
         virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
+    elif virtual_mesh.launched_physical_mesh_group[0].workers is None:
+        virtual_mesh.launched_physical_mesh_group = None
+        virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
     debug_compilation_time("launch meshes")
 
     # Wrap all things into a distributed runtime
@@ -284,6 +286,7 @@ def shard_each_stage(jax_all_stages, virtual_meshes, schedule, n_stages,
     stage_id_dict = [[] for _ in range(num_meshes)]
     dummy_stage_id_dict = [[] for _ in range(num_meshes)]
     donatable_dict = [[] for _ in range(num_meshes)]
+    module_str_dict = {}
     mesh_stage_mapping = schedule.mesh_stage_mapping
     donatable_list = get_donatable_intermediate(
         jax_all_stages, mesh_stage_mapping,
@@ -335,6 +338,10 @@ def shard_each_stage(jax_all_stages, virtual_meshes, schedule, n_stages,
                 f"{name_base}_mesh_{mesh_idx}", stage_dict[mesh_idx],
                 stage_donate_invars, input_sharding_dict, output_sharding_dict,
                 stage_input_sharding))
+            # import ray
+            # ray.util.pdb.set_trace()
+            module_str = module.to_string()
+            module_str_dict[mesh_idx] = module_str
             other_kwargs = {
                 "logical_mesh": logical_mesh,
                 "return_mode": "stages",
@@ -375,7 +382,10 @@ def shard_each_stage(jax_all_stages, virtual_meshes, schedule, n_stages,
                                     sharded_xla_stages):
                 xla_stages[i] = xla_stage
         compile_workers.shutdown()
-
+    global_config_ = get_global_config()
+    for mesh_idx, module_str in module_str_dict.items():
+        with open(f"{global_config_.maping_rst_dir}/compute_network_anaysis_mesh_{mesh_idx}_origin.hlo", 'w') as f:
+            f.write(module_str)
     return xla_stages, total_flops
 
 

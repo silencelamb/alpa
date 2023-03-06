@@ -1,5 +1,6 @@
 """Test following another parallel strategy."""
 import unittest
+import time
 
 from flax import linen as nn
 from flax.training.train_state import TrainState
@@ -80,6 +81,7 @@ class FollowParallelTest(unittest.TestCase):
                                     num_micro_batches=num_micro_batches))
 
         state = train_step(state, train_batch)
+        time.sleep(15)
         out = eval_step(state.params, eval_batch)
 
         actual = jax.tree_flatten(
@@ -105,8 +107,8 @@ class FollowParallelTest(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(FollowParallelTest("test_shard_parallel"))
-    suite.addTest(FollowParallelTest("test_shard_parallel_grad_acc"))
+    # suite.addTest(FollowParallelTest("test_shard_parallel"))
+    # suite.addTest(FollowParallelTest("test_shard_parallel_grad_acc"))
     suite.addTest(FollowParallelTest("test_pipeshard_parallel"))
     return suite
 

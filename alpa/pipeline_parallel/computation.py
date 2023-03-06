@@ -212,6 +212,7 @@ class XlaShardedPipelineComputation(PipelineComputation):
     output_acc_grad_indices: Sequence[int] = None
     donatables: OrderedSet[Var] = None
     spmd_partitioned_hlo_module: xe.HloModule = None
+    sharding_annotated_module_str: str = None 
 
     @classmethod
     def dummy_computation(cls, name, logical_mesh_shape, gensym_func):
@@ -322,6 +323,7 @@ class XlaShardedPipelineComputation(PipelineComputation):
         stage_plan = self.stage_plan
         logical_mesh_shape = stage_plan.logical_mesh_shape
         hlo_module = self.sharding_annotated_module
+        self.sharding_annotated_module_str = hlo_module.to_string()
         setup_computation_alias(hlo_module, self.donated_invars)
 
         num_devices = np.prod(logical_mesh_shape)
@@ -362,8 +364,10 @@ class XlaShardedPipelineComputation(PipelineComputation):
 
     def get_hlo_text(self):
         """Get the HLO text."""
-        assert self.sharding_annotated_module is not None
-        return self.sharding_annotated_module.to_string()
+        if self.sharding_annotated_module is None:
+            return self.sharding_annotated_module_str
+        else:
+            return self.sharding_annotated_module.to_string()
 
 
 def slice_closed_jaxpr_by_full_pipeline_marks(
