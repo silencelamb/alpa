@@ -679,7 +679,6 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
         jaxpr, out_shape_tree = make_jaxpr(fun,
                                            static_argnums=static_argnums,
                                            return_shape=True)(*args)
-
         var2mesh = {}  # Dict[var -> mesh_idx]
 
         for var, spec in zip(jaxpr.jaxpr.invars, input_placement_specs):
@@ -691,6 +690,7 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
                 if isinstance(var, Var):
                     var2mesh[var] = spec.mesh_ids[0]
 
+        import pdb; pdb.set_trace()
         sliced_eqns = slice_jaxpr_with_var_assignment(jaxpr, var2mesh,
                                                       num_meshes)
         jaxpr = add_pipeline_marks_for_sliced_eqns(jaxpr, sliced_eqns)
@@ -724,7 +724,7 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
                 if mesh_begin[cur_mesh] is None:
                     mesh_begin[cur_mesh] = idx
                 mesh_end[cur_mesh] = idx
-
+    import pdb; pdb.set_trace()
     # Some boundary equations are not within the ranges detected above.
     # Use DP algorithm to refine the boundary, so we can minimize the
     # communication costs.
@@ -732,6 +732,8 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
     costs = get_layer_construction_costs(jaxpr, cost_criteria=cost_criteria)
     _, _, compute_costs = costs
 
+    import pdb; pdb.set_trace()
+    
     # To make the solution of DP algorithm respect our begin/end constraint.
     # We assign begin, end equations a very large cost and run DP
     # with a small eps.

@@ -13,12 +13,13 @@ from jax._src.lib import xla_bridge as xb
 
 import alpa
 from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel, ConfigParallel,
-                  ManualStageOption, AutoStageOption, AutoLayerOption,
+                  ManualStageOption, WSCManualStageOption, AutoStageOption, AutoLayerOption,
                   global_config, PhysicalDeviceMesh)
 from alpa.pipeline_parallel.stage_construction import get_last_dp_result
 from alpa.timer import timers
 from alpa.util import (print_used_time, to_str_round,
-                       count_communication_primitives, GB)
+                       count_communication_primitives, GB,
+                       get_submesh_physical_shapes)
 from alpa.global_env import get_global_config
 from alpa.pipeline_parallel.pipeshard_executable import PipeshardDriverExecutable
 from alpa.shard_parallel.auto_sharding import run_backend_compilation
@@ -157,6 +158,11 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
     elif parallel_mode == "config":
         assert isinstance(parallel_args, ConfigParallelArgs)
         stage_num, input_placement_specs, pipeline_schedule, stage_option, _ = parallel_args
+
+        if isinstance(stage_option, WSCManualStageOption) and stage_option.submesh_physical_shapes is None:
+            stage_option: WSCManualStageOption
+            stage_option.submesh_physical_shapes = get_submesh_physical_shapes(stage_option.submeshes)
+            stage_option.submesh_logical_shapes = stage_option.submesh_physical_shapes
 
         method = ConfigParallel(
             stage_num=stage_num,

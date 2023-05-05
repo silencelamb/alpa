@@ -77,7 +77,7 @@ class GlobalConfig:
         self.pipeline_sync_for_timer = False
         # Whether to use distributed compilation in pipeline parallel for
         # each stage. Disabling it helps debug.
-        self.pipeline_distributed_compile = True
+        self.pipeline_distributed_compile = False
         # Whether to use single-byte signal tensor for send/recv.
         # This is a debug option.
         self.pipeline_use_signal_send_recv = False
@@ -143,6 +143,8 @@ class GlobalConfig:
         }
         self.wsc_config = {
             "analytical_perf::hardware": "wsc",
+            "analytical_perf_wsc::die_r_num": 6,
+            "analytical_perf_wsc::die_c_num": 6,
             "analytical_perf::compute_dict": {
                 PrimitiveType.F16.value: int( 256/36 * TOPS),
                 PrimitiveType.F32.value: int( 256/36  * TOPS),

@@ -85,7 +85,11 @@ def get_mlp_train_state_and_step(batch_size,
                      use_bias=use_bias,
                      add_manual_pipeline_marker=add_manual_pipeline_marker)
     params = model.init(rngkey, batch["x"])
-    tx = optax.sgd(learning_rate=1e-2, momentum=0.9)
+    # tx = optax.sgd(learning_rate=1e-2, momentum=0.9)
+    tx = optax.sgd(learning_rate=optax.linear_schedule(init_value=1e-2, 
+                                                       end_value=1e-5, 
+                                                       transition_steps=10), 
+                   momentum=0.9)
     state = TrainState.create(apply_fn=model.apply,
                               params=params,
                               tx=tx,

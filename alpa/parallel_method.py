@@ -35,9 +35,11 @@ from alpa.pipeline_parallel.layer_construction import (LayerOption,
                                                        ManualLayerOption)
 from alpa.pipeline_parallel.stage_construction import (StageOption,
                                                        AutoStageOption,
+                                                       WSCManualStageOption,
                                                        UniformStageOption)
 from alpa.shard_parallel.auto_sharding import AutoShardingOption, LogicalDeviceMesh
 from alpa.shard_parallel.compile_executable import compile_shard_executable
+from alpa.util import check_submesh_is_valid
 
 traceback_util.register_exclusion(__file__)
 
@@ -385,6 +387,16 @@ class ConfigParallel(ParallelMethod):
         self.pipeline_schedule = pipeline_schedule
         self.stage_option = stage_option or UniformStageOption()
         self.layer_option = layer_option
+        if isinstance(stage_option, WSCManualStageOption):
+            if self.virtual_mesh is None:
+                virtual_mesh = get_global_virtual_physical_mesh()
+                assert virtual_mesh is not None, (
+                    "Please run `alpa.init()` to initialize alpa.")
+            else:
+                virtual_mesh = self.virtual_mesh
+            # check is valid
+            is_valid = check_submesh_is_valid(virtual_mesh_shape=[len(virtual_mesh.host_ids), virtual_mesh.num_devices],
+                                   submeshes=stage_option.submeshes)
 
     def compile_executable(
         self,

@@ -43,7 +43,8 @@ from alpa.pipeline_parallel.layer_construction import (manual_remat,
                                                        AutoLayerOption)
 from alpa.pipeline_parallel.stage_construction import (ManualStageOption,
                                                        AutoStageOption,
-                                                       UniformStageOption)
+                                                       UniformStageOption,
+                                                       WSCManualStageOption)
 from alpa.shard_parallel.auto_sharding import AutoShardingOption
 from alpa.serialization import save_checkpoint, restore_checkpoint
 from alpa.timer import timers

@@ -12,6 +12,7 @@ from functools import partial, partialmethod
 import threading
 from typing import Iterable, Dict, Sequence, Any, Union, List
 from warnings import warn
+import numpy as np
 
 import flax
 from flax.training import train_state
@@ -1731,3 +1732,52 @@ def maybe_numba_jit(func):
     except ImportError:
         logger.warning("Install numba to jit and accelerate the function.")
         return func
+    
+
+########################################
+##### WSC Utilities
+########################################
+class OutOfBoundsError(Exception):
+    pass 
+
+
+class OverLapError(Exception):
+    pass 
+
+
+def check_submesh_is_valid(virtual_mesh_shape: Sequence[int], 
+                           submeshes: Sequence[Sequence[int]]):
+    rows, cols = virtual_mesh_shape
+    np_array = np.array(submeshes)
+    left, top, right, bottom = np_array[:,0], np_array[:,1], np_array[:,2], np_array[:,3]
+    # 1. 越界判断
+    is_out_of_bounds = np.any(
+                            np.bitwise_or(
+                                np.bitwise_or(left<0 , top<0), 
+                                np.bitwise_or(right>=cols, bottom>=rows)
+                            )
+                        )
+    if is_out_of_bounds:
+        raise OutOfBoundsError
+    # 2. 重叠判断
+    def overlap (rect, np_arr):
+        xy_max = np.minimum(np_arr[:, 2:], rect[2:])
+        xy_min = np.maximum(np_arr[:, :2], rect[:2])
+        inter = np.clip(xy_max-xy_min+1, a_min=0, a_max=np.inf)
+        inter = inter[:, 0]*inter[:, 1]
+        if np.any(inter > 0):
+            return True
+        else:
+            return False
+    for i in range(np_array.shape[0]):
+        if overlap(np_array[i,:], np_array[i+1:,:]):
+            raise OverLapError
+    return True
+
+
+def get_submesh_physical_shapes(submeshes: Sequence[Sequence[int]]):
+    submesh_physical_shapes = [
+        [submesh[2]-submesh[0]+1, submesh[3]-submesh[1]+1]
+        for submesh in submeshes
+    ]
+    return submesh_physical_shapes

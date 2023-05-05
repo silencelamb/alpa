@@ -63,9 +63,24 @@ class ManualStageOption:
     submesh_autosharding_option_dicts: Sequence[dict]
 
 
+@dataclass
+class WSCManualStageOption:
+    """Options of manual stage assignment for WSC."""
+    # Layer IDs of each forward stage.
+    forward_stage_layer_ids: Sequence[Sequence[int]]
+    # submeshes of each stage, 使用坐标，[[左,上,右,下]]
+    submeshes: Sequence[Sequence[int]]
+    # The physical shapes of submeshes of each stage. 不需设置，从submeshes获取即可
+    submesh_physical_shapes: Sequence[Sequence[int]]
+    # The logical shapes of submeshes of each stage. 暂时可以不设置
+    submesh_logical_shapes: Sequence[Sequence[int]]
+    # The auto-sharding options of each stage.
+    submesh_autosharding_option_dicts: Sequence[dict]
+
+
 UniformStageOption = namedtuple("UniformStageOption", [])
 
-StageOption = Union[AutoStageOption, ManualStageOption, UniformStageOption]
+StageOption = Union[AutoStageOption, ManualStageOption, WSCManualStageOption, UniformStageOption]
 
 # Get results for debugging
 last_compute_cost_file_name = None
