@@ -680,7 +680,17 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
                                            static_argnums=static_argnums,
                                            return_shape=True)(*args)
         var2mesh = {}  # Dict[var -> mesh_idx]
-
+        # print(jaxpr)
+        # print(out_shape_tree)
+        # with open("zhc_test/jaxpr.txt",'w+') as txt_file1: 
+        #     for var1 in jaxpr.jaxpr.invars:
+        #         txt_file1.write(str(var1)+"\n")
+            
+        
+        # with open("zhc_test/input_placement_specs_gpt.txt",'w+') as txt_file:       
+        #     for var, spec in zip(jaxpr.jaxpr.invars, input_placement_specs):
+        #         txt_file.write(str(var)+"|"+str(spec.mesh_ids[0])+"\n")
+                
         for var, spec in zip(jaxpr.jaxpr.invars, input_placement_specs):
             if spec is None:
                 # Assign input vars to mesh 0 by default
@@ -690,7 +700,13 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
                 if isinstance(var, Var):
                     var2mesh[var] = spec.mesh_ids[0]
 
-        import pdb; pdb.set_trace()
+        # with open("zhc_test/jaxpr_eqns.txt",'w+') as txt_file1: 
+        #     for idx, eqn in enumerate(jaxpr.eqns):
+        #         for var2 in eqn.invars:
+        #             if isinstance(var2, Var) and var2 in var2mesh:
+        #                 txt_file1.write(str(var2)+"\n")
+        
+        # import pdb; pdb.set_trace()
         sliced_eqns = slice_jaxpr_with_var_assignment(jaxpr, var2mesh,
                                                       num_meshes)
         jaxpr = add_pipeline_marks_for_sliced_eqns(jaxpr, sliced_eqns)
@@ -709,34 +725,43 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
 
     # Run a linear scan to find the begin and end equations of each mesh.
     cur_mesh = 0
+    # import pdb; pdb.set_trace()   
+    
+    
     for idx, eqn in enumerate(jaxpr.eqns):
         if eqn.primitive is pipeline_p:
             raise ValueError("FollowParallel is not compatible with manual "
                              "pipeline marker. Please do not insert manual "
                              "pipeline marker in the function.")
+        # print(eqn.invars)
         for var in eqn.invars:
+            # print(var)
             if isinstance(var, Var) and var in var2mesh:
                 mesh_idx = var2mesh[var]
-
-                if mesh_idx > cur_mesh:
-                    cur_mesh = mesh_idx
-
+                # print(mesh_idx)
+                # if mesh_idx > cur_mesh:
+                #     cur_mesh = mesh_idx
+                cur_mesh = mesh_idx
+                # import pdb; pdb.set_trace()
                 if mesh_begin[cur_mesh] is None:
                     mesh_begin[cur_mesh] = idx
                 mesh_end[cur_mesh] = idx
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     # Some boundary equations are not within the ranges detected above.
     # Use DP algorithm to refine the boundary, so we can minimize the
     # communication costs.
+    # import pdb; pdb.set_trace()
+    
     cost_criteria = "flops"
     costs = get_layer_construction_costs(jaxpr, cost_criteria=cost_criteria)
     _, _, compute_costs = costs
 
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     
     # To make the solution of DP algorithm respect our begin/end constraint.
     # We assign begin, end equations a very large cost and run DP
     # with a small eps.
+    # import pdb; pdb.set_trace()
     max_cost = np.sum(compute_costs) * 10
     for i in range(num_meshes):
         assert mesh_begin[i] is not None and mesh_end[i] is not None

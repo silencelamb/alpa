@@ -352,6 +352,8 @@ def run_auto_sharding_pass(
             "auto_sharding::force_strategy_stra_names": [],
     }):
         timers("auto-sharding").start()
+        # import pdb; pdb.set_trace()
+        # time.sleep(10)
         xe.run_auto_sharding(hlo_module, compile_options)
         timers("auto-sharding").stop()
 

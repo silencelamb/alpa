@@ -148,7 +148,7 @@ def gen_mapping_vis_result(mapping_result_dir, batch_num=None):
     actual_compute_power = int(over_all_result["#GPU"]) * float(over_all_result["TFLOPs"]) /1024
     theory_compute_power = 312
     
-    mean_time = float(over_all_result["Mean Time (s)"])
+    mean_time = float(over_all_result["Mean Time (s)"]) + 1e-9
     over_all_perf = {
         "estimated_exe_time": f"{mean_time:.2f} s",
         "throughput": f"{1024/mean_time:.2f} samples/s",

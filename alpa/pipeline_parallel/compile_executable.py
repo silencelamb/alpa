@@ -71,7 +71,7 @@ def compile_pipeshard_executable(
             f_backup = fun.f
             fun.f = layer_option.transform(fun.f)
         
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         # Trace the function with a micro batch to get the jaxpr.
         closed_jaxpr, micro_batch_size = trace_jaxpr_with_micro_batch(
             fun, batch_invars, num_microbatch, avals)
@@ -355,7 +355,7 @@ def shard_each_stage(jax_all_stages, virtual_meshes, schedule, n_stages,
                                               stage_donate_invars)
             total_flops += flops
         else:
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             sharded_xla_stages, flops = generate_sharded_xla_computations(
                 f"{name_base}_mesh_{mesh_idx}", stage_dict[mesh_idx],
                 stage_donate_invars, donatable_dict[mesh_idx], acc_grad_outvars,

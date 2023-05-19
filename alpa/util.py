@@ -1748,8 +1748,11 @@ class OverLapError(Exception):
 def check_submesh_is_valid(virtual_mesh_shape: Sequence[int], 
                            submeshes: Sequence[Sequence[int]]):
     rows, cols = virtual_mesh_shape
+    print([rows, cols ])
     np_array = np.array(submeshes)
     left, top, right, bottom = np_array[:,0], np_array[:,1], np_array[:,2], np_array[:,3]
+    print([left, top, right, bottom ])
+    # import pdb; pdb.set_trace()
     # 1. 越界判断
     is_out_of_bounds = np.any(
                             np.bitwise_or(
