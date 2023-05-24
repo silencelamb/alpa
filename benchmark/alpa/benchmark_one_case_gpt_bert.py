@@ -218,11 +218,37 @@ def benchmark_gpt_bert_3d_internal(model_type,
 
     # Connect to the cluster
     if global_config.only_mapping:
+        from alpa import  WSCManualStageOption
         g_vir_phy_mesh = get_global_virtual_physical_mesh()
-        virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
-                                           host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
-                                           num_devices_per_host=num_devices_per_host,
-                                           head_ip=g_vir_phy_mesh.head_ip)
+        
+        #  isinstance(stage_option, WSCManualStageOption)
+        if isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
+            host_ids_ =0
+            num_devices_per_host_ = 0
+            for item1 in benchmark_case[4].stage_option.submeshes:
+                row_max = max(item1[0], item1[2])                
+                clo_max = max(item1[1], item1[3])
+                if row_max> num_devices_per_host_:
+                    num_devices_per_host_ = row_max
+                if clo_max> host_ids_:
+                    host_ids_ = clo_max
+            host_ids_ = host_ids_ + 1
+            num_devices_per_host_ = num_devices_per_host_ + 1
+               
+            virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(host_ids_),
+                                            host_info=[g_vir_phy_mesh.host_info[0]]*host_ids_,
+                                            num_devices_per_host=num_devices_per_host_,
+                                            head_ip=g_vir_phy_mesh.head_ip)
+            
+            virtual_mesh.submeshes = benchmark_case[4].stage_option.submeshes
+        else:
+            virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
+                                            host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
+                                            num_devices_per_host=num_devices_per_host,
+                                            head_ip=g_vir_phy_mesh.head_ip)
+        
+        
+        # import pdb; pdb.set_trace() 
         set_global_virtual_physical_mesh(virtual_mesh)
     else:
         virtual_mesh = get_global_cluster().get_virtual_physical_mesh(
