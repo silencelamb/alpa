@@ -45,6 +45,7 @@ benchmark_suites = {
 }
 
 
+
 def benchmark_suite(suite_name,
                     num_hosts,
                     num_devices_per_host,
@@ -166,7 +167,9 @@ if __name__ == "__main__":
     parser.add_argument("--force_use_fp16", action="store_true")
     args = parser.parse_args()
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
-
+    # os.environ.get("ALPA_DEBUG_PRINT_AS_STRATEGY", "False").lower()
+    os.environ["ALPA_DEBUG_PRINT_AS_STRATEGY"] = "1"
+    
     # set global_config, only_mapping
     global_config = get_global_config()
     global_config.only_mapping = args.only_mapping

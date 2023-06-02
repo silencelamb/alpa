@@ -655,8 +655,8 @@ def get_compute_cost(
 
 def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
     """Slice the origin mesh into submeshes given submesh shapes."""
-    num_hosts = virtual_mesh.num_hosts
-    num_devices_per_host = virtual_mesh.num_devices_per_host
+    # num_hosts = virtual_mesh.num_hosts
+    # num_devices_per_host = virtual_mesh.num_devices_per_host
     submesh_sizes = [np.prod(submesh) for submesh in submesh_shapes]
     virtual_submeshes = [None] * len(submesh_shapes)
     # print(submesh_shapes)
@@ -667,39 +667,50 @@ def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
     sorted_submesh_indices = np.argsort(submesh_sizes)
     current_host_id = 0
     current_device_id = 0
-    # import pdb; pdb.set_trace()
+    
     for i in reversed(sorted_submesh_indices):
-        # import pdb; pdb.set_trace()
-        # required_num_hosts, required_num_devices = submesh_shapes[i]
         required_num_devices, required_num_hosts = submesh_shapes[i]
-        if required_num_devices == num_devices_per_host:
-            assert current_device_id == 0
-            assert current_host_id + required_num_hosts <= num_hosts, (
-                "Do not have enough hosts for the solution.")
-            virtual_submeshes[i] = virtual_mesh.slice_2d(
+        # import pdb; pdb.set_trace()
+        virtual_submeshes[i] = virtual_mesh.slice_2d(
                 tuple(
-                    range(current_host_id,
-                          current_host_id + required_num_hosts)),
-                (tuple(range(num_devices_per_host)),) * required_num_hosts)
-            current_host_id += required_num_hosts
-        else:            
-            assert required_num_hosts == 1
-            assert required_num_devices < num_devices_per_host
-            assert (current_device_id + required_num_devices <=
-                    num_devices_per_host), (
-                        "Do not have enough devices in a host for the solution")
-            virtual_submeshes[i] = virtual_mesh.slice_2d([current_host_id], [
-                tuple(
-                    range(current_device_id,
-                          current_device_id + required_num_devices))
-            ])
-            current_device_id += required_num_devices
-            if current_device_id == num_devices_per_host:
-                current_host_id += 1
-                current_device_id = 0
-    assert current_host_id == num_hosts
-    assert current_device_id == 0
-    import pdb; pdb.set_trace()
+                    range(virtual_mesh.submeshes[i][1],
+                          virtual_mesh.submeshes[i][1] + required_num_hosts)),
+                (tuple(range(required_num_devices)),) * required_num_hosts)
+        
+    
+    
+    # for i in reversed(sorted_submesh_indices):
+    #     # import pdb; pdb.set_trace()
+    #     # required_num_hosts, required_num_devices = submesh_shapes[i]
+    #     required_num_devices, required_num_hosts = submesh_shapes[i]
+    #     if required_num_devices == num_devices_per_host:
+    #         assert current_device_id == 0
+    #         assert current_host_id + required_num_hosts <= num_hosts, (
+    #             "Do not have enough hosts for the solution.")
+    #         virtual_submeshes[i] = virtual_mesh.slice_2d(
+    #             tuple(
+    #                 range(current_host_id,
+    #                       current_host_id + required_num_hosts)),
+    #             (tuple(range(num_devices_per_host)),) * required_num_hosts)
+    #         current_host_id += required_num_hosts
+    #     else:            
+    #         # assert required_num_hosts == 1
+    #         assert required_num_devices < num_devices_per_host
+    #         assert (current_device_id + required_num_devices <=
+    #                 num_devices_per_host), (
+    #                     "Do not have enough devices in a host for the solution")
+    #         virtual_submeshes[i] = virtual_mesh.slice_2d([current_host_id], [
+    #             tuple(
+    #                 range(current_device_id,
+    #                       current_device_id + required_num_devices))
+    #         ])
+    #         current_device_id += required_num_devices
+    #         if current_device_id == num_devices_per_host:
+    #             current_host_id += 1
+    #             current_device_id = 0
+    # assert current_host_id == num_hosts
+    # assert current_device_id == 0
+    # import pdb; pdb.set_trace()
     return virtual_submeshes
 
 
@@ -732,7 +743,7 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
                 (tuple(range(num_devices_per_host)),) * required_num_hosts)
             current_host_id += required_num_hosts
         else:
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             assert required_num_hosts == 1
             assert required_num_devices < num_devices_per_host
             assert (current_device_id + required_num_devices <=

@@ -215,14 +215,14 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                    profile_driver_time=False):
     # global config
     global_config = get_global_config()
-
+    import pdb; pdb.set_trace()    
     # Connect to the cluster
     if global_config.only_mapping:
         from alpa import  WSCManualStageOption
         g_vir_phy_mesh = get_global_virtual_physical_mesh()
         
         #  isinstance(stage_option, WSCManualStageOption)
-        if isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
+        if benchmark_case[3] == "config" and isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
             host_ids_ =0
             num_devices_per_host_ = 0
             for item1 in benchmark_case[4].stage_option.submeshes:
