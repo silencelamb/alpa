@@ -1,0 +1,210 @@
+HloModule train_step_pipeshard_parallel_mesh_0.47-0_apply_grad, input_output_alias={ {0}: (0, {}, may-alias), {1}: (1, {}, may-alias), {2}: (2, {}, may-alias), {3}: (3, {}, may-alias), {4}: (4, {}, may-alias), {5}: (5, {}, may-alias), {6}: (6, {}, may-alias), {7}: (7, {}, may-alias), {8}: (8, {}, may-alias), {9}: (9, {}, may-alias) }, entry_computation_layout={(f32[32]{0},f32[64,64]{1,0},f32[128]{0},f32[64,64]{1,0},s32[],f32[64]{0},f32[128,64]{1,0},f32[128]{0},f32[64,128]{1,0},s32[],f32[64]{0},f32[128,64]{1,0},f32[128]{0},f32[64,128]{1,0})->(f32[32]{0}, f32[64,64]{1,0}, f32[128]{0}, f32[64,64]{1,0}, s32[], /*index=5*/f32[64]{0}, f32[128,64]{1,0}, f32[128]{0}, f32[64,128]{1,0}, s32[])}
+
+%fused_computation (param_0.2: f32[2,64,64]) -> f32[64,128] {
+  %param_0.2 = f32[2,64,64]{2,1,0} parameter(0)
+  %transpose.3 = f32[64,2,64]{2,0,1} transpose(f32[2,64,64]{2,1,0} %param_0.2), dimensions={1,0,2}
+  %copy.1 = f32[64,2,64]{2,1,0} copy(f32[64,2,64]{2,0,1} %transpose.3)
+  ROOT %bitcast.10 = f32[64,128]{1,0} bitcast(f32[64,2,64]{2,1,0} %copy.1)
+}
+
+%fused_computation.1 (param_0.34: f32[64,64], param_1.44: f32[64,128], param_2.33: s32[], param_3.46: s32[], param_4.41: f32[64,64], param_5.14: f32[128,64]) -> (f32[1,64,64], f32[1,64,64]) {
+  %param_1.44 = f32[64,128]{1,0} parameter(1)
+  %constant_12 = s32[] constant(0), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_2.33 = s32[] parameter(2)
+  %dynamic-slice.0 = f32[64,64]{1,0} dynamic-slice(f32[64,128]{1,0} %param_1.44, s32[] %constant_12, s32[] %param_2.33), dynamic_slice_sizes={64,64}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %constant_95 = f32[] constant(1)
+  %param_3.46 = s32[] parameter(3)
+  %maximum.9 = s32[] maximum(s32[] %param_3.46, s32[] %constant_12), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/max" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %constant_93 = s32[] constant(10)
+  %minimum.9 = s32[] minimum(s32[] %maximum.9, s32[] %constant_93), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/min" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %convert.9 = f32[] convert(s32[] %minimum.9), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/convert_element_type[new_dtype=float32 weak_type=False]" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_92 = f32[] constant(0.1)
+  %multiply.53 = f32[] multiply(f32[] %convert.9, f32[] %constant_92), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %subtract.13 = f32[] subtract(f32[] %constant_95, f32[] %multiply.53), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/sub" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_91 = f32[] constant(0.00999)
+  %multiply.52 = f32[] multiply(f32[] %subtract.13, f32[] %constant_91), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_90 = f32[] constant(1e-05)
+  %add.28 = f32[] add(f32[] %multiply.52, f32[] %constant_90), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_89 = f32[] constant(-1)
+  %multiply.51 = f32[] multiply(f32[] %add.28, f32[] %constant_89), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/alias.py" source_line=37}
+  %broadcast.18 = f32[64,64]{1,0} broadcast(f32[] %multiply.51), dimensions={}
+  %param_0.34 = f32[64,64]{1,0} parameter(0)
+  %multiply.0 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %broadcast.18, f32[64,64]{1,0} %param_0.34), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=694}
+  %add.11 = f32[64,64]{1,0} add(f32[64,64]{1,0} %dynamic-slice.0, f32[64,64]{1,0} %multiply.0), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %bitcast.12 = f32[1,64,64]{2,1,0} bitcast(f32[64,64]{1,0} %add.11)
+  %param_5.14 = f32[128,64]{1,0} parameter(5)
+  %dynamic-slice.4.clone.1 = f32[64,64]{1,0} dynamic-slice(f32[128,64]{1,0} %param_5.14, s32[] %param_2.33, s32[] %constant_12), dynamic_slice_sizes={64,64}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %param_4.41 = f32[64,64]{1,0} parameter(4)
+  %multiply.2.clone.1 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %broadcast.18, f32[64,64]{1,0} %param_4.41), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=694}
+  %add.13.clone.1 = f32[64,64]{1,0} add(f32[64,64]{1,0} %dynamic-slice.4.clone.1, f32[64,64]{1,0} %multiply.2.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %bitcast.13.clone.1 = f32[1,64,64]{2,1,0} bitcast(f32[64,64]{1,0} %add.13.clone.1)
+  ROOT %tuple.1 = (f32[1,64,64]{2,1,0}, f32[1,64,64]{2,1,0}) tuple(f32[1,64,64]{2,1,0} %bitcast.12, f32[1,64,64]{2,1,0} %bitcast.13.clone.1)
+}
+
+%fused_computation.2 (param_0.6: f32[128], param_1.51: s32[], param_2.48: f32[128], param_3.49: f32[128]) -> (f32[128], f32[128]) {
+  %param_0.6 = f32[128]{0} parameter(0)
+  %constant_80 = f32[] constant(1)
+  %param_1.51 = s32[] parameter(1)
+  %constant_79 = s32[] constant(0), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %maximum.7 = s32[] maximum(s32[] %param_1.51, s32[] %constant_79), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/max" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %constant_78 = s32[] constant(10)
+  %minimum.7 = s32[] minimum(s32[] %maximum.7, s32[] %constant_78), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/min" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %convert.7 = f32[] convert(s32[] %minimum.7), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/convert_element_type[new_dtype=float32 weak_type=False]" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_77 = f32[] constant(0.1)
+  %multiply.47 = f32[] multiply(f32[] %convert.7, f32[] %constant_77), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %subtract.11 = f32[] subtract(f32[] %constant_80, f32[] %multiply.47), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/sub" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_76 = f32[] constant(0.00999)
+  %multiply.46 = f32[] multiply(f32[] %subtract.11, f32[] %constant_76), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_75 = f32[] constant(1e-05)
+  %add.26 = f32[] add(f32[] %multiply.46, f32[] %constant_75), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_74 = f32[] constant(-1)
+  %multiply.45 = f32[] multiply(f32[] %add.26, f32[] %constant_74), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/alias.py" source_line=37}
+  %broadcast.0 = f32[128]{0} broadcast(f32[] %multiply.45), dimensions={}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=694}
+  %param_3.49 = f32[128]{0} parameter(3)
+  %constant_21_clone_1 = f32[] constant(0.5)
+  %broadcast.5.clone.1 = f32[128]{0} broadcast(f32[] %constant_21_clone_1), dimensions={}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %multiply.25.clone.1 = f32[128]{0} multiply(f32[128]{0} %param_3.49, f32[128]{0} %broadcast.5.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_2.48 = f32[128]{0} parameter(2)
+  %constant_22_clone_1 = f32[] constant(0.9)
+  %broadcast.4.clone.1 = f32[128]{0} broadcast(f32[] %constant_22_clone_1), dimensions={}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %multiply.24.clone.1 = f32[128]{0} multiply(f32[128]{0} %param_2.48, f32[128]{0} %broadcast.4.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %add.18.clone.1 = f32[128]{0} add(f32[128]{0} %multiply.25.clone.1, f32[128]{0} %multiply.24.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %multiply.1 = f32[128]{0} multiply(f32[128]{0} %broadcast.0, f32[128]{0} %add.18.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=694}
+  %add.12 = f32[128]{0} add(f32[128]{0} %param_0.6, f32[128]{0} %multiply.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  ROOT %tuple.2 = (f32[128]{0}, f32[128]{0}) tuple(f32[128]{0} %add.12, f32[128]{0} %add.18.clone.1)
+}
+
+%fused_computation.4 (param_0.12: f32[32], param_1.50: f32[64], param_2.41: s32[], param_3.28: s32[]) -> f32[1,32] {
+  %param_1.50 = f32[64]{0} parameter(1)
+  %param_2.41 = s32[] parameter(2)
+  %dynamic-slice.5 = f32[32]{0} dynamic-slice(f32[64]{0} %param_1.50, s32[] %param_2.41), dynamic_slice_sizes={32}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %constant_50 = f32[] constant(1)
+  %param_3.28 = s32[] parameter(3)
+  %constant_44 = s32[] constant(0), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %maximum.3 = s32[] maximum(s32[] %param_3.28, s32[] %constant_44), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/max" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %constant_40 = s32[] constant(10)
+  %minimum.3 = s32[] minimum(s32[] %maximum.3, s32[] %constant_40), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/min" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=86}
+  %convert.3 = f32[] convert(s32[] %minimum.3), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/convert_element_type[new_dtype=float32 weak_type=False]" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_39 = f32[] constant(0.1)
+  %multiply.35 = f32[] multiply(f32[] %convert.3, f32[] %constant_39), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %subtract.7 = f32[] subtract(f32[] %constant_50, f32[] %multiply.35), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/sub" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=87}
+  %constant_38 = f32[] constant(0.00999)
+  %multiply.34 = f32[] multiply(f32[] %subtract.7, f32[] %constant_38), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_37 = f32[] constant(1e-05)
+  %add.22 = f32[] add(f32[] %multiply.34, f32[] %constant_37), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/schedule.py" source_line=88}
+  %constant_36 = f32[] constant(-1)
+  %multiply.33 = f32[] multiply(f32[] %add.22, f32[] %constant_36), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/alias.py" source_line=37}
+  %broadcast.1 = f32[32]{0} broadcast(f32[] %multiply.33), dimensions={}
+  %param_0.12 = f32[32]{0} parameter(0)
+  %multiply.3 = f32[32]{0} multiply(f32[32]{0} %broadcast.1, f32[32]{0} %param_0.12), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=694}
+  %add.14 = f32[32]{0} add(f32[32]{0} %dynamic-slice.5, f32[32]{0} %multiply.3), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  ROOT %bitcast.14 = f32[1,32]{1,0} bitcast(f32[32]{0} %add.14)
+}
+
+%fused_computation.6 (param_0.21: s32[]) -> s32[] {
+  %param_0.21 = s32[] parameter(0)
+  %constant_11 = s32[] constant(2147483647)
+  %compare.1 = pred[] compare(s32[] %param_0.21, s32[] %constant_11), direction=LT, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/lt" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/numerics.py" source_line=118}
+  %constant_17 = s32[] constant(1)
+  %add.16 = s32[] add(s32[] %param_0.21, s32[] %constant_17), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/numerics.py" source_line=118}
+  ROOT %select.1 = s32[] select(pred[] %compare.1, s32[] %add.16, s32[] %constant_11), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/select_n" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/numerics.py" source_line=118}
+}
+
+%fused_computation.9 (param_0.27: f32[64,64], param_1.48: f32[128,64], param_2.38: s32[], param_3.51: f32[64,64], param_4.49: f32[64,128]) -> (f32[64,64], f32[64,64]) {
+  %param_1.48 = f32[128,64]{1,0} parameter(1)
+  %param_2.38 = s32[] parameter(2)
+  %constant_23 = s32[] constant(0), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %dynamic-slice.7 = f32[64,64]{1,0} dynamic-slice(f32[128,64]{1,0} %param_1.48, s32[] %param_2.38, s32[] %constant_23), dynamic_slice_sizes={64,64}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %constant_24 = f32[] constant(0.5)
+  %broadcast.22 = f32[64,64]{1,0} broadcast(f32[] %constant_24), dimensions={}
+  %multiply.27 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %dynamic-slice.7, f32[64,64]{1,0} %broadcast.22), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_0.27 = f32[64,64]{1,0} parameter(0)
+  %constant_25 = f32[] constant(0.9)
+  %broadcast.23 = f32[64,64]{1,0} broadcast(f32[] %constant_25), dimensions={}
+  %multiply.26 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %param_0.27, f32[64,64]{1,0} %broadcast.23), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %add.19 = f32[64,64]{1,0} add(f32[64,64]{1,0} %multiply.27, f32[64,64]{1,0} %multiply.26), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %param_4.49 = f32[64,128]{1,0} parameter(4)
+  %dynamic-slice.6.clone.1 = f32[64,64]{1,0} dynamic-slice(f32[64,128]{1,0} %param_4.49, s32[] %constant_23, s32[] %param_2.38), dynamic_slice_sizes={64,64}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %multiply.23.clone.1 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %dynamic-slice.6.clone.1, f32[64,64]{1,0} %broadcast.22), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_3.51 = f32[64,64]{1,0} parameter(3)
+  %multiply.22.clone.1 = f32[64,64]{1,0} multiply(f32[64,64]{1,0} %param_3.51, f32[64,64]{1,0} %broadcast.23), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %add.17.clone.1 = f32[64,64]{1,0} add(f32[64,64]{1,0} %multiply.23.clone.1, f32[64,64]{1,0} %multiply.22.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  ROOT %tuple.3 = (f32[64,64]{1,0}, f32[64,64]{1,0}) tuple(f32[64,64]{1,0} %add.19, f32[64,64]{1,0} %add.17.clone.1)
+}
+
+%fused_computation.10 (param_0.29: s32[4], param_1.36: u32[], param_2.50: s32[4], param_3.56: s32[4]) -> (s32[], s32[]) {
+  %param_0.29 = s32[4]{0} parameter(0)
+  %param_1.36 = u32[] parameter(1)
+  %dynamic-slice.8 = s32[1]{0} dynamic-slice(s32[4]{0} %param_0.29, u32[] %param_1.36), dynamic_slice_sizes={1}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %bitcast.15 = s32[] bitcast(s32[1]{0} %dynamic-slice.8), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_3.56 = s32[4]{0} parameter(3)
+  %dynamic-slice.13.clone.1 = s32[1]{0} dynamic-slice(s32[4]{0} %param_3.56, u32[] %param_1.36), dynamic_slice_sizes={1}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %bitcast.17.clone.1 = s32[] bitcast(s32[1]{0} %dynamic-slice.13.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_2.50 = s32[4]{0} parameter(2)
+  %dynamic-slice.11.clone.1 = s32[1]{0} dynamic-slice(s32[4]{0} %param_2.50, u32[] %param_1.36), dynamic_slice_sizes={1}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %bitcast.16.clone.1 = s32[] bitcast(s32[1]{0} %dynamic-slice.11.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %subtract.4.clone.1 = s32[] subtract(s32[] %bitcast.17.clone.1, s32[] %bitcast.16.clone.1), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  ROOT %tuple.4 = (s32[], s32[]) tuple(s32[] %bitcast.15, s32[] %subtract.4.clone.1)
+}
+
+%fused_computation.11 (param_0.31: f32[32], param_1.49: f32[64], param_2.40: s32[]) -> f32[32] {
+  %param_1.49 = f32[64]{0} parameter(1)
+  %param_2.40 = s32[] parameter(2)
+  %dynamic-slice.10 = f32[32]{0} dynamic-slice(f32[64]{0} %param_1.49, s32[] %param_2.40), dynamic_slice_sizes={32}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %constant_26 = f32[] constant(0.5)
+  %broadcast.17 = f32[32]{0} broadcast(f32[] %constant_26), dimensions={}
+  %multiply.29 = f32[32]{0} multiply(f32[32]{0} %dynamic-slice.10, f32[32]{0} %broadcast.17), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %param_0.31 = f32[32]{0} parameter(0)
+  %constant_27 = f32[] constant(0.9)
+  %broadcast.7 = f32[32]{0} broadcast(f32[] %constant_27), dimensions={}
+  %multiply.28 = f32[32]{0} multiply(f32[32]{0} %param_0.31, f32[32]{0} %broadcast.7), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/mul" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  ROOT %add.20 = f32[32]{0} add(f32[32]{0} %multiply.29, f32[32]{0} %multiply.28), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+}
+
+ENTRY %main.318-0_apply_grad_spmd (param.1: f32[32], param.3: f32[64,64], param.5: f32[128], param.7: f32[64,64], param.8: s32[], param.9: f32[64], param.10: f32[128,64], param.11: f32[128], param.12: f32[64,128], param.13: s32[], param: f32[64], param.2: f32[128,64], param.4: f32[128], param.6: f32[64,128]) -> (f32[32], f32[64,64], f32[128], f32[64,64], s32[], /*index=5*/f32[64], f32[128,64], f32[128], f32[64,128], s32[]) {
+  %param.1 = f32[32]{0} parameter(0), sharding={devices=[4]0,2,1,3}, metadata={op_name="0_apply_grad$start"}
+  %param = f32[64]{0} parameter(10), sharding={devices=[2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %constant_13 = s32[4]{0} constant({0, 0, 64, 64}), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %partition-id = u32[] partition-id()
+  %constant_6 = s32[4]{0} constant({0, 64, 0, 64}), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %constant_5 = s32[4]{0} constant({0, 64, 32, 96}), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %fusion.10 = (s32[], s32[]) fusion(s32[4]{0} %constant_13, u32[] %partition-id, s32[4]{0} %constant_6, s32[4]{0} %constant_5), kind=kLoop, calls=%fused_computation.10, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/div"}
+  %get-tuple-element.7 = s32[] get-tuple-element((s32[], s32[]) %fusion.10), index=1
+  %fusion.11 = f32[32]{0} fusion(f32[32]{0} %param.1, f32[64]{0} %param, s32[] %get-tuple-element.7), kind=kLoop, calls=%fused_computation.11, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %param.3 = f32[64,64]{1,0} parameter(1), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="0_apply_grad$start"}
+  %param.2 = f32[128,64]{1,0} parameter(11), sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %get-tuple-element.6 = s32[] get-tuple-element((s32[], s32[]) %fusion.10), index=0
+  %param.7 = f32[64,64]{1,0} parameter(3), sharding={devices=[2,2]0,2,1,3}, metadata={op_name="0_apply_grad$start"}
+  %param.6 = f32[64,128]{1,0} parameter(13), sharding={devices=[2,1,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %fusion.9 = (f32[64,64]{1,0}, f32[64,64]{1,0}) fusion(f32[64,64]{1,0} %param.3, f32[128,64]{1,0} %param.2, s32[] %get-tuple-element.6, f32[64,64]{1,0} %param.7, f32[64,128]{1,0} %param.6), kind=kLoop, calls=%fused_computation.9, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/transform.py" source_line=70}
+  %get-tuple-element.12 = f32[64,64]{1,0} get-tuple-element((f32[64,64]{1,0}, f32[64,64]{1,0}) %fusion.9), index=0
+  %param.11 = f32[128]{0} parameter(7), sharding={replicated}, metadata={op_name="0_apply_grad$start"}
+  %param.8 = s32[] parameter(4), sharding={replicated}, metadata={op_name="0_apply_grad$start"}
+  %copy.6 = s32[] copy(s32[] %param.8)
+  %param.5 = f32[128]{0} parameter(2), sharding={replicated}, metadata={op_name="0_apply_grad$start"}
+  %param.4 = f32[128]{0} parameter(12), sharding={replicated}, metadata={op_name="0_apply_grad$start"}
+  %fusion.2 = (f32[128]{0}, f32[128]{0}) fusion(f32[128]{0} %param.11, s32[] %copy.6, f32[128]{0} %param.5, f32[128]{0} %param.4), kind=kLoop, calls=%fused_computation.2, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/update.py" source_line=43}
+  %get-tuple-element.13 = f32[128]{0} get-tuple-element((f32[128]{0}, f32[128]{0}) %fusion.2), index=1
+  %get-tuple-element.14 = f32[64,64]{1,0} get-tuple-element((f32[64,64]{1,0}, f32[64,64]{1,0}) %fusion.9), index=1
+  %fusion.6 = s32[] fusion(s32[] %copy.6), kind=kLoop, calls=%fused_computation.6, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/select_n" source_file="/python3.9-env/lib/python3.9/site-packages/optax/_src/numerics.py" source_line=118}
+  %param.9 = f32[64]{0} parameter(5), sharding={devices=[2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %fusion.4 = f32[1,32]{1,0} fusion(f32[32]{0} %fusion.11, f32[64]{0} %param.9, s32[] %get-tuple-element.7, s32[] %copy.6), kind=kLoop, calls=%fused_computation.4
+  %param.12 = f32[64,128]{1,0} parameter(8), sharding={devices=[2,1,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %param.10 = f32[128,64]{1,0} parameter(6), sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="0_apply_grad$start"}
+  %fusion.1 = (f32[1,64,64]{2,1,0}, f32[1,64,64]{2,1,0}) fusion(f32[64,64]{1,0} %get-tuple-element.14, f32[64,128]{1,0} %param.12, s32[] %get-tuple-element.6, s32[] %copy.6, f32[64,64]{1,0} %get-tuple-element.12, /*index=5*/f32[128,64]{1,0} %param.10), kind=kLoop, calls=%fused_computation.1
+  %get-tuple-element.1 = f32[1,64,64]{2,1,0} get-tuple-element((f32[1,64,64]{2,1,0}, f32[1,64,64]{2,1,0}) %fusion.1), index=1
+  %get-tuple-element = f32[1,64,64]{2,1,0} get-tuple-element((f32[1,64,64]{2,1,0}, f32[1,64,64]{2,1,0}) %fusion.1), index=0
+  %all-gather.3 = (f32[2,32]{1,0}, f32[2,64,64]{2,1,0}, f32[2,64,64]{2,1,0}) all-gather(f32[1,32]{1,0} %fusion.4, f32[1,64,64]{2,1,0} %get-tuple-element.1, f32[1,64,64]{2,1,0} %get-tuple-element), channel_id=1, replica_groups={{0,2},{1,3}}, dimensions={0}, use_global_device_ids=true
+  %get-tuple-element.8 = f32[2,32]{1,0} get-tuple-element((f32[2,32]{1,0}, f32[2,64,64]{2,1,0}, f32[2,64,64]{2,1,0}) %all-gather.3), index=0
+  %bitcast.4 = f32[64]{0} bitcast(f32[2,32]{1,0} %get-tuple-element.8)
+  %get-tuple-element.9 = f32[2,64,64]{2,1,0} get-tuple-element((f32[2,32]{1,0}, f32[2,64,64]{2,1,0}, f32[2,64,64]{2,1,0}) %all-gather.3), index=1
+  %bitcast.6 = f32[128,64]{1,0} bitcast(f32[2,64,64]{2,1,0} %get-tuple-element.9)
+  %get-tuple-element.18 = f32[128]{0} get-tuple-element((f32[128]{0}, f32[128]{0}) %fusion.2), index=0
+  %get-tuple-element.10 = f32[2,64,64]{2,1,0} get-tuple-element((f32[2,32]{1,0}, f32[2,64,64]{2,1,0}, f32[2,64,64]{2,1,0}) %all-gather.3), index=2
+  %fusion = f32[64,128]{1,0} fusion(f32[2,64,64]{2,1,0} %get-tuple-element.10), kind=kLoop, calls=%fused_computation
+  %param.13 = s32[] parameter(9), sharding={replicated}, metadata={op_name="0_apply_grad$start"}
+  %constant_42 = s32[] constant(1)
+  %add.10 = s32[] add(s32[] %param.13, s32[] %constant_42), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/add" source_file="/code/alpa/alpa/model/model_util.py" source_line=301}
+  ROOT %tuple.5 = (f32[32]{0}, f32[64,64]{1,0}, f32[128]{0}, f32[64,64]{1,0}, s32[], /*index=5*/f32[64]{0}, f32[128,64]{1,0}, f32[128]{0}, f32[64,128]{1,0}, s32[]) tuple(f32[32]{0} %fusion.11, f32[64,64]{1,0} %get-tuple-element.12, f32[128]{0} %get-tuple-element.13, f32[64,64]{1,0} %get-tuple-element.14, s32[] %fusion.6, /*index=5*/f32[64]{0} %bitcast.4, f32[128,64]{1,0} %bitcast.6, f32[128]{0} %get-tuple-element.18, f32[64,128]{1,0} %fusion, s32[] %add.10)
+}
+

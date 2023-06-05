@@ -1,0 +1,44 @@
+HloModule train_step_pipeshard_parallel_mesh_1.48-layer_1, input_output_alias={ {0}: (0, {}, may-alias) }, entry_computation_layout={(f32[],f32[8,64]{1,0},f32[64,128]{1,0},f32[128]{0},f32[128,64]{1,0},f32[64]{0},f32[8,64]{1,0})->(f32[], f32[8,64]{1,0}, f32[8,128]{1,0})}
+
+%add (x: f32[], y: f32[]) -> f32[] {
+  %x = f32[] parameter(0)
+  %y = f32[] parameter(1)
+  ROOT %add = f32[] add(f32[] %x, f32[] %y)
+}
+
+%region_0.91.layer_1 (Arg_0.92: f32[], Arg_1.93: f32[]) -> f32[] {
+  %Arg_0.92 = f32[] parameter(0)
+  %Arg_1.93 = f32[] parameter(1)
+  ROOT %add.94 = f32[] add(f32[] %Arg_0.92, f32[] %Arg_1.93), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/reduce_sum[axes=(0, 1)]" source_file="/code/alpa/alpa/testing.py" source_line=103}
+}
+
+ENTRY %main.356-layer_1_spmd (param: f32[], param.1: f32[8,64], param.2: f32[64,128], param.3: f32[128], param.4: f32[128,64], param.5: f32[64], param.6: f32[8,64]) -> (f32[], f32[8,64], f32[8,128]) {
+  %param = f32[] parameter(0), sharding={replicated}, metadata={op_name="layer_1$start"}
+  %param.1 = f32[8,64]{1,0} parameter(1), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="layer_1$start"}
+  %param.2 = f32[64,128]{1,0} parameter(2), sharding={devices=[2,1,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %dot = f32[8,128]{1,0} dot(f32[8,64]{1,0} %param.1, f32[64,128]{1,0} %param.2), lhs_contracting_dims={1}, rhs_contracting_dims={0}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %all-reduce = f32[8,128]{1,0} all-reduce(f32[8,128]{1,0} %dot), channel_id=1, replica_groups={{0,1},{2,3}}, use_global_device_ids=true, to_apply=%add, sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param.3 = f32[128]{0} parameter(3), sharding={replicated}, metadata={op_name="layer_1$start"}
+  %broadcast.3 = f32[8,128]{1,0} broadcast(f32[128]{0} %param.3), dimensions={1}
+  %add.1 = f32[8,128]{1,0} add(f32[8,128]{1,0} %all-reduce, f32[8,128]{1,0} %broadcast.3), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %param.4 = f32[128,64]{1,0} parameter(4), sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %dot.1 = f32[8,64]{1,0} dot(f32[8,128]{1,0} %add.1, f32[128,64]{1,0} %param.4), lhs_contracting_dims={1}, rhs_contracting_dims={0}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_3/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param.5 = f32[64]{0} parameter(5), sharding={devices=[2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %broadcast.4 = f32[8,64]{1,0} broadcast(f32[64]{0} %param.5), dimensions={1}
+  %add.2 = f32[8,64]{1,0} add(f32[8,64]{1,0} %dot.1, f32[8,64]{1,0} %broadcast.4), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_3/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %param.6 = f32[8,64]{1,0} parameter(6), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="layer_1$start"}
+  %subtract.2 = f32[8,64]{1,0} subtract(f32[8,64]{1,0} %add.2, f32[8,64]{1,0} %param.6), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/sub" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %multiply.1 = f32[8,64]{1,0} multiply(f32[8,64]{1,0} %subtract.2, f32[8,64]{1,0} %subtract.2), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/mul" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %constant.14 = f32[] constant(0)
+  %reduce = f32[] reduce(f32[8,64]{1,0} %multiply.1, f32[] %constant.14), dimensions={0,1}, to_apply=%region_0.91.layer_1, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/reduce_sum[axes=(0, 1)]" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %all-reduce.1 = f32[] all-reduce(f32[] %reduce), channel_id=2, replica_groups={{0,1},{2,3}}, use_global_device_ids=true, to_apply=%region_0.91.layer_1, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/reduce_sum[axes=(0, 1)]" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %constant.15 = f32[] constant(0.00048828125)
+  %multiply.2 = f32[] multiply(f32[] %all-reduce.1, f32[] %constant.15), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/div" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %add.3 = f32[] add(f32[] %param, f32[] %multiply.2), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/add"}
+  %all-reduce.2 = f32[] all-reduce(f32[] %add.3), channel_id=3, replica_groups={{0,2},{1,3}}, use_global_device_ids=true, to_apply=%region_0.91.layer_1, sharding={replicated}, metadata={op_name="grad_acc_skippable_all_reduce" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %constant.16 = f32[] constant(2)
+  %broadcast.5 = f32[8,64]{1,0} broadcast(f32[] %constant.16), dimensions={}
+  %multiply.3 = f32[8,64]{1,0} multiply(f32[8,64]{1,0} %subtract.2, f32[8,64]{1,0} %broadcast.5), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/mul" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  ROOT %tuple = (f32[], f32[8,64]{1,0}, f32[8,128]{1,0}) tuple(f32[] %all-reduce.2, f32[8,64]{1,0} %multiply.3, f32[8,128]{1,0} %add.1), metadata={op_name="tuple.4"}
+}
+

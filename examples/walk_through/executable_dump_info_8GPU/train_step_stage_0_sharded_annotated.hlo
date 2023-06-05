@@ -1,0 +1,17 @@
+HloModule train_step_pipeshard_parallel_mesh_0.47-layer_0, entry_computation_layout={(f32[128,128]{1,0},f32[128]{0},f32[128,128]{1,0},f32[128]{0},f32[16,128]{1,0})->(f32[16,128]{1,0}, f32[16,128]{1,0})}
+
+ENTRY %main.318-layer_0 (param_0: f32[128,128], param_1: f32[128], param_2: f32[128,128], param_3: f32[128], param_4: f32[16,128]) -> (f32[16,128], f32[16,128]) {
+  %param_4 = f32[16,128]{1,0} parameter(4), sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="layer_0$start"}
+  %param_0 = f32[128,128]{1,0} parameter(0), sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_0$start"}
+  %dot.62 = f32[16,128]{1,0} dot(f32[16,128]{1,0} %param_4, f32[128,128]{1,0} %param_0), lhs_contracting_dims={1}, rhs_contracting_dims={0}, sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_0/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param_1 = f32[128]{0} parameter(1), sharding={devices=[2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_0$start"}
+  %broadcast.66 = f32[16,128]{1,0} broadcast(f32[128]{0} %param_1), dimensions={1}, sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_0/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %add.67 = f32[16,128]{1,0} add(f32[16,128]{1,0} %dot.62, f32[16,128]{1,0} %broadcast.66), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_0/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %param_2 = f32[128,128]{1,0} parameter(2), sharding={devices=[2,1,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_0$start"}
+  %dot.68 = f32[16,128]{1,0} dot(f32[16,128]{1,0} %add.67, f32[128,128]{1,0} %param_2), lhs_contracting_dims={1}, rhs_contracting_dims={0}, sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_1/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param_3 = f32[128]{0} parameter(3), sharding={replicated}, metadata={op_name="layer_0$start"}
+  %broadcast.72 = f32[16,128]{1,0} broadcast(f32[128]{0} %param_3), dimensions={1}, sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_1/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %add.73 = f32[16,128]{1,0} add(f32[16,128]{1,0} %dot.68, f32[16,128]{1,0} %broadcast.72), sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_0)/jit(main)/jvp(MLPModel)/Dense_1/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  ROOT %tuple.8 = (f32[16,128]{1,0}, f32[16,128]{1,0}) tuple(f32[16,128]{1,0} %add.73, f32[16,128]{1,0} %add.67), sharding={{devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, {devices=[2,2]0,1,2,3}}, metadata={op_name="tuple.3"}
+}
+

@@ -35,7 +35,7 @@ class InstallationTest(unittest.TestCase):
         init(cluster="ray")
         # dp, op, pp = 1, 2, 2
         dp, op, pp = 2, 2, 2
-        debug_info_dir = './executable_dump_info_8GPU/'
+        debug_info_dir = './executable_dump_info_8GPU_micro8/'
         logical_mesh_shape = (dp, op)
         physical_mesh_shape = (1, dp*op)
 

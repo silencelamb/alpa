@@ -1,0 +1,35 @@
+HloModule train_step_pipeshard_parallel_mesh_1.48-layer_1, entry_computation_layout={(f32[],f32[16,128]{1,0},f32[128,128]{1,0},f32[128]{0},f32[128,128]{1,0},f32[128]{0},f32[16,128]{1,0})->(f32[], f32[16,128]{1,0}, f32[16,128]{1,0})}
+
+%region_0.91.layer_1 (Arg_0.92: f32[], Arg_1.93: f32[]) -> f32[] {
+  %Arg_0.92 = f32[] parameter(0)
+  %Arg_1.93 = f32[] parameter(1)
+  ROOT %add.94 = f32[] add(f32[] %Arg_0.92, f32[] %Arg_1.93), metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/reduce_sum[axes=(0, 1)]" source_file="/code/alpa/alpa/testing.py" source_line=103}
+}
+
+ENTRY %main.356-layer_1 (param_0: f32[], param_1: f32[16,128], param_2: f32[128,128], param_3: f32[128], param_4: f32[128,128], param_5: f32[128], param_6: f32[16,128]) -> (f32[], f32[16,128], f32[16,128]) {
+  %param_0 = f32[] parameter(0), sharding={replicated}, metadata={op_name="layer_1$start"}
+  %param_1 = f32[16,128]{1,0} parameter(1), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="layer_1$start"}
+  %param_2 = f32[128,128]{1,0} parameter(2), sharding={devices=[2,1,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %dot.76 = f32[16,128]{1,0} dot(f32[16,128]{1,0} %param_1, f32[128,128]{1,0} %param_2), lhs_contracting_dims={1}, rhs_contracting_dims={0}, sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param_3 = f32[128]{0} parameter(3), sharding={replicated}, metadata={op_name="layer_1$start"}
+  %broadcast.80 = f32[16,128]{1,0} broadcast(f32[128]{0} %param_3), dimensions={1}, sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %add.81 = f32[16,128]{1,0} add(f32[16,128]{1,0} %dot.76, f32[16,128]{1,0} %broadcast.80), sharding={devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_2/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %param_4 = f32[128,128]{1,0} parameter(4), sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %dot.82 = f32[16,128]{1,0} dot(f32[16,128]{1,0} %add.81, f32[128,128]{1,0} %param_4), lhs_contracting_dims={1}, rhs_contracting_dims={0}, sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_3/dot_general[dimension_numbers=(((1,), (0,)), ((), ())) precision=None preferred_element_type=None]" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=196}
+  %param_5 = f32[128]{0} parameter(5), sharding={devices=[2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="layer_1$start"}
+  %broadcast.86 = f32[16,128]{1,0} broadcast(f32[128]{0} %param_5), dimensions={1}, sharding={devices=[1,2,2]0,2,1,3 last_tile_dim_replicate}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_3/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %add.87 = f32[16,128]{1,0} add(f32[16,128]{1,0} %dot.82, f32[16,128]{1,0} %broadcast.86), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/jvp(MLPModel)/Dense_3/add" source_file="/python3.9-env/lib/python3.9/site-packages/flax/linen/linear.py" source_line=200}
+  %param_6 = f32[16,128]{1,0} parameter(6), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="layer_1$start"}
+  %subtract.88 = f32[16,128]{1,0} subtract(f32[16,128]{1,0} %add.87, f32[16,128]{1,0} %param_6), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/sub" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %multiply.89 = f32[16,128]{1,0} multiply(f32[16,128]{1,0} %subtract.88, f32[16,128]{1,0} %subtract.88), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/mul" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %constant.39 = f32[] constant(0), sharding={replicated}
+  %reduce.95 = f32[] reduce(f32[16,128]{1,0} %multiply.89, f32[] %constant.39), dimensions={0,1}, to_apply=%region_0.91.layer_1, sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/reduce_sum[axes=(0, 1)]" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %constant.25 = f32[] constant(0.00048828125), sharding={replicated}
+  %multiply = f32[] multiply(f32[] %reduce.95, f32[] %constant.25), sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/div" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %add.97 = f32[] add(f32[] %param_0, f32[] %multiply), sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/add"}
+  %constant.27 = f32[] constant(2), sharding={replicated}
+  %broadcast.28 = f32[16,128]{1,0} broadcast(f32[] %constant.27), dimensions={}, sharding={replicated}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/mul" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  %multiply.90 = f32[16,128]{1,0} multiply(f32[16,128]{1,0} %subtract.88, f32[16,128]{1,0} %broadcast.28), sharding={devices=[2,2]0,1,2,3}, metadata={op_name="parallelize(train_step_pipeshard_parallel_mesh_1)/jit(main)/mul" source_file="/code/alpa/alpa/testing.py" source_line=103}
+  ROOT %tuple.8 = (f32[], f32[16,128]{1,0}, f32[16,128]{1,0}) tuple(f32[] %add.97, f32[16,128]{1,0} %multiply.90, f32[16,128]{1,0} %add.81), sharding={{replicated}, {devices=[2,2]0,1,2,3}, {devices=[2,1,2]0,1,2,3 last_tile_dim_replicate}}, metadata={op_name="tuple.4"}
+}
+
