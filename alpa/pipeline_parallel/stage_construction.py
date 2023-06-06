@@ -801,7 +801,7 @@ def cluster_layers_and_slice_mesh(
         last_logical_mesh_shapes = logical_mesh_shapes
         last_autosharding_option_dicts = autosharding_option_dicts
         last_dp_cost = dp_cost
-    elif isinstance(stage_option, ManualStageOption):
+    elif isinstance(stage_option, (ManualStageOption, WSCManualStageOption) ):
         # Check forward_stage_layer_ids is a partition of range(num_layers)
         forward_stage_layer_ids = stage_option.forward_stage_layer_ids
         last_layer_id = 0

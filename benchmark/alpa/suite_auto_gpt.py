@@ -149,7 +149,7 @@ config_test_suite = {
 wsc_config_test_suite = {
     2: get_config_cases(gpt_specs["760M"], [128], 
                         'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
-                        stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1]],
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
                                                        submeshes=[
                                                                     [0, 0, 0, 0],
                                                                     [0, 1, 0, 1]

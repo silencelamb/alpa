@@ -43,7 +43,7 @@ def test_non_jit():
 
 
 if __name__ == "__main__":
-    #test_jit_cache()
+    test_jit_cache()
     test_cache_closure()
     #test_non_jit()
 

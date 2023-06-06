@@ -7,7 +7,7 @@ from jax import lax
 import jax.numpy as jnp
 from jax.nn import relu
 from jax.experimental import PartitionSpec as P
-from jax.experimental.maps import mesh
+from jax.experimental.maps import Mesh as mesh
 from jax.experimental.pjit import pjit, with_sharding_constraint
 from jax._src.random import _random_bits, threefry_2x32
 import flax
@@ -41,6 +41,7 @@ def test_matmul():
 
     mesh_devices = np.array(jax.devices()[:2])
     with mesh(mesh_devices, ('x',)):
+        import pdb; pdb.set_trace()
         out = f(x, y)
 
     np.testing.assert_allclose(out, x @ y, rtol=1e-5)
@@ -50,7 +51,9 @@ def test_failed_matmul_case_1():
     # Case 1: SR = RR x SR
     @partial(pjit,
              in_axis_resources=(P(None, None), P('y', None)),
-             out_axis_resources=P('x', None))
+            #  out_axis_resources=P('x', None)
+             out_axis_resources=None
+             )
     def f(x, y):
         return x @ y
 
@@ -59,7 +62,12 @@ def test_failed_matmul_case_1():
 
     mesh_devices = np.array(jax.devices()[:4]).reshape((2, 2))
     with mesh(mesh_devices, ('x', 'y')):
+        print(jax.make_jaxpr(f)(x, y))
+        print(f.lower(x, y).compiler_ir())
+        print(f.lower(x, y).compile().compiler_ir()[0].to_string())
         out = f(x, y)
+
+    np.testing.assert_allclose(out, x @ y, rtol=1e-5)
 
 
 def test_failed_matmul_case_2():
@@ -75,6 +83,9 @@ def test_failed_matmul_case_2():
 
     mesh_devices = np.array(jax.devices()[:4]).reshape((2, 2))
     with mesh(mesh_devices, ('x', 'y')):
+        print(jax.make_jaxpr(f)(x, y))
+        print(f.lower(x, y).compiler_ir())
+        print(f.lower(x, y).compile().compiler_ir()[0].to_string())
         out = f(x, y)
 
     np.testing.assert_allclose(out, x @ y, rtol=1e-5)
@@ -334,28 +345,33 @@ def test_all_to_all():
         return x
 
     x = np.random.randn(2, 2, 4).astype(np.float32)
+    x_ = np.random.randn(2, 2, 4).astype(np.float32)
 
     mesh_devices = np.array(jax.devices()[:4]).reshape(2, 2)
     with mesh(mesh_devices, ('x', 'y')):
-        out = f(x)
+        print(jax.make_jaxpr(f)(x))
+        print(f.lower(x).compiler_ir())
+        print(f.lower(x).compile().compiler_ir()[0].to_string())
+        out = f(x_)
+        
 
 
 if __name__ == "__main__":
-    #test_basic1d()
-    #test_matmul()
-    #test_failed_matmul_case_1()
-    #test_failed_matmul_case_2()
-    #test_reduce_scatter()
-    #test_matmul_speed()
-    #test_dict_arg()
+    # test_basic1d()
+    # test_matmul()
+    test_failed_matmul_case_1()
+    # test_failed_matmul_case_2()
+    # test_reduce_scatter()
+    # test_matmul_speed()
+    # test_dict_arg()
 
-    #test_mlp_forward()
-    #test_mlp_grad()
+    # test_mlp_forward()
+    # test_mlp_grad()
 
-    #test_random_bits()
-    #test_dropout()
+    # test_random_bits()
+    # test_dropout()
 
-    #test_embedding()
+    # test_embedding()
 
-    test_all_to_all()
+    # test_all_to_all()
 

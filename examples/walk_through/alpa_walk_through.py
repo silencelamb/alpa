@@ -58,7 +58,8 @@ class InstallationTest(unittest.TestCase):
                     forward_stage_layer_ids=[[i] for i in range(pp)],
                     submesh_physical_shapes=[physical_mesh_shape] * pp,
                     submesh_logical_shapes=[logical_mesh_shape] * pp,
-                    submesh_autosharding_option_dicts=[{}] * pp))
+                    submesh_autosharding_option_dicts=[{}] * pp)
+                    )
             )
         import pdb; pdb.set_trace()
         executable = p_train_step.get_executable(state, batch)

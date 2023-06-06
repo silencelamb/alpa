@@ -49,7 +49,7 @@ def test_allreduce_sum():
 
 if __name__ == "__main__":
     #debug_pmap()
-    #test_nested_pmap()
+    test_nested_pmap()
 
     test_allreduce_sum()
 

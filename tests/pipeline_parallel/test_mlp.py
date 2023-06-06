@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import optax
 import ray
 
-from alpa import init, parallelize, PipeshardParallel
+from alpa import init, parallelize, PipeshardParallel, ManualStageOption
 from alpa.model.model_util import TrainState
 from alpa.parallel_method import LocalPipelineParallel
 from alpa.pipeline_parallel.layer_construction import manual_layer_construction
@@ -17,7 +17,6 @@ class PipelineMLPTest(unittest.TestCase):
 
     def setUp(self):
         os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
-        init(cluster="ray")
 
     def train_2_layer_mlp(self, method):
 
@@ -63,21 +62,39 @@ class PipelineMLPTest(unittest.TestCase):
         # Check results
         assert_allclose(gradients, gradients_with_pipeline)
 
-        # Check debug utilities
         if isinstance(method, PipeshardParallel):
             executable = p_train_step.get_last_executable()
             executable.dump_debug_info("tmp")
+
+        # Check debug utilities
+        # if isinstance(method, PipeshardParallel):
+        #     executable = p_train_step.get_executable(state, batch)
+        #     executable.dump_debug_info("tmp")
 
     def test_2_layer_mlp_local_pipeline_parallel(self):
         self.train_2_layer_mlp(LocalPipelineParallel())
 
     def test_2_layer_mlp_pipeshard_parallel(self):
+        init(cluster="ray")
+        pp = 2
+        dp, op, pp = 2, 2, 2
+        logical_mesh_shape = (dp, op)
+        physical_mesh_shape = (1, dp*op)
+
         self.train_2_layer_mlp(PipeshardParallel(layer_option="manual"))
+        
+        # self.train_2_layer_mlp(PipeshardParallel(layer_option="manual", 
+        #                                          stage_option=ManualStageOption(
+        #             forward_stage_layer_ids=[[i] for i in range(pp)],
+        #             submesh_physical_shapes=[physical_mesh_shape] * pp,
+        #             submesh_logical_shapes=[logical_mesh_shape] * pp,
+        #             submesh_autosharding_option_dicts=[{}] * pp)
+        #             ))
 
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(PipelineMLPTest("test_2_layer_mlp_local_pipeline_parallel"))
+    # suite.addTest(PipelineMLPTest("test_2_layer_mlp_local_pipeline_parallel"))
     suite.addTest(PipelineMLPTest("test_2_layer_mlp_pipeshard_parallel"))
     return suite
 

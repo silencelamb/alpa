@@ -132,6 +132,10 @@ def test_mlp_model_parallel():
         w2 = split(w2, 0, model_parallel)
 
         for i in range(n_epoch):
+            import pdb; pdb.set_trace()
+            print(jax.make_jaxpr(step_parallel)(x, y, w1, w2))
+            print(step_parallel.lower(x, y, w1, w2).compiler_ir())
+            print(step_parallel.lower(x, y, w1, w2).compile().compiler_ir()[0].to_string())
             w1, w2 = step_parallel(x, y, w1, w2)
 
         return unsplit(w1, 1), unsplit(w2, 0)
@@ -192,6 +196,10 @@ def test_mlp_data_parallel():
         y = split(y, 0, data_parallel)
 
         for i in range(n_epoch):
+            import pdb; pdb.set_trace()
+            print(jax.make_jaxpr(step_parallel)(x, y, w1, w2))
+            print(step_parallel.lower(x, y, w1, w2).compiler_ir())
+            print(step_parallel.lower(x, y, w1, w2).compile().compiler_ir()[0].to_string())
             w1, w2 = step_parallel(x, y, w1, w2)
 
         return w1, w2
@@ -263,6 +271,10 @@ def test_mlp_data_model_parallel():
         w2 = split(w2, 0, model_parallel)
 
         for i in range(n_epoch):
+            import pdb; pdb.set_trace()
+            print(jax.make_jaxpr(step_data_parallel)(x, y, w1, w2))
+            # print(step_data_parallel.lower(x, y, w1, w2).compiler_ir())
+            # print(step_data_parallel.lower(x, y, w1, w2).compile().compiler_ir()[0].to_string())
             w1, w2 = step_data_parallel(x, y, w1, w2)
 
         return unsplit(w1, 1), unsplit(w2, 0)
@@ -284,7 +296,7 @@ def test_mlp_data_model_parallel():
 
 
 if __name__ == "__main__":
-    test_mlp_model_parallel()
-    test_mlp_data_parallel()
+    # test_mlp_model_parallel()
+    # test_mlp_data_parallel()
     test_mlp_data_model_parallel()
 
