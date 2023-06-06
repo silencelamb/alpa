@@ -34,6 +34,7 @@ benchmark_suites = {
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
     "gpt.config_test": suite_auto_gpt.config_test_suite,
     "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
+    "mlp.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
     "moe.tmp": suite_manual_moe.tmp_suite,
     "moe.tmp_auto": suite_auto_moe.tmp_suite,
     "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,

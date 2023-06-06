@@ -13,6 +13,14 @@ GPTModelConfig = namedtuple(
     "GPTModelConfig",
     ["seq_len", "hidden_size", "num_layers", "num_heads", "vocab_size"])
 
+MLPModelConfig = namedtuple(
+    "MLPModelConfig",
+    ["num_layers", "hidden_size", "use_bias"])
+
+mlp_spacs = {
+    "4layers":MLPModelConfig(4,1024,True),
+}
+
 gpt_specs = {
     #                      S，   H,   L,  head,   V,
     "125M": GPTModelConfig(1024, 768, 12, 12, 51200),
@@ -23,7 +31,8 @@ gpt_specs = {
     "6.7B": GPTModelConfig(1024, 4096, 32, 32, 51200),
     "15B": GPTModelConfig(1024, 5120, 48, 40, 51200),
     "39B": GPTModelConfig(1024, 8192, 48, 64, 51200),
-    "76B": GPTModelConfig(1024, 10240, 60, 80, 51200),
+    "76B": GPTModelConfig(1024, 10240, 60, 80, 51200),   
+    
 }
 
 _ = None

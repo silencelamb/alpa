@@ -14,6 +14,7 @@ import optax
 from alpa import (parallelize, LocalPhysicalDeviceMesh, AutoShardingOption,
                   ShardParallel, DataParallel, Zero2Parallel, Zero3Parallel)
 from alpa.util import map_to_shape, count_communication_primitives
+from alpa.testing import MLPModel, assert_allclose
 
 import ray
 # from ray.train._internal.utils import get_address_and_portS
@@ -206,12 +207,19 @@ class AutoShardingMLPTest(unittest.TestCase):
             grads = jax.grad(loss_func)(state.params)
             new_state = state.apply_gradients(grads=grads)
             return new_state
+        hidden_size = 1024
 
         x = jnp.ones((batch_size, input_dim))
         y = jnp.ones((batch_size, output_dim))
-
         # Init train state
         model = Model()
+        
+        # x = jnp.ones((batch_size, hidden_size))
+        # y = jnp.ones((batch_size, hidden_size))        
+        # model = MLPModel(num_layers=4,
+        #                  hidden_size=hidden_size,
+        #                  add_manual_pipeline_marker=True)
+        
         rngkey = jax.random.PRNGKey(0)
         params = model.init(rngkey, x)
         if self.optimizer_type == "adam":

@@ -4,6 +4,8 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
+from flax import linen as nn
+
 import alpa
 from alpa import (parallelize, get_global_cluster,
                   set_global_virtual_physical_mesh, automatic_remat,
@@ -21,7 +23,7 @@ from benchmark_parallel_utils import (
     BenchmarkCase, get_pipeshard_parallel_method, get_shard_parallel_method,
     compile_and_benchmark_pipeshard_training_executable,
     compile_and_benchmark_shard_training_executable)
-
+from suite_manual_gpt import MLPModelConfig, GPTModelConfig
 
 def report_pipeline_breakdown(executable, timer_names, niter):
     overall_costs = executable.get_execution_time_costs(timer_name="overall")
@@ -134,6 +136,22 @@ def get_train_step(parallel_method,
 
     return train_step
 
+class mlp_Model(nn.Module):
+    def __init__(self,num_layers,hidden_dim,use_bias,dtype):
+        self.num_layers = num_layers
+        self.hidden_dim = hidden_dim
+        self.use_bias = use_bias
+        self.dtype = dtype
+        super().__init__()        
+    
+    @nn.compact
+    def __call__(self, x):
+        for i in range(self.num_layers - 1):
+            x = nn.Dense(features=self.hidden_dim,dtype= self.dtype,use_bias=self.use_bias)(x)
+            x = nn.relu(x)
+            x = nn.Dense(features=self.output_dim,dtype= self.dtype,use_bias=self.use_bias)(x)
+            return x
+
 
 def prepare_gpt_bert_input_and_model(model_type,
                                      benchmark_case,
@@ -143,21 +161,19 @@ def prepare_gpt_bert_input_and_model(model_type,
                                      aval_train_state=True,
                                      tie_word_embeddings=False):
     print_used_time(None)
+    
     batch_size = benchmark_case.batch_size
-    (seq_len, hidden_size, num_layers, num_heads,
-     vocab_size) = benchmark_case.model_config
-    dtype = jnp.float16
-    # Prepare input batch
-    batch = {
+    
+    if isinstance(GPTModelConfig,benchmark_case.model_config):
+        (seq_len, hidden_size, num_layers, num_heads, vocab_size) = benchmark_case.model_config
+        batch = {
         "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
         "attention_mask": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
         "token_type_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
         "position_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
         "labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-    }
-    print_used_time("Prepare input")
-
-    bert_config = BertConfig(
+        }
+        bert_config = BertConfig(
         vocab_size=vocab_size,
         hidden_size=hidden_size,
         num_attention_heads=num_heads,
@@ -168,13 +184,53 @@ def prepare_gpt_bert_input_and_model(model_type,
         gradient_checkpointing=add_manual_remat,
         add_manual_pipeline_markers=add_manual_layer_marker,
         pipeline_mp_size=num_manual_pipeline_stages,
-    )
+        )
+        
+    elif isinstance(MLPModelConfig,benchmark_case.model_config):
+        (num_layers, hidden_size, use_bias) = benchmark_case.model_config
+        batch = {
+        "input_ids": jnp.ones((batch_size, hidden_size), dtype=jnp.int32),
+        "attention_mask": jnp.ones((batch_size, hidden_size), dtype=jnp.int32),
+        "token_type_ids": jnp.ones((batch_size, hidden_size), dtype=jnp.int32),
+        "position_ids": jnp.ones((batch_size, hidden_size), dtype=jnp.int32),
+        "labels": jnp.ones((batch_size, hidden_size), dtype=jnp.int32),
+        }
+        
+    # (seq_len, hidden_size, num_layers, num_heads,
+    #  vocab_size) = benchmark_case.model_config
+    
+    dtype = jnp.float16
+    # Prepare input batch
+    
+    print_used_time("Prepare input")
+    # batch = {
+    #         "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+    #         "attention_mask": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+    #         "token_type_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+    #         "position_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+    #         "labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+    #         }
+    # bert_config = BertConfig(
+    #     vocab_size=vocab_size,
+    #     hidden_size=hidden_size,
+    #     num_attention_heads=num_heads,
+    #     intermediate_size=hidden_size * 4,
+    #     num_hidden_layers=num_layers,
+    #     type_vocab_size=0,
+    #     tie_word_embeddings=tie_word_embeddings,
+    #     gradient_checkpointing=add_manual_remat,
+    #     add_manual_pipeline_markers=add_manual_layer_marker,
+    #     pipeline_mp_size=num_manual_pipeline_stages,
+    #     )
+    
 
     # Init train state
     if model_type == "bert":
         model = FlaxBertForMaskedLMModule(bert_config, dtype=dtype)
     elif model_type == "gpt":
         model = FlaxGPTForLMModule(bert_config, dtype=dtype)
+    elif model_type == "mlp":
+        model = mlp_Model(num_layers, hidden_size, use_bias)
     else:
         raise ValueError(f"Invalid model {model_type}")
 

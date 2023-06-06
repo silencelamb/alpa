@@ -1,5 +1,5 @@
 """Benchmark suites for gpt with auto parallelization."""
-from suite_manual_gpt import gpt_specs
+from suite_manual_gpt import gpt_specs,mlp_spacs
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
                                       LoadSolutionParallelArgs, ConfigParallelArgs)
 from alpa import ManualStageOption, WSCManualStageOption
@@ -170,6 +170,19 @@ wsc_config_test_suite = {
     #                                                    submesh_logical_shapes=None, 
     #                                                    submesh_autosharding_option_dicts=[{}, {}])
     #                     )
+    4: get_config_cases(mlp_spacs["4layers"], [128], 
+                        'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
+                                                       submeshes=[
+                                                                    [0, 0, 0, 1],
+                                                                    [1, 0, 1, 1],
+                                                                    [2, 0, 2, 1],
+                                                                ], 
+                                                       submesh_physical_shapes=None, 
+                                                       submesh_logical_shapes=None, 
+                                                       submesh_autosharding_option_dicts=[{}, {}, {}])
+                        ),
+    
     6: get_config_cases(gpt_specs["2.6B"], [128], 
                         'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
@@ -194,6 +207,7 @@ wsc_config_test_suite = {
                                                        submesh_logical_shapes=None, 
                                                        submesh_autosharding_option_dicts=[{}, {}, {}])
                         ),
+    
     # 4: get_config_cases(gpt_specs["2.6B"], [128], 
     #                     'tmp_a100_perf_15GB_200GB_zhc/gpt.grid_search_auto-4X1-perf@gpu-2023-05-10-12-57-58/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
     #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3]], 
