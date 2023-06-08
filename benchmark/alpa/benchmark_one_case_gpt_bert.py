@@ -16,6 +16,10 @@ from alpa.util import print_used_time
 from alpa.device_mesh import VirtualPhysicalMesh, get_global_virtual_physical_mesh
 from alpa.global_env import get_global_config, set_global_config
 
+from flax import linen as nn
+from suite_manual_gpt import MLPModelConfig, GPTModelConfig
+
+
 from util import compute_gpt_parameter_count, compute_gpt_tflops
 from benchmark_parallel_utils import (
     BenchmarkCase, get_pipeshard_parallel_method, get_shard_parallel_method,
@@ -134,6 +138,34 @@ def get_train_step(parallel_method,
 
     return train_step
 
+class mlp_Model(nn.Module):
+    
+    @nn.compact
+    def __call__(self, x):
+        for i in range(5 - 1):
+            x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
+            x = nn.relu(x)
+            x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
+            return x
+
+def create_train_state_mlp(rngkey, model, batch, dtype):    
+    params = model.init(rngkey, batch["x"])
+
+    def weight_decay_mask(pytree):
+        # do not use weight decay on layer norm and bias.
+        return jax.tree_map(lambda x: x.ndim > 1, pytree)
+
+    tx = optax.chain(
+        #optax.clip_by_global_norm(1.0),  # TODO(lmzheng): fix reduce-scatter for this
+        optax.adamw(learning_rate=1e-2, mask=weight_decay_mask))
+    use_master_copy = (dtype == jnp.float16)
+    state = TrainState.create(apply_fn=model.apply,
+                              params=params,
+                              tx=tx,
+                              use_master_copy=use_master_copy,
+                              dynamic_scale=None)
+    return state
+                      
 
 def prepare_gpt_bert_input_and_model(model_type,
                                      benchmark_case,
@@ -144,45 +176,68 @@ def prepare_gpt_bert_input_and_model(model_type,
                                      tie_word_embeddings=False):
     print_used_time(None)
     batch_size = benchmark_case.batch_size
-    (seq_len, hidden_size, num_layers, num_heads,
-     vocab_size) = benchmark_case.model_config
-    dtype = jnp.float16
-    # Prepare input batch
-    batch = {
-        "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-        "attention_mask": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-        "token_type_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-        "position_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-        "labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
-    }
-    print_used_time("Prepare input")
+    
+    num_layers = 0
+    hidden_size = 0
+    use_bias = 0
+    batch = {}
+    # import ipdb; ipdb.set_trace()
+    if (type(benchmark_case.model_config) is GPTModelConfig):        
+            
+        (seq_len, hidden_size, num_layers, num_heads,
+        vocab_size) = benchmark_case.model_config
+        dtype = jnp.float16
+        # Prepare input batch
+        batch = {
+            "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "attention_mask": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "token_type_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "position_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+        }
+        print_used_time("Prepare input")
 
-    bert_config = BertConfig(
-        vocab_size=vocab_size,
-        hidden_size=hidden_size,
-        num_attention_heads=num_heads,
-        intermediate_size=hidden_size * 4,
-        num_hidden_layers=num_layers,
-        type_vocab_size=0,
-        tie_word_embeddings=tie_word_embeddings,
-        gradient_checkpointing=add_manual_remat,
-        add_manual_pipeline_markers=add_manual_layer_marker,
-        pipeline_mp_size=num_manual_pipeline_stages,
-    )
+        bert_config = BertConfig(
+            vocab_size=vocab_size,
+            hidden_size=hidden_size,
+            num_attention_heads=num_heads,
+            intermediate_size=hidden_size * 4,
+            num_hidden_layers=num_layers,
+            type_vocab_size=0,
+            tie_word_embeddings=tie_word_embeddings,
+            gradient_checkpointing=add_manual_remat,
+            add_manual_pipeline_markers=add_manual_layer_marker,
+            pipeline_mp_size=num_manual_pipeline_stages,
+        )    
+    elif (type(benchmark_case.model_config) is MLPModelConfig):
+        num_layers, hidden_size, use_bias = benchmark_case.model_config
+        batch = {
+            "x": jnp.ones((batch_size, hidden_size)),
+            "y": jnp.ones((batch_size,  hidden_size))}
 
     # Init train state
     if model_type == "bert":
         model = FlaxBertForMaskedLMModule(bert_config, dtype=dtype)
     elif model_type == "gpt":
         model = FlaxGPTForLMModule(bert_config, dtype=dtype)
+    elif model_type == "mlp":        
+        model = mlp_Model()   
     else:
         raise ValueError(f"Invalid model {model_type}")
 
     rngkey = jax.random.PRNGKey(0)
-    if aval_train_state:
-        state = create_train_state_aval(rngkey, model, batch, dtype)
+    
+    if (type(benchmark_case.model_config) is MLPModelConfig):
+        # state = create_train_state_mlp(rngkey, model, batch, dtype)
+        params = model.init(rngkey, batch['x'])
+        tx = optax.adam(learning_rate=1e-2)
+        state = TrainState.create(apply_fn=model.apply, params=params, tx=tx)
+        # state = train_step(state, {"x": x, "y": y})
     else:
-        state = create_train_state(rngkey, model, batch, dtype)
+        if aval_train_state:
+            state = create_train_state_aval(rngkey, model, batch, dtype)
+        else:
+            state = create_train_state(rngkey, model, batch, dtype)
     print_used_time("Create train state")
     return state, batch, rngkey
 
@@ -217,13 +272,32 @@ def benchmark_gpt_bert_3d_internal(model_type,
     global_config = get_global_config()
 
     # Connect to the cluster
-    if global_config.only_mapping:
+    if global_config.only_mapping:    
+        from alpa import  WSCManualStageOption    
         g_vir_phy_mesh = get_global_virtual_physical_mesh()
-        virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
-                                           host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
-                                           num_devices_per_host=num_devices_per_host,
-                                           head_ip=g_vir_phy_mesh.head_ip)
-        set_global_virtual_physical_mesh(virtual_mesh)
+        if benchmark_case[3] == "config" and isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
+            host_ids_ =0
+            num_devices_per_host_ = 0
+            for item1 in benchmark_case[4].stage_option.submeshes:
+                row_max = max(item1[0], item1[2])                
+                clo_max = max(item1[1], item1[3])
+                if row_max> num_devices_per_host_:
+                    num_devices_per_host_ = row_max
+                if clo_max> host_ids_:
+                    host_ids_ = clo_max
+            host_ids_ = host_ids_ + 1
+            num_devices_per_host_ = num_devices_per_host_ + 1               
+            virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(host_ids_),
+                                            host_info=[g_vir_phy_mesh.host_info[0]]*host_ids_,
+                                            num_devices_per_host=num_devices_per_host_,
+                                            head_ip=g_vir_phy_mesh.head_ip)            
+            virtual_mesh.submeshes = benchmark_case[4].stage_option.submeshes
+        else:
+            virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
+                                            host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
+                                            num_devices_per_host=num_devices_per_host,
+                                            head_ip=g_vir_phy_mesh.head_ip)
+            set_global_virtual_physical_mesh(virtual_mesh)
     else:
         virtual_mesh = get_global_cluster().get_virtual_physical_mesh(
             host_ids=list(range(num_hosts)),

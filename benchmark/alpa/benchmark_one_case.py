@@ -46,7 +46,7 @@ def benchmark_one_case_internal(model,
                 list(range(num_hosts)), num_devices_per_host)
 
         # Run benchmark
-        if model in ["gpt", "bert"]:
+        if model in ["gpt", "bert","mlp"]:
             result = benchmark_gpt_bert_2d_internal(
                 physical_mesh,
                 model,
