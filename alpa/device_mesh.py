@@ -1724,6 +1724,10 @@ class VirtualPhysicalMesh:
 
         self.launched_physical_mesh = None
         self.launched_physical_mesh_group = None
+        
+        # add submesh for WSCManualStageOption
+        self.submeshes = None
+
 
         if devices is not None:
             if len(devices) != len(host_ids):

@@ -694,6 +694,48 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
     assert current_device_id == 0
     return virtual_submeshes
 
+def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
+    """Slice the origin mesh into submeshes given submesh shapes."""
+    num_hosts = virtual_mesh.num_hosts
+    num_devices_per_host = virtual_mesh.num_devices_per_host
+    submesh_sizes = [np.prod(submesh) for submesh in submesh_shapes]
+    virtual_submeshes = [None] * len(submesh_shapes)    
+    assert sum(submesh_sizes) == virtual_mesh.num_devices
+    sorted_submesh_indices = np.argsort(submesh_sizes)
+    current_host_id = 0
+    current_device_id = 0    
+    for i in reversed(sorted_submesh_indices):        
+        # required_num_hosts, required_num_devices = submesh_shapes[i]
+        required_num_devices, required_num_hosts = submesh_shapes[i]
+        if required_num_devices == num_devices_per_host:
+            assert current_device_id == 0
+            assert current_host_id + required_num_hosts <= num_hosts, (
+                "Do not have enough hosts for the solution.")
+            virtual_submeshes[i] = virtual_mesh.slice_2d(
+                tuple(
+                    range(current_host_id,
+                          current_host_id + required_num_hosts)),
+                (tuple(range(num_devices_per_host)),) * required_num_hosts)
+            current_host_id += required_num_hosts
+        else:            
+            assert required_num_hosts == 1
+            assert required_num_devices < num_devices_per_host
+            assert (current_device_id + required_num_devices <=
+                    num_devices_per_host), (
+                        "Do not have enough devices in a host for the solution")
+            virtual_submeshes[i] = virtual_mesh.slice_2d([current_host_id], [
+                tuple(
+                    range(current_device_id,
+                          current_device_id + required_num_devices))
+            ])
+            current_device_id += required_num_devices
+            if current_device_id == num_devices_per_host:
+                current_host_id += 1
+                current_device_id = 0
+    assert current_host_id == num_hosts
+    assert current_device_id == 0    
+    return virtual_submeshes
+
 
 def cluster_layers_and_slice_mesh(
         layers: Sequence[JaxPipelineComputation],
@@ -801,7 +843,7 @@ def cluster_layers_and_slice_mesh(
         last_logical_mesh_shapes = logical_mesh_shapes
         last_autosharding_option_dicts = autosharding_option_dicts
         last_dp_cost = dp_cost
-    elif isinstance(stage_option, (ManualStageOption, WSCManualStageOption) ):
+    elif isinstance(stage_option, ManualStageOption):
         # Check forward_stage_layer_ids is a partition of range(num_layers)
         forward_stage_layer_ids = stage_option.forward_stage_layer_ids
         last_layer_id = 0
@@ -815,6 +857,18 @@ def cluster_layers_and_slice_mesh(
                                submesh_shapes)
         autosharding_option_dicts = (
             stage_option.submesh_autosharding_option_dicts)
+    elif isinstance(stage_option, WSCManualStageOption):
+        # Check forward_stage_layer_ids is a partition of range(num_layers)
+        forward_stage_layer_ids = stage_option.forward_stage_layer_ids
+        last_layer_id = 0
+        for stage_layer_ids in forward_stage_layer_ids:
+            for layer_id in stage_layer_ids:
+                assert layer_id == last_layer_id
+                last_layer_id += 1
+        assert last_layer_id == num_layers
+        submesh_shapes = stage_option.submesh_physical_shapes
+        logical_mesh_shapes = (stage_option.submesh_logical_shapes or submesh_shapes)
+        autosharding_option_dicts = (stage_option.submesh_autosharding_option_dicts)
     elif isinstance(stage_option, UniformStageOption):
         if given_mesh:
             num_stages = num_layers
@@ -854,7 +908,11 @@ def cluster_layers_and_slice_mesh(
             for mesh in virtual_mesh.launched_physical_mesh_group
         ]
     else:
-        sliced_meshes = get_sliced_virtual_submeshes(virtual_mesh,
+        if isinstance(stage_option, WSCManualStageOption):
+            sliced_meshes = get_sliced_virtual_submeshes_wsc(virtual_mesh,
+                                                     submesh_shapes)
+        else:
+            sliced_meshes = get_sliced_virtual_submeshes(virtual_mesh,
                                                      submesh_shapes)
 
     num_forward_stages = len(forward_stage_layer_ids)
