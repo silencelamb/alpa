@@ -690,7 +690,7 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
                 if isinstance(var, Var):
                     var2mesh[var] = spec.mesh_ids[0]
 
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         sliced_eqns = slice_jaxpr_with_var_assignment(jaxpr, var2mesh,
                                                       num_meshes)
         jaxpr = add_pipeline_marks_for_sliced_eqns(jaxpr, sliced_eqns)
