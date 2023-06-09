@@ -321,9 +321,10 @@ def dp(num_layers, num_devices, num_microbatches, submesh_choices,
     best_solution = None
     last_max_stage_cost = 0.0
     # FIXME(zhuohan): Set this gap as a tunable parameter in global config
-    gap = 1e-6
+    gap = 1e-12
     assert len(
         all_possible_stage_costs), "no solution in auto stage construction."
+    # import pdb; pdb.set_trace()
     for max_stage_cost in all_possible_stage_costs:
         if max_stage_cost * num_microbatches >= best_cost:
             break
@@ -337,7 +338,7 @@ def dp(num_layers, num_devices, num_microbatches, submesh_choices,
             best_cost = cost
             best_solution = solution
         last_max_stage_cost = max_stage_cost
-
+    # import pdb; pdb.set_trace()
     timers("stage-construction-dp").suspend()
     return best_cost, best_solution
 

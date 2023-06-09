@@ -29,6 +29,7 @@ benchmark_suites = {
     "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
     "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
     "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
+    "mlp.grid_search_auto": suite_auto_gpt.grid_search_suite,
     "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
     "gpt_inference.profile": suite_inference_gpt.profile_suite,
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,

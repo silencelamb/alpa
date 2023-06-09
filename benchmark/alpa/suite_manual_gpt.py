@@ -18,7 +18,7 @@ MLPModelConfig = namedtuple(
     ["num_layers", "hidden_size", "use_bias"])
 
 mlp_spacs = {
-    "4layers":MLPModelConfig(4,1024,True),
+    "4layers":MLPModelConfig(16,1024,True),
 }
 
 gpt_specs = {

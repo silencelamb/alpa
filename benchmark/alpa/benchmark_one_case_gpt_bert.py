@@ -20,7 +20,7 @@ from flax import linen as nn
 from suite_manual_gpt import MLPModelConfig, GPTModelConfig
 
 
-from util import compute_gpt_parameter_count, compute_gpt_tflops
+from util import compute_gpt_parameter_count,compute_mlp_parameter_count, compute_gpt_tflops,compute_mlp_tflops
 from benchmark_parallel_utils import (
     BenchmarkCase, get_pipeshard_parallel_method, get_shard_parallel_method,
     compile_and_benchmark_pipeshard_training_executable,
@@ -128,8 +128,7 @@ def get_train_step(parallel_method,
             return loss
 
         if use_fine_grained_remat:
-            loss_func = automatic_remat(loss_func,
-                                        layer_num=fine_grained_remat_num_layers)
+            loss_func = automatic_remat(loss_func, layer_num=fine_grained_remat_num_layers)
 
         grads = grad_func(loss_func)(state.params)
         new_state = state.apply_gradients(grads=grads)
@@ -138,11 +137,36 @@ def get_train_step(parallel_method,
 
     return train_step
 
+def get_train_step_mlp(parallel_method,
+                   use_fine_grained_remat=False,
+                   fine_grained_remat_num_layers=None,
+                   grad_func=None):
+
+    if grad_func is None:
+        grad_func = alpa.grad
+
+    @parallelize(method=parallel_method)
+    def train_step(state, batch, rng_key):
+
+        def loss_func(params,x,y):
+            rngs = {"dropout": rng_key}
+            logits = state.apply_fn(params,x)
+            # out = logits + jnp.array(range(128)).reshape((-1, 1))
+            out = logits
+            loss = jnp.mean((out - y)**2)
+            return loss        
+
+        grads = grad_func(loss_func)(state.params,batch["x"],batch["y"])
+        new_state = state.apply_gradients(grads=grads)        #
+        return new_state
+    return train_step
+
+
 class mlp_Model(nn.Module):
     
     @nn.compact
     def __call__(self, x):
-        for i in range(5 - 1):
+        for i in range(16):
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
             x = nn.relu(x)
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
@@ -212,8 +236,8 @@ def prepare_gpt_bert_input_and_model(model_type,
     elif (type(benchmark_case.model_config) is MLPModelConfig):
         num_layers, hidden_size, use_bias = benchmark_case.model_config
         batch = {
-            "x": jnp.ones((batch_size, hidden_size)),
-            "y": jnp.ones((batch_size,  hidden_size))}
+            "x": jnp.ones((128, hidden_size)),
+            "y": jnp.ones((128,  hidden_size))}
 
     # Init train state
     if model_type == "bert":
@@ -231,7 +255,7 @@ def prepare_gpt_bert_input_and_model(model_type,
         # state = create_train_state_mlp(rngkey, model, batch, dtype)
         params = model.init(rngkey, batch['x'])
         tx = optax.adam(learning_rate=1e-2)
-        state = TrainState.create(apply_fn=model.apply, params=params, tx=tx)
+        state = TrainState.create(apply_fn=model.apply, params=params, tx=tx, dynamic_scale=None)
         # state = train_step(state, {"x": x, "y": y})
     else:
         if aval_train_state:
@@ -244,20 +268,34 @@ def prepare_gpt_bert_input_and_model(model_type,
 
 def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
     batch_size = benchmark_case.batch_size
-    (seq_len, hidden_size, num_layers, num_heads,
-     vocab_size) = benchmark_case.model_config
-    use_remat = benchmark_case.parallel_args.use_remat
-
-    tflops = compute_gpt_tflops(batch_size,
-                                seq_len,
-                                num_layers,
-                                hidden_size,
-                                vocab_size,
-                                num_devices,
-                                np.mean(latencies),
-                                checkpoint_activations=use_remat)
-    parameter_count = compute_gpt_parameter_count(num_layers, hidden_size,
-                                                  vocab_size)
+    
+    if (type(benchmark_case.model_config) is MLPModelConfig):
+        pass 
+        (num_layers, hidden_size, use_bias) = benchmark_case.model_config 
+        tflops = compute_mlp_tflops(batch_size,                                    
+                                    num_layers,
+                                    hidden_size,                                    
+                                    num_devices,
+                                    np.mean(latencies)
+                                    )
+        parameter_count = compute_mlp_parameter_count(num_layers, hidden_size)
+    else:        
+        (seq_len, hidden_size, num_layers, num_heads,
+        vocab_size) = benchmark_case.model_config  
+        use_remat = benchmark_case.parallel_args.use_remat
+        tflops = compute_gpt_tflops(batch_size,
+                                    seq_len,
+                                    num_layers,
+                                    hidden_size,
+                                    vocab_size,
+                                    num_devices,
+                                    np.mean(latencies),
+                                    checkpoint_activations=use_remat)
+        parameter_count = compute_gpt_parameter_count(num_layers, hidden_size,
+                                                    vocab_size)
+    
+    
+    
     return tflops, parameter_count
 
 
@@ -275,6 +313,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
     if global_config.only_mapping:    
         from alpa import  WSCManualStageOption    
         g_vir_phy_mesh = get_global_virtual_physical_mesh()
+        
         if benchmark_case[3] == "config" and isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
             host_ids_ =0
             num_devices_per_host_ = 0
@@ -290,8 +329,9 @@ def benchmark_gpt_bert_3d_internal(model_type,
             virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(host_ids_),
                                             host_info=[g_vir_phy_mesh.host_info[0]]*host_ids_,
                                             num_devices_per_host=num_devices_per_host_,
-                                            head_ip=g_vir_phy_mesh.head_ip)            
+                                            head_ip=g_vir_phy_mesh.head_ip)                 
             virtual_mesh.submeshes = benchmark_case[4].stage_option.submeshes
+            set_global_virtual_physical_mesh(virtual_mesh)
         else:
             virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
                                             host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,
@@ -311,8 +351,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
     else:
         use_fine_grained_remat = None
         fine_grained_remat_num_layers = None
-    (method, add_manual_remat, add_manual_layer_marker,
-     num_manual_pipeline_stages) = get_pipeshard_parallel_method(
+    (method, add_manual_remat, add_manual_layer_marker,num_manual_pipeline_stages) = get_pipeshard_parallel_method(
          benchmark_case,
          virtual_mesh.num_devices_per_host,
          use_fine_grained_remat=use_fine_grained_remat)
@@ -324,9 +363,10 @@ def benchmark_gpt_bert_3d_internal(model_type,
         add_manual_layer_marker=add_manual_layer_marker,
         num_manual_pipeline_stages=num_manual_pipeline_stages,
         aval_train_state=aval_train_state)
-
-    train_step = get_train_step(method, use_fine_grained_remat,
-                                fine_grained_remat_num_layers)
+    if (type(benchmark_case.model_config) is MLPModelConfig):        
+        train_step = get_train_step_mlp(method, use_fine_grained_remat, fine_grained_remat_num_layers)
+    else:
+        train_step = get_train_step(method, use_fine_grained_remat, fine_grained_remat_num_layers)
 
     (latencies, max_mem_allocated, compilation_times,
      executable, estimated_time_sum, estimated_time, 
@@ -337,8 +377,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
          state, (batch, rngkey),
          profile_driver_time=profile_driver_time)
 
-    tflops, parameter_count = compute_gpt_bert_statistics(
-        benchmark_case, latencies, virtual_mesh.num_devices)
+    
+    tflops, parameter_count = compute_gpt_bert_statistics(benchmark_case, latencies, virtual_mesh.num_devices)
 
     # report_pipeline_breakdown(executable,
     #                           ["resharding_send", "resharding_recv",

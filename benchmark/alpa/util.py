@@ -89,6 +89,29 @@ def compute_gpt_tflops(batch_size,
     return tflops
 
 
+def compute_mlp_tflops(batch_size,                       
+                       num_layers,
+                       hidden_size,                       
+                       num_gpus,
+                       latency,
+                       backward=True,
+                       checkpoint_activations=False):
+    factor = 24
+    if backward:
+        factor += 48
+    if checkpoint_activations:
+        factor += 24
+    # import ipdb; ipdb.set_trace()
+    total_flop = factor * batch_size * (hidden_size ** 2) * num_layers + 6 * batch_size  * hidden_size 
+    # Note: The above formula does not count the first embedding table lookup
+    # because it is a sparse operation.
+    # If we use dense dot to compute the first embedding table lookup,
+    # then the last term in total_flops should be
+    # "+ 10 * batch_size * seq_len * hidden_size * vocab_size".
+    tflops = total_flop / latency / num_gpus / 1e12
+    return tflops
+
+
 def compute_moe_tflops(batch_size,
                        seq_len,
                        num_layers,
@@ -141,6 +164,10 @@ def compute_gpt_parameter_count(num_layers, hidden_size, vocab_size):
         (hidden_size + 1) +
         # layer norm
         hidden_size * 4) + vocab_size * (hidden_size + 1)
+
+def compute_mlp_parameter_count(num_layers, hidden_size):
+    return num_layers * (hidden_size * (4 * hidden_size + 1) + hidden_size * 4 *(hidden_size + 1) )
+       
 
 
 def compute_moe_parameter_count(num_layers,
