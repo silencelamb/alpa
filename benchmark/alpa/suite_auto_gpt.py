@@ -159,7 +159,18 @@ wsc_config_test_suite = {
                                                        submesh_logical_shapes=None, 
                                                        submesh_autosharding_option_dicts=[{}, {}])
                         ),
-     8: get_config_cases(mlp_spacs["4layers"], [128], 
+    4: get_config_cases(mlp_spacs["4layers"], [128], 
+                        'data/tmp_22_gpu_analytical/mlp.grid_search_auto-4X1-perf@gpu-2023-06-12-02-17-30/Batchsize_1024-num_b_128-auto_layers_1/input_placement_specs.pkl', 
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]], 
+                                                       submeshes=[
+                                                                    [0, 0, 0, 3],
+                                                                    
+                                                                ], 
+                                                       submesh_physical_shapes=None, 
+                                                       submesh_logical_shapes=None, 
+                                                       submesh_autosharding_option_dicts=[{}])
+                        ),
+    8: get_config_cases(mlp_spacs["4layers"], [128], 
                         'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
                                                        submeshes=[
