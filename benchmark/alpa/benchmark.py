@@ -21,6 +21,7 @@ import suite_manual_gpt
 import suite_manual_moe
 import suite_wresnet
 import suite_inference_gpt
+import suite_auto_mlp
 
 benchmark_suites = {
     "gpt.tmp": suite_manual_gpt.tmp_suite,
@@ -29,12 +30,13 @@ benchmark_suites = {
     "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
     "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
     "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
+    "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
     "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
     "gpt_inference.profile": suite_inference_gpt.profile_suite,
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
     "gpt.config_test": suite_auto_gpt.config_test_suite,
     "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
-    "mlp.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
+    "mlp.wsc_config_test": suite_auto_mlp.wsc_config_test_suite_mlp,
     "moe.tmp": suite_manual_moe.tmp_suite,
     "moe.tmp_auto": suite_auto_moe.tmp_suite,
     "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,

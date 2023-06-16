@@ -2204,6 +2204,7 @@ class DeviceCluster:
 global_cluster: DeviceCluster = None
 global_physical_mesh: PhysicalDeviceMesh = None
 global_virtual_physical_mesh: VirtualPhysicalMesh = None
+global_option_model_type:str = None
 
 
 def init_global_cluster(cluster: str,
@@ -2277,6 +2278,13 @@ def set_global_virtual_physical_mesh(mesh: VirtualPhysicalMesh):
 def get_global_virtual_physical_mesh():
     return global_virtual_physical_mesh
 
+
+def set_global_option_model_type(type_name:str):
+    global global_option_model_type
+    global_option_model_type = type_name
+    
+def get_global_option_model_type():
+    return global_option_model_type
 
 def set_seed(seed: int):
     global_config.runtime_random_seed = seed
