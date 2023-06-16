@@ -1,5 +1,5 @@
 """Benchmark suites for gpt with auto parallelization."""
-from suite_manual_gpt import gpt_specs,mlp_spacs
+from suite_manual_gpt import gpt_specs, mlp_specs
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
                                       LoadSolutionParallelArgs, ConfigParallelArgs)
 from alpa import ManualStageOption, WSCManualStageOption
@@ -114,15 +114,14 @@ perf_test_suite = {
 grid_search_suite = {
     1: get_search_cases(gpt_specs["350M"], [512], [1]),
     2: get_search_cases(gpt_specs["760M"], [128], [6]),
-    # 4: get_search_cases(gpt_specs["1.3B"], [128], [6]),
+    4: get_search_cases(gpt_specs["1.3B"], [128], [6]),
     8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
     # 16: get_search_cases(gpt_specs["6.7B"], [64], [8]),
     16: get_search_cases(gpt_specs["6.7B"], [128], [8]),
     # 16: get_search_cases(gpt_specs["15B"], [128], [8]),
     32: get_search_cases(gpt_specs["15B"], [128], [16]),
     64: get_search_cases(gpt_specs["39B"], [1024], [16]),
-    1024: get_search_cases(gpt_specs["39B"], [32], [64]),
-    4: get_search_cases(mlp_spacs["4layers"], [128], [1]),
+    1024: get_search_cases(gpt_specs["39B"], [32], [64]),    
 }
 
 # Small test cases for correctness test
@@ -148,52 +147,29 @@ config_test_suite = {
 }
 
 wsc_config_test_suite = {
-    2: get_config_cases(gpt_specs["760M"], [128], 
-                        'data/tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
+    2: get_config_cases(gpt_specs["760M"], [128],
+                        'data/tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl',
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
-                                                       submeshes=[
-                                                                    [0, 0, 0, 0],
-                                                                    [0, 1, 0, 1]
-                                                                ],  
-                                                       submesh_physical_shapes=None, 
-                                                       submesh_logical_shapes=None, 
-                                                       submesh_autosharding_option_dicts=[{}, {}])
-                        ),
-    4: get_config_cases(mlp_spacs["4layers"], [128], 
-                        'data/tmp_22_gpu_analytical/mlp.grid_search_auto-4X1-perf@gpu-2023-06-12-02-17-30/Batchsize_1024-num_b_128-auto_layers_1/input_placement_specs.pkl', 
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]], 
-                                                       submeshes=[
-                                                                    [0, 0, 0, 3],
-                                                                    
-                                                                ], 
-                                                       submesh_physical_shapes=None, 
-                                                       submesh_logical_shapes=None, 
-                                                       submesh_autosharding_option_dicts=[{}])
-                        ),
-    8: get_config_cases(mlp_spacs["4layers"], [128], 
-                        'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
-                                                       submeshes=[
-                                                                    [0, 0, 0, 1],
-                                                                    [1, 0, 1, 1],
-                                                                    [2, 0, 3, 1],
-                                                                ], 
-                                                       submesh_physical_shapes=None, 
-                                                       submesh_logical_shapes=None, 
-                                                       submesh_autosharding_option_dicts=[{}, {}, {}])
-                        ),
-    12: get_config_cases(gpt_specs["2.6B"], [128], 
-                        'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
-                                                       submeshes=[
-                                                                    [0, 0, 0, 1],
-                                                                    [1, 0, 1, 1],
-                                                                    [2, 0, 3, 1],
-                                                                ], 
-                                                       submesh_physical_shapes=None, 
-                                                       submesh_logical_shapes=None, 
-                                                       submesh_autosharding_option_dicts=[{}, {}])
-                        )
+                                                          submeshes=[
+                            [0, 0, 0, 0],
+                            [0, 1, 0, 1]
+                        ],
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=[{}, {}])
+    ),    
+    8: get_config_cases(gpt_specs["2.6B"], [128],
+                        'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl',
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]],
+                                                          submeshes=[
+                            [0, 0, 0, 1],
+                            [1, 0, 1, 1],
+                            [2, 0, 3, 1],
+                        ],
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=[{}, {}])
+    )
 }
 
 # 'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'

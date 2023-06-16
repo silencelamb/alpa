@@ -7,7 +7,7 @@ import optax
 import alpa
 from alpa import (parallelize, get_global_cluster,
                   set_global_virtual_physical_mesh, automatic_remat,
-                  global_config)
+                  global_config, set_global_option_model_type)
 from alpa.model.bert_model import BertConfig, FlaxBertForMaskedLMModule
 from alpa.model.model_util import TrainState
 from alpa.model.gpt_model import FlaxGPTForLMModule
@@ -308,7 +308,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                    profile_driver_time=False):
     # global config
     global_config = get_global_config()
-
+    set_global_option_model_type(model_type)       
     # Connect to the cluster
     if global_config.only_mapping:    
         from alpa import  WSCManualStageOption    
@@ -332,6 +332,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                             head_ip=g_vir_phy_mesh.head_ip)                 
             virtual_mesh.submeshes = benchmark_case[4].stage_option.submeshes
             set_global_virtual_physical_mesh(virtual_mesh)
+            
+            
         else:
             virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(num_hosts),
                                             host_info=[g_vir_phy_mesh.host_info[0]]*num_hosts,

@@ -17,7 +17,7 @@ MLPModelConfig = namedtuple(
     "MLPModelConfig",
     ["num_layers", "hidden_size", "use_bias"])
 
-mlp_spacs = {
+mlp_specs = {
     "4layers":MLPModelConfig(16,1024,True),
 }
 

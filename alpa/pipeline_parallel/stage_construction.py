@@ -320,11 +320,14 @@ def dp(num_layers, num_devices, num_microbatches, submesh_choices,
     best_cost = np.inf
     best_solution = None
     last_max_stage_cost = 0.0
+    from alpa.device_mesh import get_global_option_model_type
     # FIXME(zhuohan): Set this gap as a tunable parameter in global config
-    gap = 1e-12
-    assert len(
-        all_possible_stage_costs), "no solution in auto stage construction."
-    # import pdb; pdb.set_trace()
+    model_type = get_global_option_model_type()    
+    if model_type == "mlp":
+        gap = 1e-9
+    else:
+        gap = 1e-6    
+    assert len(all_possible_stage_costs), "no solution in auto stage construction."    
     for max_stage_cost in all_possible_stage_costs:
         if max_stage_cost * num_microbatches >= best_cost:
             break
@@ -708,6 +711,7 @@ def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
     for i in reversed(sorted_submesh_indices):        
         # required_num_hosts, required_num_devices = submesh_shapes[i]
         required_num_devices, required_num_hosts = submesh_shapes[i]
+        # import pdb; pdb.set_trace()
         if required_num_devices == num_devices_per_host:
             assert current_device_id == 0
             assert current_host_id + required_num_hosts <= num_hosts, (
