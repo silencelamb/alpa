@@ -297,7 +297,7 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None):
         # import pickle
         pickle.dump(input_placement_specs, f)
     
-    try:    
+    try:
         result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
                         args_.niter, args_.shard_only, args_.local,
                         args_.profile_driver_time, args.disable_tqdm,
@@ -331,7 +331,6 @@ benchmark_suites = {
     "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
     "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
 }
-
 
 
 def benchmark_suite(suite_name,

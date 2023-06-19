@@ -334,7 +334,7 @@ def benchmark_inference_executable(niter,
 def compile_pipeshard_executable(parallel_mode, train_step, state,
                                  other_train_step_inputs):
     print_used_time(None)
-
+    # import ipdb; ipdb.set_trace()
     executable = train_step.get_executable(state, *other_train_step_inputs)
     executable: PipeshardDriverExecutable
     print_used_time("Compile (driver)")
@@ -391,8 +391,7 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
         _str = str(executable.schedule.mesh_stage_mapping)
         f.write(_str+'\n')
         _str = str(executable.schedule.stage_mesh_mapping)
-        f.write(_str)
-    
+        f.write(_str)   
 
     
 

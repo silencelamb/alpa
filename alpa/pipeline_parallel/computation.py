@@ -762,8 +762,7 @@ def generate_sharded_xla_computations(
     It runs the auto-sharding pass on the given JaxPipelineComputations.
     Note: we merge the co-located forward and backward computation and compile
     them together to get a sharding strategy config.
-    """
-    # import pdb; pdb.set_trace()
+    """   
     hlo_module, flops = generate_sharded_xla_computations_arguments(
         name, jax_computations, computation_donate_invars, input_sharding_dict,
         output_sharding_dict, stage_input_sharding)
@@ -937,6 +936,7 @@ def merge_marked_jaxprs_with_named_call(jaxprs: Sequence[ClosedJaxpr],
         if has_output(jaxpr.jaxpr):
             call_eqn = unwrap_with_call(jaxpr, name_prefix + str(i))
             new_eqns.append(call_eqn)
+            # import ipdb; ipdb.set_trace()            
             invars.extend(OrderedSet(call_eqn.invars).difference(env))
             env.update(call_eqn.invars + call_eqn.outvars)
         if insert_hook_after == i:
