@@ -376,16 +376,28 @@ class ConfigParallel(ParallelMethod):
                  stage_num: int = None,
                  num_micro_batches: Optional[int] = None,
                  input_placement_specs: tuple = None,
+                 partition_index: Union[Sequence[int], str] = None,
                  pipeline_schedule: str = "1f1b",
                  stage_option: Optional[StageOption] = None,
-                 layer_option: str = "follow"):
+                 layer_option: str = None):
         
         self.virtual_mesh = virtual_mesh
         self.stage_num = stage_num
         self.num_micro_batches = num_micro_batches
         self.input_placement_specs = input_placement_specs
+        self.partition_index = partition_index
         self.pipeline_schedule = pipeline_schedule
         self.stage_option = stage_option or UniformStageOption()
+        
+        if layer_option is None:
+            if self.partition_index is not None:
+                layer_option = "follow_idx"
+            elif self.input_placement_specs is not None:
+                layer_option ="follow"
+            else:
+                raise ValueError(f"partition_index and input_placement_specs are None and \
+                                 Invalid layer option: {layer_option}")
+
         self.layer_option = layer_option
         if isinstance(stage_option, WSCManualStageOption):
             if self.virtual_mesh is None:
@@ -420,6 +432,6 @@ class ConfigParallel(ParallelMethod):
         return compile_config_parallel_executable(
             fun, self.stage_num, in_tree, out_tree_thunk, static_argnums, donated_invars,
             batch_invars, virtual_mesh, self.num_micro_batches,
-            self.input_placement_specs, self.pipeline_schedule, self.layer_option, 
-            self.stage_option, *avals)
+            self.input_placement_specs, self.partition_index, self.pipeline_schedule,
+            self.layer_option, self.stage_option, *avals)
 

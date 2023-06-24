@@ -52,7 +52,7 @@ LoadSolutionParallelArgs = namedtuple("LoadSolutionParallelArgs", [
 ])
 
 ConfigParallelArgs = namedtuple("ConfigParallelArgs", [
-    "stage_num", "input_placement_specs", "pipeline_schedule", "stage_option", "use_remat"
+    "stage_num", "input_placement_specs", "partition_index", "pipeline_schedule", "stage_option", "use_remat"
 ])
 
 
@@ -157,16 +157,16 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
                 submesh_autosharding_option_dicts=[{}] * pp))
     elif parallel_mode == "config":
         assert isinstance(parallel_args, ConfigParallelArgs)
-        stage_num, input_placement_specs, pipeline_schedule, stage_option, _ = parallel_args
+        stage_num, input_placement_specs, partition_index, pipeline_schedule, stage_option, _ = parallel_args
 
         if isinstance(stage_option, WSCManualStageOption) and stage_option.submesh_physical_shapes is None:
             stage_option: WSCManualStageOption
             stage_option.submesh_physical_shapes = get_submesh_physical_shapes(stage_option.submeshes)
             stage_option.submesh_logical_shapes = stage_option.submesh_physical_shapes
-
         method = ConfigParallel(
             stage_num=stage_num,
             input_placement_specs=input_placement_specs,
+            partition_index=partition_index,
             pipeline_schedule = "1f1b",
             stage_option = stage_option,
             num_micro_batches=num_micro_batches)

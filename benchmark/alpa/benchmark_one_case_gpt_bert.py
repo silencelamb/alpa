@@ -170,7 +170,7 @@ class mlp_Model(nn.Module):
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
             x = nn.relu(x)
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
-            return x
+        return x
 
 def create_train_state_mlp(rngkey, model, batch, dtype):    
     params = model.init(rngkey, batch["x"])

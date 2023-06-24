@@ -29,7 +29,7 @@ def get_search_cases(model_spec, num_micro_batches_list, num_auto_layers_list):
     ]
 
 
-def get_config_cases(model_spec, num_micro_batches_list,  input_placement_specs_pkl, stage_option):
+def get_config_cases(model_spec, num_micro_batches_list, input_placement_specs_pkl, stage_option):
     import pickle
     with open(input_placement_specs_pkl, 'rb') as f:
         input_placement_specs = pickle.load(f)
@@ -38,7 +38,16 @@ def get_config_cases(model_spec, num_micro_batches_list,  input_placement_specs_
     return [
         BenchmarkCase(
             max_global_batch_size, model_spec, num_micro_batches, "config",
-            ConfigParallelArgs(stage_num, input_placement_specs, '1f1b', stage_option, use_remat))
+            ConfigParallelArgs(stage_num, input_placement_specs, None,'1f1b', stage_option, use_remat))
+        for num_micro_batches in num_micro_batches_list
+    ]
+
+def get_config_cases_idx(model_spec, num_micro_batches_list, partition_index, stage_option):
+    stage_num = len(stage_option.forward_stage_layer_ids)
+    return [
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches, "config",
+            ConfigParallelArgs(stage_num, None, partition_index,'1f1b', stage_option, use_remat))
         for num_micro_batches in num_micro_batches_list
     ]
 
@@ -130,15 +139,25 @@ correctness_test_suite = {
 }
 
 config_test_suite = {
-    2: get_config_cases(gpt_specs["760M"], [128], 
-                        'data/tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
+    # 2: get_config_cases(gpt_specs["760M"], [128], 
+    #                     'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
+    #                     stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1]], 
+    #                                                    submesh_physical_shapes=[[1, 1], [1, 1]], 
+    #                                                    submesh_logical_shapes=[[1, 1], [1, 1]], 
+    #                                                    submesh_autosharding_option_dicts=[{}, {}])
+    #                     ),
+    2: get_config_cases_idx(gpt_specs["760M"], [128], 
+                        # partition_index="uniform", 
+                        # partition_index=[0, 1210, 2419],
+                        partition_index=[0, 1210],
+                        # partition_index = [1210],
                         stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1]], 
                                                        submesh_physical_shapes=[[1, 1], [1, 1]], 
                                                        submesh_logical_shapes=[[1, 1], [1, 1]], 
                                                        submesh_autosharding_option_dicts=[{}, {}])
                         ),
     8: get_config_cases(gpt_specs["2.6B"], [128], 
-                        'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
+                        'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
                         stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
                                                        submesh_physical_shapes=[[1, 2], [1, 2], [1, 4]], 
                                                        submesh_logical_shapes=[[2, 1], [2, 1], [4, 1]], 
@@ -147,8 +166,23 @@ config_test_suite = {
 }
 
 wsc_config_test_suite = {
-    2: get_config_cases(gpt_specs["760M"], [128],
-                        'data/tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl',
+    # 2: get_config_cases(gpt_specs["760M"], [128],
+    #                     'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl',
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
+    #                                                       submeshes=[
+    #                         [0, 0, 0, 0],
+    #                         [0, 1, 0, 1]
+    #                     ],
+    #     submesh_physical_shapes=None,
+    #     submesh_logical_shapes=None,
+    #     submesh_autosharding_option_dicts=[{}, {}])
+    # ),    
+    2: get_config_cases_idx(gpt_specs["760M"], [128],
+                        # partition_index="uniform",
+                        # partition_index=[0, 1210, 2419],
+                        # partition_index=[0, 1210],
+                        # partition_index = [1210],
+                        partition_index = [800],
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
                                                           submeshes=[
                             [0, 0, 0, 0],
@@ -157,9 +191,9 @@ wsc_config_test_suite = {
         submesh_physical_shapes=None,
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=[{}, {}])
-    ),    
+    ),   
     8: get_config_cases(gpt_specs["2.6B"], [128],
-                        'data/tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl',
+                        'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl',
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]],
                                                           submeshes=[
                             [0, 0, 0, 1],
@@ -168,7 +202,7 @@ wsc_config_test_suite = {
                         ],
         submesh_physical_shapes=None,
         submesh_logical_shapes=None,
-        submesh_autosharding_option_dicts=[{}, {}])
+        submesh_autosharding_option_dicts=[{}, {}, {}])
     )
 }
 
