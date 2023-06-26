@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from functools import partial, wraps
 import logging
 from typing import Callable, Union, Sequence
+import math
 
 import numpy as np
 from jax import tree_flatten, lax
@@ -116,6 +117,28 @@ class FollowLayerOption(LayerOption):
     def transform(self, func):
         return follow_layer_construction(func, self.static_argnums,
                                          self.placement_specs, self.num_meshes)
+
+
+class FollowIdxLayerOption(LayerOption):
+    """Follow given partition index to construct the layer.
+
+    Args:
+      partition_index: partition index.
+      static_argnums: The indices of static arguments of the
+        forward function.
+    """
+
+    def __init__(self,
+                 partition_index:  Union[Sequence[int], str] = "uniform",
+                 num_meshes: int = 0,
+                 static_argnums: Sequence[int] = ()):
+        super().__init__()
+        self.partition_index = partition_index
+        self.num_meshes = num_meshes
+        self.static_argnums = static_argnums
+
+    def transform(self, func):
+        return follow_idx_layer_construction(func, self.static_argnums, self.partition_index, self.num_meshes)
 
 
 LAYER_HEAVY_OP_LOWER_BOUND = 3
@@ -689,9 +712,51 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
             else:
                 if isinstance(var, Var):
                     var2mesh[var] = spec.mesh_ids[0]
-        
+
         sliced_eqns = slice_jaxpr_with_var_assignment(jaxpr, var2mesh,
                                                       num_meshes)
+        jaxpr = add_pipeline_marks_for_sliced_eqns(jaxpr, sliced_eqns)
+
+        flatten_args, _ = tree_flatten(args)
+        ans = jaxpr_as_fun(jaxpr)(*flatten_args)  # pylint: disable=not-callable
+        _, out_tree = tree_flatten(out_shape_tree)
+        return tree_unflatten(out_tree, ans)
+
+    return wrapped
+
+
+def follow_idx_layer_construction(fun, static_argnums, partition_index, num_meshes):
+    """Follow given partition index  to construct layers.
+    partition_index can be list[int] or string
+    """
+    _check_callable(fun)
+
+    @wraps(fun)
+    def wrapped(*args):
+        nonlocal partition_index
+        jaxpr, out_shape_tree = make_jaxpr(fun,
+                                           static_argnums=static_argnums,
+                                           return_shape=True)(*args)
+        jaxpr_len = len(jaxpr.eqns)
+        print(f"Length of jaxpr: {jaxpr_len}!!!")
+        print(f"partition_index: {partition_index}!!! ")
+        if partition_index is None:
+            partition_index = "uniform"
+        if isinstance(partition_index, str):
+            # uniform partition
+            # example: length = 9, stage = 3, expected partition_idx = [0, 3, 6, 9]
+            interval = math.ceil(jaxpr_len/num_meshes)
+            partition_index = list(range(0, jaxpr_len, interval))
+            partition_index.append(jaxpr_len)
+        if len(partition_index) != num_meshes+1:
+            # if length is not expected, check 0 in index 0 and jaxpr_len in index -1
+            if partition_index[0] > 0:
+                partition_index.insert(0, 0)
+            if partition_index[-1] != jaxpr_len:
+                partition_index.append(jaxpr_len)
+        assert len(partition_index) == num_meshes + 1
+    
+        sliced_eqns = slice_jaxpr_with_partition_index(jaxpr, partition_index)
         jaxpr = add_pipeline_marks_for_sliced_eqns(jaxpr, sliced_eqns)
 
         flatten_args, _ = tree_flatten(args)
@@ -717,9 +782,9 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
             if isinstance(var, Var) and var in var2mesh:
                 mesh_idx = var2mesh[var]
 
-                # if mesh_idx > cur_mesh:
-                #     cur_mesh = mesh_idx
-                cur_mesh = mesh_idx
+                if mesh_idx > cur_mesh:
+                    cur_mesh = mesh_idx
+                # cur_mesh = mesh_idx
                 if mesh_begin[cur_mesh] is None:
                     mesh_begin[cur_mesh] = idx
                 mesh_end[cur_mesh] = idx    
@@ -744,4 +809,15 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
                                            eps=0.1,
                                            costs=costs,
                                            cost_criteria=cost_criteria)
+    return sliced_eqns
+
+
+def slice_jaxpr_with_partition_index(jaxpr, partition_index):
+        
+    sliced_eqns = []
+    length = len(partition_index)
+    for idx in range(length-1):
+        start = partition_index[idx]
+        end = partition_index[idx+1]
+        sliced_eqns.append(jaxpr.eqns[start: end])
     return sliced_eqns

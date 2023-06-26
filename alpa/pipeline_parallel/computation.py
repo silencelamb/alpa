@@ -762,7 +762,7 @@ def generate_sharded_xla_computations(
     It runs the auto-sharding pass on the given JaxPipelineComputations.
     Note: we merge the co-located forward and backward computation and compile
     them together to get a sharding strategy config.
-    """   
+    """
     hlo_module, flops = generate_sharded_xla_computations_arguments(
         name, jax_computations, computation_donate_invars, input_sharding_dict,
         output_sharding_dict, stage_input_sharding)

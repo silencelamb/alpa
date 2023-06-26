@@ -700,45 +700,20 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
 
 def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
     """Slice the origin mesh into submeshes given submesh shapes."""
-    num_hosts = virtual_mesh.num_hosts
-    num_devices_per_host = virtual_mesh.num_devices_per_host
+    virtual_mesh: VirtualPhysicalMesh
     submesh_sizes = [np.prod(submesh) for submesh in submesh_shapes]
     virtual_submeshes = [None] * len(submesh_shapes)    
-    assert sum(submesh_sizes) == virtual_mesh.num_devices
-    sorted_submesh_indices = np.argsort(submesh_sizes)
-    current_host_id = 0
-    current_device_id = 0    
+
+    sorted_submesh_indices = np.argsort(submesh_sizes)  
     for i in reversed(sorted_submesh_indices):        
-        # required_num_hosts, required_num_devices = submesh_shapes[i]
-        required_num_devices, required_num_hosts = submesh_shapes[i]
-        # import pdb; pdb.set_trace()
-        if required_num_devices == num_devices_per_host:
-            assert current_device_id == 0
-            assert current_host_id + required_num_hosts <= num_hosts, (
-                "Do not have enough hosts for the solution.")
-            virtual_submeshes[i] = virtual_mesh.slice_2d(
-                tuple(
-                    range(current_host_id,
-                          current_host_id + required_num_hosts)),
-                (tuple(range(num_devices_per_host)),) * required_num_hosts)
-            current_host_id += required_num_hosts
-        else:            
-            assert required_num_hosts == 1
-            assert required_num_devices < num_devices_per_host
-            assert (current_device_id + required_num_devices <=
-                    num_devices_per_host), (
-                        "Do not have enough devices in a host for the solution")
-            virtual_submeshes[i] = virtual_mesh.slice_2d([current_host_id], [
-                tuple(
-                    range(current_device_id,
-                          current_device_id + required_num_devices))
-            ])
-            current_device_id += required_num_devices
-            if current_device_id == num_devices_per_host:
-                current_host_id += 1
-                current_device_id = 0
-    assert current_host_id == num_hosts
-    assert current_device_id == 0    
+        required_num_hosts, required_num_devices = submesh_shapes[i]
+        virtual_submeshes[i] = VirtualPhysicalMesh(host_ids=virtual_mesh.host_ids[:required_num_hosts],
+                                host_info=[virtual_mesh.host_info[0]]*required_num_hosts,
+                                head_ip=virtual_mesh.head_ip,
+                                num_devices_per_host=required_num_devices,
+                                parent=virtual_mesh,
+                                devices= (tuple(range(required_num_devices)),) * required_num_hosts)
+
     return virtual_submeshes
 
 
