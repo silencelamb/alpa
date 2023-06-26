@@ -5,6 +5,7 @@ import argparse
 from datetime import datetime
 import time
 import json
+import logging
 
 import numpy as np
 
@@ -50,6 +51,39 @@ import numpy as np
 import autograd.numpy as anp
 
 from jax.interpreters.pxla import ShardingSpec, NoSharding, Replicated, Chunked, ShardedAxis
+
+import logging
+from logging import handlers
+
+
+class Logger(object):
+    level_relations = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warning': logging.WARNING,
+        'error': logging.ERROR,
+        'crit': logging.CRITICAL
+    }  # 日志级别关系映射
+
+    def __init__(self, filename, level='info', when='D', backCount=3, fmt='%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'):
+        self.logger = logging.getLogger(filename)
+        format_str = logging.Formatter(fmt)  # 设置日志格式
+        self.logger.setLevel(self.level_relations.get(level))  # 设置日志级别
+        sh = logging.StreamHandler()  # 往屏幕上输出
+        sh.setFormatter(format_str)  # 设置屏幕上显示的格式
+        th = handlers.TimedRotatingFileHandler(
+            filename=filename, when=when, backupCount=backCount, encoding='utf-8')  # 往文件里写入#指定间隔时间自动生成文件的处理器
+        # 实例化TimedRotatingFileHandler
+        # interval是时间间隔，backupCount是备份文件的个数，如果超过这个个数，就会自动删除，when是间隔的时间单位，单位有以下几种：
+        # S 秒
+        # M 分
+        # H 小时、
+        # D 天、
+        # W 每星期（interval==0时代表星期一）
+        # midnight 每天凌晨
+        th.setFormatter(format_str)  # 设置文件里写入的格式
+        self.logger.addHandler(sh)  # 把对象加到logger里
+        self.logger.addHandler(th)
 
 
 # =========================================================================================================
@@ -179,11 +213,14 @@ class GA(GeneticAlgorithm):
         self.default_termination = SingleObjectiveDefaultTermination()
         
 
-def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
+def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None, log = None):
     
     ub = []
     lb = []
     mask = []
+    
+    n_gen = 20 
+    pop_size = 25
 
     # Stage  Amount
     lb.append(1)
@@ -228,15 +265,16 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
     })   
     
     method = GA(
-        pop_size=5,
+        pop_size=pop_size,
         sampling=sampling,
         crossover=crossover,
         mutation=mutation,
         eliminate_duplicates=True,
     )
-
+    log.logger.info('GA n_gen ' + str(n_gen))
+    log.logger.info('GA pop_size ' + str(pop_size))
     problem_GA = GA_problem_alpa(n_var=len(lb), n_obj=1, lb=lb, ub=ub, args_=args_,
-                                 num_hosts=num_hosts, num_devices_per_host=num_devices_per_host)
+                                 num_hosts=num_hosts, num_devices_per_host=num_devices_per_host, log=log)
 
     res = minimize(problem_GA,
                    method,
@@ -246,10 +284,13 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
     
     print(res.X)
     print(res.F)
+    
+    log.logger.info('GA result : F' + str(res.F))
+    log.logger.info('GA result : X' + str(res.X))
 
 
 class GA_problem_alpa(Problem):
-    def __init__(self, n_var=6, n_obj=1, n_constr=0, lb=None, ub=None, save_dir=None, args_=None, num_hosts=None, num_devices_per_host=None):
+    def __init__(self, n_var=6, n_obj=1, n_constr=0, lb=None, ub=None, save_dir=None, args_=None, num_hosts=None, num_devices_per_host=None, log = None):
         self.xl = lb
         self.xu = ub        
         self._save_dir = save_dir
@@ -257,28 +298,32 @@ class GA_problem_alpa(Problem):
         self.args_ = args_
         self.num_hosts = num_hosts
         self.num_devices_per_host = num_devices_per_host
+        self.log = log
         super().__init__(n_var=n_var, n_obj=n_obj, n_constr=n_constr, xl=lb, xu=ub)
 
     def _evaluate(self, x, out, *args, **kwargs):
         objs = np.full((x.shape[0], self.n_obj), np.nan)
         for i in range(x.shape[0]):
-            cls_train = get_alpa_value(self.args_, self.num_hosts, self.num_devices_per_host, paras_list=x[i])
+            cls_train = get_alpa_value(self.args_, self.num_hosts, self.num_devices_per_host, paras_list=x[i],log= self.log)
             objs[i, 0] = cls_train            
         out["F"] = objs
         self._n_evaluated += 1
 
 
-def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None):
+def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log = None):
         
     try:
+        log.logger.info('paras_list: ' + str(paras_list))
         result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
                         args_.niter, args_.shard_only, args_.local,
                         args_.profile_driver_time, args.disable_tqdm,
-                                  args_.use_separate_process, parameters_list=paras_list)
+                                  args_.use_separate_process, parameters_list=paras_list,log =log)
         
     except:
         result_ = 10e10
-    print("result_ : "+str(result_))
+    # print("result_ : "+str(result_))
+    log.logger.info(str(paras_list) + ' result : ' + str(result_))
+    log.logger.info('One Mid Result : ' + str(result_))
     return result_ 
 
     
@@ -317,7 +362,8 @@ def benchmark_suite(suite_name,
                     profile_driver_time=False,
                     disable_tqdm=False,
                     use_separate_process=True,
-                    parameters_list = None):
+                    parameters_list = None,
+                    log = None):
     
     num_gpus = num_hosts * num_devices_per_host
 
@@ -358,7 +404,8 @@ def benchmark_suite(suite_name,
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=submesh_autosharding_option_dicts)
     )
-
+    log.logger.info('one pop: ' + str(parameters_list) +
+                    'suite: ' + str(suite))
     model_type = suite_name.split(".")[0]
     result_latency = 5e10
     
@@ -464,8 +511,46 @@ if __name__ == "__main__":
     set_global_config(global_config)
     global_config = get_global_config()
     print(global_config.use_analytical_perf_model)
+    import sys
     
-    run_in_GA(args, num_hosts, num_devices_per_host)
+    save_path = args.rst_folder
+    log_format = '%(asctime)s %(filename)s %(levelname)s %(message)s'
+    # os.makedirs(save_path, exist_ok=True)
+    # logging.basicConfig(level=logging.INFO,
+    #                     format=log_format, datefmt='%a %d %b %Y %H:%M:%S', filename=os.path.join(save_path, 'log.txt'), filemode='w')
+    
+    # logging.basicConfig(level=logging.INFO,
+    #                     format=log_format, datefmt='%a %d %b %Y %H:%M:%S', filename='/zhanghaichao/lab2/alpa/benchmark/alpa/data/log.txt', filemode='w')
+    
+    # logger.setLevel(logging.INFO)    
+    # fh = logging.FileHandler(os.path.join(save_path, 'log.txt'),mode='w')
+    # fh.setFormatter(logging.Formatter(log_format))
+    # sh = logging.StreamHandler()
+    # sh.setFormatter(logging.Formatter(log_format))
+    # # logging.getLogger().addHandler(fh)
+    # logger.addHandler(fh)
+    # logger.addHandler(sh)
+    # logger = logging.getLogger(__file__)
+    # # h1 = logging.FileHandler(os.path.join(save_path, 'log.txt'))  # 打印到文件
+    # h1 = logging.FileHandler('t2.log')  # 打印到文件
+    # sm = logging.StreamHandler()  # 打印到终端
+    
+    # formmater1 = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -%(module)s:  %(message)s',
+    #                                datefmt='%Y-%m-%d %H:%M:%S %p',)
+    # h1.setFormatter(formmater1)
+    # sm.setFormatter(formmater1)
+    
+    # logger.addHandler(h1)
+    # # logger.addHandler(h2)
+    # logger.addHandler(sm)
+        
+    log = Logger(os.path.join(save_path, 'log.log'), level='info')
+    log.logger.debug('debug')
+    log.logger.info('begin search by GA')
+    
+    # import pdb; pdb.set_trace()
+    
+    run_in_GA(args, num_hosts, num_devices_per_host, log)
 
     # benchmark_suite(args.suite, num_hosts, num_devices_per_host, args.exp_name,
     #                 args.niter, args.shard_only, args.local,
