@@ -466,13 +466,11 @@ def compute_network_anaysis(executable: PipeshardDriverExecutable):
         if True:
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
         peak_memory = compiled.total_allocation_size()/ GB
-        max_mem = max(max_mem, peak_memory)
-        estimated_cost_cur = 0
-        # estimated_cost_cur = estimate_hlo_module_cost(hlo_module, global_config, None, 1, grad_sync_channel_ids)
+        max_mem = max(max_mem, peak_memory)        
+        estimated_cost_cur = estimate_hlo_module_cost(hlo_module, global_config, None, 1, grad_sync_channel_ids)
         estimated_cost += estimated_cost_cur
         max_stage_cost = max(max_stage_cost, estimated_cost_cur)
-        analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)
-        # import pdb; pdb.set_trace()
+        analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)        
         df = pd.DataFrame.from_dict(analysis_result)
         estimated_cost_cur = df['estimated_time'].sum()
         max_stage_cost = max(max_stage_cost, estimated_cost_cur)
@@ -496,7 +494,7 @@ def compile_and_benchmark_pipeshard_training_executable(
     
     # add compute and network cost analysis
     estimated_time_sum, estimated_time, max_stage_time, estimated_max_mem = compute_network_anaysis(executable)
-
+    
     if global_config.only_mapping:
         _, _, _, _, _, dp_cost = get_last_dp_result()
         latencies = dp_cost if dp_cost is not None else estimated_time  # use dp_cost

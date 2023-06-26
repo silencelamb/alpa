@@ -22,6 +22,9 @@ import suite_manual_moe
 import suite_wresnet
 import suite_inference_gpt
 import suite_auto_mlp
+from suite_manual_gpt import gpt_specs
+from alpa import ManualStageOption, WSCManualStageOption
+from suite_auto_gpt import get_config_cases_idx
 
 
 from pymoo.factory import get_sampling, get_crossover, get_mutation
@@ -182,14 +185,30 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
     lb = []
     mask = []
 
-    # mesh_ids
-    for item1 in range(16):
-        lb.append(0)
-        ub.append(1)
-        mask.append("int")
+    # Stage  Amount
+    lb.append(1)
+    ub.append(4)
+    mask.append("int")
     
-    # lb.append(8)
-    # ub.append(80)
+    # partition_index Stage 1
+    lb.append(1)
+    ub.append(10)
+    mask.append("int")
+    
+    # partition_index Stage 2
+    lb.append(1)
+    ub.append(10)
+    mask.append("int")
+    
+    # partition_index Stage 3
+    lb.append(1)
+    ub.append(10)
+    mask.append("int")
+    
+    # partition_index Stage 4
+    lb.append(1)
+    ub.append(10)
+    mask.append("int")
     
     # mask = ["int", "int", "int", "int", "real", "real"]
 
@@ -209,7 +228,7 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
     })   
     
     method = GA(
-        pop_size=50,
+        pop_size=5,
         sampling=sampling,
         crossover=crossover,
         mutation=mutation,
@@ -221,7 +240,7 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None):
 
     res = minimize(problem_GA,
                    method,
-                   termination=('n_gen', 10),
+                   termination=('n_gen', 5),
                    seed=1,
                    verbose=False)
     
@@ -249,79 +268,18 @@ class GA_problem_alpa(Problem):
         self._n_evaluated += 1
 
 
-# ShardingSpec(
-#     sharding=[Chunked([8]), NoSharding(),],
-#     mesh_mapping=[ShardedAxis(0),])
-# ShardingSpec(
-#     sharding=[NoSharding(), NoSharding(),],
-#     mesh_mapping=[Replicated(8),]),
-
-sharding_specs_dict = [
-    ShardingSpec(sharding=(), mesh_mapping=[Replicated(4),]),
-    ShardingSpec(sharding=(NoSharding(),), mesh_mapping=[Replicated(4),]),
-    ShardingSpec(sharding=(NoSharding(), NoSharding()), mesh_mapping=[Replicated(4),]),
-    ShardingSpec(sharding=(Chunked([4]),), mesh_mapping=[ShardedAxis(0),]),
-    ShardingSpec(sharding=(NoSharding(), Chunked([4])), mesh_mapping=[ShardedAxis(0),]),
-
-]
-
-
 def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None):
-    import pickle
-    result_ = 10e10
-    # import pdb; pdb.set_trace()        
-    path__pkl = "/zhanghaichao/lab2/alpa/benchmark/alpa/data/tmp_22_gpu_analytical/mlp.grid_search_auto-4X1-perf@gpu-2023-06-14-05-45-36/Batchsize_1024-num_b_128-auto_layers_1/input_placement_specs.pkl"
-    input_placement_specs = None
-    with open(path__pkl, 'rb') as f:
-        input_placement_specs = pickle.load(f)
-    
-    new_input_placement_specs = []
-    num_current = 0
-    for item in input_placement_specs:
-        new_item = None
-        if item is not None:
-            new_item = item
-            new_item.mesh_ids = (paras_list[num_current],)
-            # import pdb; pdb.set_trace() 
-            # new_item.sharding_specs = (sharding_specs_dict[paras_list[num_current]],)
-            # if num_current < 2:
-            #     new_item.mesh_ids = (0,)
-            # elif num_current >= 2 and num_current < 4:
-            #     new_item.mesh_ids = (1,)
-            # elif num_current >= 4 and num_current < 5:
-            #     new_item.mesh_ids = (2,)
-            # elif num_current >= 5 and num_current < 10:
-            #     new_item.mesh_ids = (0,)
-            # elif num_current >= 10 and num_current < 12:
-            #     new_item.mesh_ids = (1,)
-            # else:
-            #     new_item.mesh_ids = (2,)
-        else:
-            new_item = None
-        num_current = num_current + 1
-        new_input_placement_specs.append(new_item)
-
-    save_file = f"zhc_test/input_placement_specs_mlp.pkl"
-    input_placement_specs = new_input_placement_specs
-    
-    with open(save_file, 'wb') as f:
-        # import pickle
-        pickle.dump(input_placement_specs, f)
-    
+        
     try:
         result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
                         args_.niter, args_.shard_only, args_.local,
                         args_.profile_driver_time, args.disable_tqdm,
-                        args_.use_separate_process)
+                                  args_.use_separate_process, parameters_list=paras_list)
         
     except:
         result_ = 10e10
-    
+    print("result_ : "+str(result_))
     return result_ 
-
-
-
-
 
     
 benchmark_suites = {
@@ -358,7 +316,9 @@ def benchmark_suite(suite_name,
                     local=False,
                     profile_driver_time=False,
                     disable_tqdm=False,
-                    use_separate_process=True):
+                    use_separate_process=True,
+                    parameters_list = None):
+    
     num_gpus = num_hosts * num_devices_per_host
 
     if local:
@@ -368,14 +328,38 @@ def benchmark_suite(suite_name,
     assert num_gpus in benchmark_suites[suite_name], (
         f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
     suite = benchmark_suites[suite_name][num_gpus]
-
-    os.makedirs("tmp", exist_ok=True)
+    
+    stage_quat = parameters_list[0]
+    
+    forward_stage_layer_ids = []
+    submesh_autosharding_option_dicts =[]
+    submeshes = []    
+    partition_index = []
+    partition_index_sum = sum(parameters_list[1:-1])
+    
+    for i in range(stage_quat):
+        forward_stage_layer_ids.append([i])
+        submesh_autosharding_option_dicts.append({})
+        submeshes.append([0, i, 0, i])
+    
+    rate_stage_currnet = 0
+    for k in range(stage_quat -1):
+        rate_stage = (parameters_list[k+1] / partition_index_sum) * 2419
+        rate_stage_currnet = rate_stage_currnet + int(rate_stage)
+        partition_index.append(rate_stage_currnet)
+        
+    # import pdb; pdb.set_trace()   
+    
+    suite = get_config_cases_idx(gpt_specs["760M"], [128],                         
+                         partition_index=partition_index,                         
+                         stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
+                                                           submeshes=submeshes,
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=submesh_autosharding_option_dicts)
+    )
 
     model_type = suite_name.split(".")[0]
-    # date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    # global_config = get_global_config()
-    # output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
-
     result_latency = 5e10
     
     # Run all cases
@@ -388,12 +372,6 @@ def benchmark_suite(suite_name,
             auto_layers = benchmark_case.parallel_args.num_auto_layers
         except AttributeError:
             auto_layers = 'auto'
-
-        # global_config.maping_rst_dir = f"{global_config.rst_folder}/Batchsize_{totol_batch_size}" + \
-        #     f"-num_b_{num_micro_batches}-auto_layers_{auto_layers}"
-        # os.makedirs(global_config.maping_rst_dir, exist_ok=True)
-        # set_global_config(global_config)
-        # parallel_args = benchmark_case.parallel_args
 
         # Run one case
         print("Working on case: {}".format(str(benchmark_case)))
@@ -408,34 +386,9 @@ def benchmark_suite(suite_name,
                                     disable_tqdm=disable_tqdm,
                                     use_separate_process=use_separate_process)
 
-        (parameter_count, peak_mem, latencies, tflops, metadata) = result
-        
-        # import pdb; pdb.set_trace() 
+        (parameter_count, peak_mem, latencies, tflops, metadata) = result   
 
-        result_latency = parameter_count
-        
-        # heads = [
-        #     "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-        #     "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "TFLOPs",
-        #     "Peak Mem (GB)", "Metadata"
-        # ]
-        # if isinstance(parallel_args, ConfigParallelArgs):
-        #     parallel_args = parallel_args._replace(input_placement_specs=[])
-
-        # values = [
-        #     model_type, model_config, num_micro_batches, num_gpus,
-        #     parallel_args, f"{np.mean(latencies):.3f}",
-        #     f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
-        #     f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
-        #     to_str_round(metadata, 6)
-        # ]
-        # write_tsv(heads, values, output_name)
-        # values = [str(x) for x in values]
-        # result_dict = dict(zip(heads, values))
-        # with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
-        #     json.dump(result_dict, f, indent=4)
-        # gen_mapping_vis_result(global_config.maping_rst_dir)
-        # time.sleep(0.1)  # for ctrl+c to work
+        result_latency = latencies
         
     return result_latency
 
