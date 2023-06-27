@@ -371,9 +371,9 @@ def benchmark_suite(suite_name,
         assert shard_only, ("Only shard-only mode is supported for execution "
                             "on local GPUs.")
 
-    assert num_gpus in benchmark_suites[suite_name], (
-        f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
-    suite = benchmark_suites[suite_name][num_gpus]
+    # assert num_gpus in benchmark_suites[suite_name], (
+    #     f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
+    # # suite = benchmark_suites[suite_name][num_gpus]
     
     stage_quat = parameters_list[0]
     
