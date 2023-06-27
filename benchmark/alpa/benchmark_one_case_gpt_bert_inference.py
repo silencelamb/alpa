@@ -146,6 +146,7 @@ def benchmark_gpt_inference_internal(model_type,
         host_ids=list(range(num_hosts)),
         num_devices_per_host=num_devices_per_host)
     set_global_virtual_physical_mesh(virtual_mesh)
+    
 
     (method, _, add_manual_layer_marker,
      num_manual_pipeline_stages) = get_pipeshard_parallel_method(

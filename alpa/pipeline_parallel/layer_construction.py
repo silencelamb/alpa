@@ -787,17 +787,14 @@ def slice_jaxpr_with_var_assignment(jaxpr, var2mesh, num_meshes):
                 # cur_mesh = mesh_idx
                 if mesh_begin[cur_mesh] is None:
                     mesh_begin[cur_mesh] = idx
-                mesh_end[cur_mesh] = idx
-    # import pdb; pdb.set_trace()
+                mesh_end[cur_mesh] = idx    
     # Some boundary equations are not within the ranges detected above.
     # Use DP algorithm to refine the boundary, so we can minimize the
     # communication costs.
     cost_criteria = "flops"
     costs = get_layer_construction_costs(jaxpr, cost_criteria=cost_criteria)
-    _, _, compute_costs = costs
-
+    _, _, compute_costs = costs    
     # import pdb; pdb.set_trace()
-    
     # To make the solution of DP algorithm respect our begin/end constraint.
     # We assign begin, end equations a very large cost and run DP
     # with a small eps.
