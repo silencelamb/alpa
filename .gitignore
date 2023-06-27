@@ -78,3 +78,8 @@ examples/imagenet/imagenet
 
 # macOS temp files
 .DS_Store
+
+
+benchmark/alpa/data
+benchmark/alpa/zhc_test
+benchmark/alpa/zhc.sh

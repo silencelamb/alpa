@@ -936,6 +936,7 @@ def merge_marked_jaxprs_with_named_call(jaxprs: Sequence[ClosedJaxpr],
         if has_output(jaxpr.jaxpr):
             call_eqn = unwrap_with_call(jaxpr, name_prefix + str(i))
             new_eqns.append(call_eqn)
+            # import ipdb; ipdb.set_trace()            
             invars.extend(OrderedSet(call_eqn.invars).difference(env))
             env.update(call_eqn.invars + call_eqn.outvars)
         if insert_hook_after == i:

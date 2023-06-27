@@ -166,7 +166,7 @@ class mlp_Model(nn.Module):
     
     @nn.compact
     def __call__(self, x):
-        for i in range(16):
+        for i in range(4):
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
             x = nn.relu(x)
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
