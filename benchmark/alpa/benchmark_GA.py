@@ -396,7 +396,7 @@ def benchmark_suite(suite_name,
         
     # import pdb; pdb.set_trace()   
     
-    suite = get_config_cases_idx(gpt_specs["760M"], [128],                         
+    suite = get_config_cases_idx(gpt_specs["1.3B"], [128],
                          partition_index=partition_index,                         
                          stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
                                                            submeshes=submeshes,
@@ -433,10 +433,13 @@ def benchmark_suite(suite_name,
                                     disable_tqdm=disable_tqdm,
                                     use_separate_process=use_separate_process)
 
-        (parameter_count, peak_mem, latencies, tflops, metadata) = result   
-
-        result_latency = latencies
+        (parameter_count, peak_mem, latencies, tflops, metadata) = result  
         
+        log.logger.info('One result: ' + str(result))
+
+        # result_latency = latencies
+        result_latency = metadata['estimated_total_time']
+    # import pdb; pdb.set_trace()    
     return result_latency
 
 
