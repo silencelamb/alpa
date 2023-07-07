@@ -22,13 +22,16 @@ import suite_manual_moe
 import suite_wresnet
 import suite_inference_gpt
 import suite_auto_mlp
+import suite_manual_mlp
 
 benchmark_suites = {
     "gpt.tmp": suite_manual_gpt.tmp_suite,
     "gpt.tmp_auto": suite_auto_gpt.tmp_suite,
     "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
     "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
+    "mlp.perf_test_manual": suite_manual_mlp.mlp_perf_test_suite,
     "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
+    
     "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
     "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
     "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
