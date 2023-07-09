@@ -1,4 +1,7 @@
 """Benchmark suites for gpt with auto parallelization."""
+import os, sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__))) # add to sys.path.
+
 from suite_manual_gpt import gpt_specs, mlp_specs
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
                                       LoadSolutionParallelArgs, ConfigParallelArgs)
@@ -73,6 +76,35 @@ force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
 # Temporary debug suite
 tmp_suite = {}
 
+model_type_size_dict = {
+    "gpt":{
+        1: "350M",
+        2: "760M",
+        4: "1.3B",
+        8: "2.6B",
+        16: "6.7B",
+        32: "15B",
+        64: "39B"
+    },
+    "moe":{
+        1: "380M",
+        2: "690M",
+        4: "1.3B",
+        8: "2.4B",
+        16: "10B",
+        32: "27B",
+        64: "70B"
+    },
+    "wresnet":{
+        1: "250M",
+        2: "500M",
+        4: "1B",
+        8: "2B",
+        16: "4B",
+        32: "6.8B",
+        64: "13B"
+    }
+}
 # Performance test with search solutions found for p3.16xlarge
 perf_test_suite = {
     1:

@@ -23,6 +23,7 @@ import suite_wresnet
 import suite_inference_gpt
 import suite_auto_mlp
 import suite_manual_mlp
+from suite_auto_gpt import model_type_size_dict
 
 benchmark_suites = {
     "gpt.tmp": suite_manual_gpt.tmp_suite,
@@ -92,6 +93,12 @@ def benchmark_suite(suite_name,
         global_config.maping_rst_dir = f"{global_config.rst_folder}/Batchsize_{totol_batch_size}" + \
             f"-num_b_{num_micro_batches}-auto_layers_{auto_layers}"
         os.makedirs(global_config.maping_rst_dir, exist_ok=True)
+        if global_config.save_jaxpr_json:
+            micro_batch_size = totol_batch_size // num_micro_batches
+            model_size = model_type_size_dict[model_type][num_gpus]
+            use_remat = benchmark_case.parallel_args.use_remat
+            global_config.save_jaxpr_json_file = os.path.join(global_config.save_jaxpr_dir, \
+                    f"{model_type}{model_size}_bsize{micro_batch_size}_useremat_{use_remat}.json")
         set_global_config(global_config)
         parallel_args = benchmark_case.parallel_args
 

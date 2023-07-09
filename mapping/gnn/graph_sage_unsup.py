@@ -37,11 +37,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 def train():
     model.train()
+    import pdb; pdb.set_trace()
 
     total_loss = 0
     for batch in train_loader:
         batch = batch.to(device)
         optimizer.zero_grad()
+        import pdb; pdb.set_trace()
         h = model(batch.x, batch.edge_index)
         h_src = h[batch.edge_label_index[0]]
         h_dst = h[batch.edge_label_index[1]]

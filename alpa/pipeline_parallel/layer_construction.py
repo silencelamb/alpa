@@ -14,7 +14,7 @@ from jax.core import (Var, Jaxpr, ClosedJaxpr, DropVar, Literal, jaxpr_as_fun,
                       gensym, raise_to_shaped, get_aval)
 from jax.interpreters.partial_eval import remat_call_p
 
-from alpa.global_env import global_config
+from alpa.global_env import global_config, get_global_config
 from alpa.parallel_plan import PlacementSpec
 from alpa.pipeline_parallel.layer_stats import (global_invar_size,
                                                 is_nontrivial, eqn_flops,
@@ -24,7 +24,7 @@ from alpa.pipeline_parallel.primitive_def import (pipeline_p,
                                                   mark_pipeline_jaxpreqn)
 from alpa.util import (clone_jaxpr, clone_jaxpr_eqn, slices_to_jaxpr,
                        OrderedSet, get_var_mapping, maybe_numba_jit,
-                       new_jaxpr_eqn)
+                       new_jaxpr_eqn, jaxpr_to_json)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -506,6 +506,10 @@ def layer_level_jaxpr_transformation(fn: Callable,
         jaxpr, out_shape_tree = make_jaxpr(fn,
                                            static_argnums=static_argnums,
                                            return_shape=True)(*args)
+        global_config = get_global_config()
+        if global_config.save_jaxpr_json:
+            jaxpr_to_json(jaxpr, global_config.save_jaxpr_json_file)
+            exit(0)
         if auto_layer_boundary:
             nonlocal layer_num
             if layer_num == "auto":

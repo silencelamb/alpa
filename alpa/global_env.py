@@ -111,6 +111,12 @@ class GlobalConfig:
         self.print_compilation_time = False
         self.print_auto_layer_stats = True
 
+        ########## Options of save jaxpr ##########
+        self.save_jaxpr_json = True
+        self.save_jaxpr_dir = "saved_jaxpr_json"
+        self.save_jaxpr_json_file = "saved_jaxpr.json"
+
+
         ########## Options of mapping ################
         # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
         self.only_mapping = False

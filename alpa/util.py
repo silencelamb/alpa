@@ -7,6 +7,7 @@ import os
 import subprocess
 import re
 import time
+import json
 from collections import OrderedDict
 from functools import partial, partialmethod
 import threading
@@ -1781,3 +1782,55 @@ def get_submesh_physical_shapes(submeshes: Sequence[Sequence[int]]):
         for submesh in submeshes
     ]
     return submesh_physical_shapes
+
+
+class JsonEncoder(json.JSONEncoder):
+    """Convert numpy classes to JSON serializable objects."""
+
+    def default(self, obj):
+        if isinstance(obj, (np.integer, np.floating, np.bool_)):
+            return obj.item()
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(JsonEncoder, self).default(obj)
+                
+
+def jaxpr_to_json(jaxpr, jsonfile="test.json"):
+    """Convert a JAXPR object to a JSON string and write it to a file.
+
+    Args:
+        jaxpr: A JAXPR object.
+        jsonfile: The filename to write the JSON string to. Default is "test.json".
+    """
+    eqns_list = []
+    vars_dict = {}
+    for eqn in jaxpr.jaxpr.eqns:
+        cur_eqn = {}
+        cur_eqn["primitive"] = str(eqn.primitive)
+        cur_eqn["invars"] = [str(var) for var in eqn.invars]
+        cur_eqn["outvars"] = [str(var) for var in eqn.outvars]
+        cur_eqn["params"] = {k: v if isinstance(v, (tuple, bool, type(None), int, float)) \
+                                else str(v) for k, v in eqn.params.items()}
+        eqns_list.append(cur_eqn)
+        for var in eqn.invars:
+            var_str = str(var)
+            if var_str not in vars_dict:
+                var_info = {}
+                var_info["shape"] = var.aval.shape
+                var_info["dtype"] = str(var.aval.dtype)
+                vars_dict[var_str] = var_info
+        for var in eqn.outvars:
+            var_str = str(var)
+            if var_str not in vars_dict:
+                var_info = {}
+                var_info["shape"] = var.aval.shape
+                var_info["dtype"] = str(var.aval.dtype)
+                vars_dict[var_str] = var_info
+    json_dict = {
+        "eqns": eqns_list,
+        "vars": vars_dict
+    }
+    os.makedirs(os.path.dirname(jsonfile), exist_ok=True)
+    with open(jsonfile, 'w') as f:
+        json.dump(json_dict, f, indent=4, cls=JsonEncoder)
