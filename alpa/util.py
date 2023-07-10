@@ -1805,7 +1805,7 @@ def jaxpr_to_json(jaxpr, jsonfile="test.json"):
     """
     eqns_list = []
     vars_dict = {}
-    for eqn in jaxpr.jaxpr.eqns:
+    for node_id, eqn in enumerate(jaxpr.jaxpr.eqns):
         cur_eqn = {}
         cur_eqn["primitive"] = str(eqn.primitive)
         cur_eqn["invars"] = [str(var) for var in eqn.invars]
@@ -1813,6 +1813,16 @@ def jaxpr_to_json(jaxpr, jsonfile="test.json"):
         cur_eqn["params"] = {k: v if isinstance(v, (tuple, bool, type(None), int, float)) \
                                 else str(v) for k, v in eqn.params.items()}
         eqns_list.append(cur_eqn)
+        for var in eqn.outvars:
+            var_str = str(var)
+            if var_str in vars_dict:
+                print("#########################################")
+                print("Warning: variable {} output more than once.".format(var_str))
+            var_info = {}
+            var_info["shape"] = var.aval.shape
+            var_info["dtype"] = str(var.aval.dtype)
+            var_info["node_id"] = node_id
+            vars_dict[var_str] = var_info
         for var in eqn.invars:
             var_str = str(var)
             if var_str not in vars_dict:
@@ -1820,13 +1830,7 @@ def jaxpr_to_json(jaxpr, jsonfile="test.json"):
                 var_info["shape"] = var.aval.shape
                 var_info["dtype"] = str(var.aval.dtype)
                 vars_dict[var_str] = var_info
-        for var in eqn.outvars:
-            var_str = str(var)
-            if var_str not in vars_dict:
-                var_info = {}
-                var_info["shape"] = var.aval.shape
-                var_info["dtype"] = str(var.aval.dtype)
-                vars_dict[var_str] = var_info
+
     json_dict = {
         "eqns": eqns_list,
         "vars": vars_dict
