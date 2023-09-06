@@ -112,7 +112,7 @@ class GlobalConfig:
         self.print_auto_layer_stats = True
 
         ########## Options of save jaxpr ##########
-        self.save_jaxpr_json = True
+        self.save_jaxpr_json = False
         self.save_jaxpr_dir = "saved_jaxpr_json"
         self.save_jaxpr_json_file = "saved_jaxpr.json"
 

@@ -4,6 +4,10 @@ python benchmark.py --suite  gpt.grid_search_auto --num-hosts 8 --num-devices-pe
 # uniform parallen, analytical model gpu 8
 python benchmark.py --suite  gpt.perf_test_manual --num-hosts 1 --num-devices-per-host 8 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical
 
+# uniform parallen, analytical model gpu 2
+python benchmark.py --suite  gpt.perf_test_manual --num-hosts 1 --num-devices-per-host 2 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical
+
+
 # config parallel, anylytical model gpu
 python benchmark.py --suite  gpt.config_test --num-hosts 1 --num-devices-per-host 2 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical
 
@@ -40,4 +44,4 @@ python benchmark.py --suite  gpt.wsc_config_test --num-hosts 2 --num-devices-per
 
 
 # 遗传算法 (Genetic Algorithm, GA) 
-python  benchmark_GA.py --suite gpt.wsc_config_test --num-hosts 1 --num-devices-per-host 4 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_gpu_analytical_GA_GPT
+python benchmark_GA.py --suite gpt.wsc_config_test --num-hosts 1 --num-devices-per-host 4 --no-separate-process --only-mapping --use-analytical-perf-model --rst_folder tmp_gpu_analytical_GA_GPT

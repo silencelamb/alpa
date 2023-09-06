@@ -827,7 +827,6 @@ def cluster_layers_and_slice_mesh(
         # Check forward_stage_layer_ids is a partition of range(num_layers)
         forward_stage_layer_ids = stage_option.forward_stage_layer_ids
         last_layer_id = 0
-        import pdb; pdb.set_trace()
         for stage_layer_ids in forward_stage_layer_ids:
             for layer_id in stage_layer_ids:
                 assert layer_id == last_layer_id

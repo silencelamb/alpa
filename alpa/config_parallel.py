@@ -60,5 +60,5 @@ def compile_config_parallel_executable(fun, stage_num, in_tree, out_tree_thunk,
     return compile_pipeshard_executable(
         fun, in_tree, out_tree_thunk, static_argnums, donated_invars,
         batch_invars, virtual_mesh, num_micro_batches, pipeline_schedule,
-        AutoShardingOption(False), layer_option,
+        AutoShardingOption(prefer_reduce_scatter=True), layer_option,
         stage_option, input_shardings, None, *avals)

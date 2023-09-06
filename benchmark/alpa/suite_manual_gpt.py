@@ -75,6 +75,11 @@ perf_test_suite = {
         BenchmarkCase(16, gpt_specs["350M"], 1, "uniform",
                       UniformParallelArgs(True, True, 1, 1, 1, True))
     ],
+    # add for test by daixu
+    2: [
+        BenchmarkCase(16, gpt_specs["350M"], 4, "uniform",
+                      UniformParallelArgs(True, True, 1, 2, 1, True))
+    ],
     8: [
         BenchmarkCase(32, gpt_specs["2.6B"], 4, "uniform",
                       UniformParallelArgs(True, True, 2, 2, 2, True))
