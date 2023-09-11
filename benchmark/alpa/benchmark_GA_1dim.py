@@ -518,6 +518,12 @@ if __name__ == "__main__":
             actual_or_virtual = "costmodel"
     else:
         actual_or_virtual = "actualA100"
+    
+    # set device num
+    assert num_hosts == 1, ("Only support 1 host now.")
+    device_num = num_devices_per_host *num_hosts
+    max_stage_num = device_num
+    
     args.rst_folder = f"{args.rst_folder}/{args.suite}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
     print(args.rst_folder)
     os.makedirs(args.rst_folder, exist_ok=True)
