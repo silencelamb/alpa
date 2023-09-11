@@ -129,7 +129,7 @@ class FollowIdxLayerOption(LayerOption):
     """
 
     def __init__(self,
-                 partition_index:  Union[Sequence[int], str] = "uniform",
+                 partition_index:  Union[Sequence[int], Sequence[float], str] = "uniform",
                  num_meshes: int = 0,
                  static_argnums: Sequence[int] = ()):
         super().__init__()
@@ -731,7 +731,7 @@ def follow_layer_construction(fun, static_argnums, input_placement_specs,
 
 def follow_idx_layer_construction(fun, static_argnums, partition_index, num_meshes):
     """Follow given partition index  to construct layers.
-    partition_index can be list[int] or string
+    partition_index can be list[int] or list[float] string
     """
     _check_callable(fun)
 
@@ -744,6 +744,9 @@ def follow_idx_layer_construction(fun, static_argnums, partition_index, num_mesh
         jaxpr_len = len(jaxpr.eqns)
         print(f"Length of jaxpr: {jaxpr_len}!!!")
         print(f"partition_index: {partition_index}!!! ")
+        if isinstance(partition_index[0], float):
+            partition_index = [int(jaxpr_len * x) for x in partition_index]
+            print(f"partition_index: {partition_index}!!! ")
         if partition_index is None:
             partition_index = "uniform"
         if isinstance(partition_index, str):
