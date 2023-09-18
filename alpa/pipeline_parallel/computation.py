@@ -766,7 +766,9 @@ def generate_sharded_xla_computations(
     hlo_module, flops = generate_sharded_xla_computations_arguments(
         name, jax_computations, computation_donate_invars, input_sharding_dict,
         output_sharding_dict, stage_input_sharding)
-
+    # import pdb; pdb.set_trace()
+    # with open("hlo_module_debug_1.hlo", "w") as f:
+    #     f.write(hlo_module.to_string())
     #  pylint: disable=unbalanced-tuple-unpacking
     (computation_names, computation_modules,
      stage_plan) = run_auto_sharding_pass(hlo_module, logical_mesh, "stages",

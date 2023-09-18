@@ -205,18 +205,7 @@ config_test_suite = {
                         )
 }
 
-wsc_config_test_suite = {
-    # 2: get_config_cases(gpt_specs["760M"], [128],
-    #                     'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl',
-    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
-    #                                                       submeshes=[
-    #                         [0, 0, 0, 0],
-    #                         [0, 1, 0, 1]
-    #                     ],
-    #     submesh_physical_shapes=None,
-    #     submesh_logical_shapes=None,
-    #     submesh_autosharding_option_dicts=[{}, {}])
-    # ),    
+wsc_config_test_suite = { 
     2: get_config_cases_idx(gpt_specs["760M"], [128],
                         # partition_index="uniform",
                         # partition_index=[0, 1210, 2419],
@@ -232,6 +221,14 @@ wsc_config_test_suite = {
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=[{}, {}])
     ),   
+    4: get_config_cases_idx(gpt_specs["350M"], [128],
+                        partition_index=[0.0, 0.7142857142857143],
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]], 
+                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 3]],
+                                                        submesh_physical_shapes=None,
+                                                        submesh_logical_shapes=None,
+                                                        submesh_autosharding_option_dicts=[{}, {}])
+    ),  
     # 8: get_config_cases(gpt_specs["2.6B"], [128],
     #                     'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl',
     #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]],
@@ -255,6 +252,15 @@ wsc_config_test_suite = {
         submesh_physical_shapes=None,
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=[{}, {}, {}])
+    ),
+    25: get_config_cases_idx(gpt_specs["1.3B"], [128],
+                        # partition_index="uniform",
+                        partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
+                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
     )
 }
 

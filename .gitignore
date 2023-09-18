@@ -53,6 +53,7 @@ alpa_debug_info
 *.prof
 *.tsv
 *.hlo
+*.jaxpr
 
 # Tests temp files
 tests/tmp

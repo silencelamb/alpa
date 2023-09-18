@@ -408,8 +408,8 @@ def benchmark_suite(suite_name,
     partition_index = [sum(partition_index[:i])/partition_index_sum for i in range(len(partition_index))]
         
     # import pdb; pdb.set_trace()   
-    
-    suite = get_config_cases_idx(gpt_specs["1.3B"], [128],
+    # 350M  1.3B
+    suite = get_config_cases_idx(gpt_specs["350M"], [128],
                          partition_index=partition_index,                         
                          stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
                                                            submeshes=submeshes,

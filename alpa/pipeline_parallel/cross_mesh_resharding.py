@@ -777,6 +777,7 @@ class ReshardingTaskSpec:
 
         for i, dim in enumerate(self.src.tensor_shape):
             tile_length, ragged = divmod(dim, self.src.tile_shape[i])
+            # if ragged, can not be divided exactly without remainder (in integer arithmetic)
             assert not ragged
             start_tile, start_tile_offset = divmod(tile.indices[i].start,
                                                    tile_length)
