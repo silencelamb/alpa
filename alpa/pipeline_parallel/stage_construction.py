@@ -527,6 +527,7 @@ def distributed_profile_on_mesh(meshes: Sequence[VirtualPhysicalMesh], layers,
                                 num_autosharding_configs, num_micro_batches,
                                 auto_stage_option, mesh_cached_result)
     timers("stage-construction-profiling").suspend()
+    
     return compute_cost, max_n_succ_stages, is_profiled
 
 

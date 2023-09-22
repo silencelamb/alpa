@@ -39,10 +39,11 @@ from alpa.pipeline_parallel.schedules import PipelineSchedule
 from alpa.shard_parallel.auto_sharding import (run_auto_sharding_pass,
                                                run_spmd_partitioner_pass,
                                                run_backend_compilation,
-                                               hlo_sharding_to_sharding_spec)
+                                               hlo_sharding_to_sharding_spec,
+                                               get_auto_sharded_hlo_module)
 from alpa.util import (clone_jaxpr, get_shard_shape, jaxpr_to_hlo_module,
                        OrderedSet, retrieve_placement_group,
-                       get_num_available_gpus)
+                       get_num_available_gpus, XlaPassContext)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -206,6 +207,29 @@ class CompileWorker:
             logger.warning(f"Compilation error (spmd partitioner pass) "
                            f"for stage {stage_id} : {e}")
             return stage_id, None
+
+        # [REMOVE ME]: Previous memory model dev code        
+        # Get whole annotated sharded graph (fw/bw + apply)
+        # Run spmd on annotated single hlo graph
+        # single_graph_proto = None
+        # if self.use_analytical_perf_model:
+        #     annotated_sharded_hlo_module = get_auto_sharded_hlo_module()
+        #     try:
+        #         sharded_hlo_module = run_spmd_partitioner_pass(
+        #             annotated_sharded_hlo_module,
+        #             logical_mesh.num_devices)
+        #         single_graph_proto = sharded_hlo_module.as_serialized_hlo_module_proto()
+        #     except IndexError as e:
+        #         logger.warning(f"Compilation error on whole graph (spmd pass) "
+        #                        f"for stage {stage_id} : {e}")
+        #         return stage_id, None   
+
+        # with open(f"./whole_spmd_hlo_module_{stage_id}.hlo", "w") as f:
+        #         f.write(sharded_hlo_module.to_string())     
+        # with open(f"./comp_spmd_hlo_module_{stage_id}.hlo", "w") as f:
+        #         f.write(hlo_module.to_string())
+        # with open(f"./apply_grad_spmd_hlo_module_{stage_id}.hlo", "w") as f:
+        #         f.write(modules[1].to_string())
 
         optimized_proto = hlo_module.as_serialized_hlo_module_proto()
         return stage_id, CompileOutput(optimized_proto, stage_plan,
@@ -390,6 +414,15 @@ class HloCostModelProfileWorker:
             grad_sync_channel_ids = get_grad_sync_channel_ids(hlo_module)
         peak_memory = compiled.total_allocation_size()
         available_memory = self.prof_result.available_memory_per_device
+        # [REMOVE ME]: Previous memory model dev code
+        # if self.g_config.use_analytical_perf_model:
+        #     ori_whole_hlo_module = xe.HloModule.from_serialized_hlo_module_proto(compiled_output.single_graph_proto)
+        #     ori_comp_hlo_module = xe.HloModule.from_serialized_hlo_module_proto(compiled_output.model_proto)
+        #     cost = estimate_hlo_module_cost(hlo_module, self.g_config, self.prof_result,
+        #                                     self.num_micro_batches,
+        #                                     grad_sync_channel_ids,
+        #                                     ori_whole_hlo_module,
+        #                                     ori_comp_hlo_module)
         cost = estimate_hlo_module_cost(hlo_module, self.g_config, self.prof_result,
                                         self.num_micro_batches,
                                         grad_sync_channel_ids
@@ -447,7 +480,8 @@ class HloAnalysisSimulator:
 
     def __init__(self, stages: Sequence[XlaShardedPipelineComputation],
                  mesh_group: PhysicalDeviceMeshGroup,
-                 schedule: PipelineSchedule, num_micro_batches: int):
+                 schedule: PipelineSchedule, num_micro_batches: int,
+                 stage_id_dict):
         self.stages = stages
         self.mesh_group = mesh_group
         self.num_mesh = len(mesh_group)
@@ -459,6 +493,7 @@ class HloAnalysisSimulator:
         self.stage_peak_memory = None
         self.stage_latency = None
         self.spmd_module_list = [stage.get_spmd_partitioned() for stage in stages] 
+        self.stage_id_dict = stage_id_dict
 
         
     def estimate_cost_on_hlo_analysis(self):
@@ -482,6 +517,28 @@ class HloAnalysisSimulator:
             latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids)
             self.stage_latency.append(latency)
         
+        # estimate memory offload cost
+        if global_config.hardware == "gpu":
+            hardware_config = global_config.gpu_config
+        else:
+            hardware_config = global_config.wsc_config
+        common_text = {
+            "analytical_perf::num_micro_batches": self.num_batch,
+            "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
+            "analytical_perf::force_use_fp16": global_config.force_use_fp16,
+            "analytical_perf::verbose": 0,
+        }
+        for merge_stage_id in self.stage_id_dict: 
+            fw_bw_apply = []
+            for stage_id in merge_stage_id:
+                fw_bw_apply.append(self.spmd_module_list[stage_id])
+            # get fw, bw, apply_grad state mem offload cost
+            with XlaPassContext(hardware_config | common_text):
+                cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
+            # add back to each stage
+            for i, stage_id in enumerate(merge_stage_id):
+                self.stage_latency[stage_id] += cost[i]
+                                        
         # use schedule to estimate the total latency
         for clock_idx, batch_stage_pair_list in  enumerate(self.schedule.schedules):
             cur_clock_max_latency = 0

@@ -146,6 +146,7 @@ class GlobalConfig:
             "analytical_perf_gpu::node_bw": int(25/8 * GB),   # alpa 里是 25Gbps
             # "analytical_perf_gpu::node_bw": 200 * GB,
             # "analytical_perf_gpu::node_bw": 600 * GB,   # nv link
+            "analytical_perf_gpu::ddr_bandwidth": 500 * GB, # ddr bandwidth, GB/s
             "analytical_perf::cmp_ul": 0.7,
             "analytical_perf::bw_ul": 0.7
         }
@@ -160,9 +161,10 @@ class GlobalConfig:
             },
             "analytical_perf_wsc::tile_r_num": 6,
             "analytical_perf_wsc::tile_c_num": 6,
-            "analytical_perf_wsc::tile_mem": 10 ** 9,
+            "analytical_perf_wsc::tile_mem": 1 * GB,
             "analytical_perf_wsc::tile_bw": 200 * GB,
             "analytical_perf_wsc::die_bw": 200 * GB,
+            "analytical_perf_wsc::ddr_bandwidth": 500 * GB, # ddr bandwidth, GB/s
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }

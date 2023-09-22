@@ -35,6 +35,7 @@ build_jaxlib/build/bazel*
 build_jaxlib/bazel-*
 build_jaxlib/.jax_configure.bazelrc
 build_jaxlib/dist
+build_jaxlib/.clangd
 
 # Examples build and tmp files
 examples/build/
