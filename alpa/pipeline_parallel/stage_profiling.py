@@ -16,7 +16,7 @@ import ray
 from ray.exceptions import RayActorError
 from ray.util import ActorPool
 
-from alpa.device_mesh import (DistributedArray, PhysicalDeviceMesh,
+from alpa.device_mesh import (DistributedArray, PhysicalDeviceMesh, PhysicalDeviceMeshGroup,
                               VirtualPhysicalMesh, _shard_device_array)
 from alpa.global_env import global_config, get_global_config
 from alpa.mesh_executable import (PartialGradAccMeshDriverExecutable,
@@ -32,6 +32,8 @@ from alpa.pipeline_parallel.cross_mesh_resharding import (
     CrossMeshCommunicator, SymbolicReshardingTask, CollectiveGroup,
     ReshardingTaskSpec, SymbolicBroadcastReshardingTask)
 from alpa.pipeline_parallel.resharding_tensor import VirtualDistributedArray
+from alpa.pipeline_parallel.computation import XlaShardedPipelineComputation
+from alpa.pipeline_parallel.schedules import PipelineSchedule
 from alpa.shard_parallel.auto_sharding import (run_auto_sharding_pass,
                                                run_spmd_partitioner_pass,
                                                run_backend_compilation,
@@ -436,6 +438,58 @@ class HloCostModelProfileWorkerPool(BaseWorkerPoolWrapper):
         ]
         self.pool = ActorPool(self.actors)
 
+
+class HloAnalysisSimulator:
+    """A simulator based on hlo analysis.
+    """
+
+    def __init__(self, stages: Sequence[XlaShardedPipelineComputation],
+                 mesh_group: PhysicalDeviceMeshGroup,
+                 schedule: PipelineSchedule, num_micro_batches: int):
+        self.stages = stages
+        self.mesh_group = mesh_group
+        self.num_mesh = len(mesh_group)
+        self.schedule = schedule
+        self.num_batch = num_micro_batches
+        self.sharding_annotated_hlo_texts = [x.get_hlo_text() for x in stages]
+        self.total_latency = None
+        self.peak_memory = None
+        self.stage_peak_memory = None
+        self.stage_latency = None
+        self.spmd_module_list = [stage.get_spmd_partitioned() for stage in stages] 
+
+        
+    def estimate_cost_on_hlo_analysis(self):
+        """Estimate the cost of a schedule using HLO analysis.
+        """
+        if self.total_latency is not None and self.peak_memory is not None \
+            and self.stage_latency is not None:
+            return self.total_latency, self.peak_memory, self.stage_latency
+        
+        self.stage_peak_memory = self.stage_latency = []
+        self.peak_memory = self.total_latency = 0
+        global_config = get_global_config()
+        for stage_idx, spmd_module in enumerate(self.spmd_module_list):
+            peak_memory = xe.estimate_hlo_module_memory(spmd_module)
+            self.stage_peak_memory.append(peak_memory)
+            self.peak_memory = max(self.peak_memory, peak_memory)
+            grad_sync_channel_ids = ""
+            if True:
+                grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
+            latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids)
+            self.stage_latency.append(latency)
+        
+        # use schedule to estimate the total latency
+        for clock_idx, batch_stage_pair_list in  enumerate(self.schedule.schedules):
+            cur_clock_max_latency = 0
+            for batch_stage_pair in batch_stage_pair_list:
+                if batch_stage_pair is None:
+                    continue
+                batch_idx, stage_idx = batch_stage_pair
+                cur_clock_max_latency = max(cur_clock_max_latency, self.stage_latency[stage_idx])
+            self.total_latency += cur_clock_max_latency
+        return self.total_latency, self.peak_memory, self.stage_latency
+    
 
 def compile_all(stages, num_micro_batches, default_as_option):
     """
@@ -867,3 +921,4 @@ def compute_apply_grad_invar_size(input_sharding_protos,
                 selected_sharding_specs.append(spec)
     return _compute_vars_size(selected_sharding_specs, ordered_selected_vars,
                               logical_mesh_shape)
+    

@@ -31,7 +31,7 @@ from alpa.pipeline_parallel.apply_grad import (compute_grad_to_accumulate_grad,
 from alpa.pipeline_parallel.layer_construction import LayerOption
 from alpa.pipeline_parallel.stage_construction import (
     cluster_layers_and_slice_mesh, StageOption)
-from alpa.pipeline_parallel.stage_profiling import CompileWorkerPool
+from alpa.pipeline_parallel.stage_profiling import CompileWorkerPool, HloAnalysisSimulator
 from alpa.shard_parallel.auto_sharding import AutoShardingOption
 from alpa.util import (get_var_mapping, trace_jaxpr_with_micro_batch,
                        OrderedSet, GradFuncTransformContext)
@@ -95,6 +95,10 @@ def compile_pipeshard_executable(
         batch_invars, virtual_mesh, num_microbatch, pipeline_schedule,
         default_as_option, stage_option, name_base, global_input_shardings,
         None, stage_input_shardings)
+    
+    if global_config.full_on_hlo_analysis:
+        hlo_simulator = pipeshard_config
+        return hlo_simulator
 
     executable = PipeshardDriverExecutable(
         mesh_group=virtual_mesh.launched_physical_mesh_group,
@@ -252,6 +256,13 @@ def compile_pipeshard_executable_internal(
         virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
     debug_compilation_time("launch meshes")
 
+    if global_config.full_on_hlo_analysis:
+        return HloAnalysisSimulator(
+            stages=xla_stages,
+            mesh_group=virtual_mesh.launched_physical_mesh_group,
+            schedule=schedule,
+            num_micro_batches=num_microbatch)
+    
     # Wrap all things into a distributed runtime
     # TODO(yonghao): use virtual mesh instead of launched physical group
     pipeshard_config = PipelineInstEmitter(

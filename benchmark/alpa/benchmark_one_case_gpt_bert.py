@@ -389,6 +389,11 @@ def benchmark_gpt_bert_3d_internal(model_type,
 
     (compute_cost_file_name, forward_stage_layer_ids, submesh_shapes,
      logical_mesh_shapes, autosharding_option_dicts, dp_cost) = get_last_dp_result()
+    if global_config.full_on_hlo_analysis:
+        estimated_total_time = estimated_time
+    else:
+        estimated_total_time = estimated_time_sum + (benchmark_case.num_micro_batches-1) * max_stage_cost
+        
     metadata = {
         "compilation_times": compilation_times,
         "compute_cost_file_name": compute_cost_file_name,
@@ -400,7 +405,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
         "estimated_time_sum": estimated_time_sum,
         "estimated_time": estimated_time,
         "max_stage_cost": max_stage_cost,
-        "estimated_total_time": estimated_time_sum + (benchmark_case.num_micro_batches-1) * max_stage_cost
+        "estimated_total_time": estimated_total_time
     }
 
     return parameter_count, max_mem_allocated, latencies, tflops, metadata

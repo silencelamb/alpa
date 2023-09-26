@@ -16,6 +16,7 @@ from alpa import (AutoShardingOption, ShardParallel, PipeshardParallel, ConfigPa
                   ManualStageOption, WSCManualStageOption, AutoStageOption, AutoLayerOption,
                   global_config, PhysicalDeviceMesh)
 from alpa.pipeline_parallel.stage_construction import get_last_dp_result
+from alpa.pipeline_parallel.stage_profiling import HloAnalysisSimulator
 from alpa.timer import timers
 from alpa.util import (print_used_time, to_str_round,
                        count_communication_primitives, GB,
@@ -334,11 +335,10 @@ def benchmark_inference_executable(niter,
 def compile_pipeshard_executable(parallel_mode, train_step, state,
                                  other_train_step_inputs):
     print_used_time(None)
+    global_config = get_global_config()
     # import ipdb; ipdb.set_trace()
     executable = train_step.get_executable(state, *other_train_step_inputs)
-    executable: PipeshardDriverExecutable
     print_used_time("Compile (driver)")
-
     if parallel_mode == "search":
         compilation_times = {
             k: timers(k).elapsed() for k in [
@@ -350,36 +350,37 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
             f"compilation time breakdown: {to_str_round(compilation_times, 2)}")
     else:
         compilation_times = None
+    if global_config.full_on_hlo_analysis:
+        executable: HloAnalysisSimulator
+    else:
+        executable: PipeshardDriverExecutable
+        # save mapping result
+        save_file = f"{global_config.maping_rst_dir}/input_placement_specs.pkl"
+        input_placement_specs = executable.input_placement_specs
+        with open(save_file, 'wb') as f:
+            import pickle
+            pickle.dump(input_placement_specs, f)
 
-    global_config = get_global_config()
-
-    # save mapping result
-    
-    save_file = f"{global_config.maping_rst_dir}/input_placement_specs.pkl"
-    input_placement_specs = executable.input_placement_specs
-    with open(save_file, 'wb') as f:
-        import pickle
-        pickle.dump(input_placement_specs, f)
-
-    input_placement_specs = executable.get_input_placement_specs()
-    for idx, specs in enumerate(input_placement_specs):
-        save_file = f"{global_config.maping_rst_dir}/input_placement_specs-{idx}.txt"
-        with open(save_file, 'w') as f:
-            f.write(str(specs))
-    
-
-    output_placement_specs = executable.get_output_placement_specs()
-    from collections.abc import Iterable
-    if isinstance(output_placement_specs, Iterable):
-        for idx, specs in enumerate(output_placement_specs):
-            save_file = f"{global_config.maping_rst_dir}/output_placement_specs-{idx}.txt"
+        input_placement_specs = executable.get_input_placement_specs()
+        for idx, specs in enumerate(input_placement_specs):
+            save_file = f"{global_config.maping_rst_dir}/input_placement_specs-{idx}.txt"
             with open(save_file, 'w') as f:
                 f.write(str(specs))
-    else:
-        save_file = f"{global_config.maping_rst_dir}/output_placement_specs.txt"
-        with open(save_file, 'w') as f:
-            f.write(str(output_placement_specs))
         
+
+        output_placement_specs = executable.get_output_placement_specs()
+        from collections.abc import Iterable
+        if isinstance(output_placement_specs, Iterable):
+            for idx, specs in enumerate(output_placement_specs):
+                save_file = f"{global_config.maping_rst_dir}/output_placement_specs-{idx}.txt"
+                with open(save_file, 'w') as f:
+                    f.write(str(specs))
+        else:
+            save_file = f"{global_config.maping_rst_dir}/output_placement_specs.txt"
+            with open(save_file, 'w') as f:
+                f.write(str(output_placement_specs))
+    
+    # general result
     schedule_str = executable.schedule.pprint_schedule()
     num_clock = executable.schedule.num_clock
     save_file = f"{global_config.maping_rst_dir}/pprint_schedule_num_clock-{num_clock}.txt"
@@ -395,7 +396,7 @@ def compile_pipeshard_executable(parallel_mode, train_step, state,
 
     
 
-    if not global_config.only_mapping:
+    if not global_config.only_mapping and not global_config.full_on_hlo_analysis:
         executable.dump_debug_info(global_config.maping_rst_dir)
         executable.sync()
     print_used_time("Compile (worker)")
@@ -492,8 +493,17 @@ def compile_and_benchmark_pipeshard_training_executable(
    
     global_config = get_global_config()
     
-    # add compute and network cost analysis
-    estimated_time_sum, estimated_time, max_stage_time, estimated_max_mem = compute_network_anaysis(executable)
+    if global_config.full_on_hlo_analysis:
+        executable: HloAnalysisSimulator
+        estimated_time_sum, estimated_max_mem, stage_times = executable.estimate_cost_on_hlo_analysis()
+        max_stage_time = max(stage_times)
+        latencies = estimated_time = estimated_time_sum
+        global last_dp_cost 
+        last_dp_cost = estimated_time_sum
+        
+    else:
+        # add compute and network cost analysis
+        estimated_time_sum, estimated_time, max_stage_time, estimated_max_mem = compute_network_anaysis(executable)
     
     if global_config.only_mapping:
         _, _, _, _, _, dp_cost = get_last_dp_result()

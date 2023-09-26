@@ -137,7 +137,8 @@ def benchmark_suite(suite_name,
         result_dict = dict(zip(heads, values))
         with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
             json.dump(result_dict, f, indent=4)
-        gen_mapping_vis_result(global_config.maping_rst_dir)
+        if not global_config.full_on_hlo_analysis:
+            gen_mapping_vis_result(global_config.maping_rst_dir)
         time.sleep(0.1)  # for ctrl+c to work
 
 
