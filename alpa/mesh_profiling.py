@@ -900,8 +900,9 @@ def estimate_hlo_module_cost(hlo_module,
     """Estimate the cost of an HLO module with the HLO instruction level cost
     model."""
     global_config = g_config
-    print(global_config.force_use_fp16)
+    # print(global_config.force_use_fp16)
     if (global_config.use_analytical_perf_model):
+        # use analytical perf model
         if global_config.hardware == "gpu":
             hardware_config = global_config.gpu_config
         else:
@@ -912,10 +913,11 @@ def estimate_hlo_module_cost(hlo_module,
             "analytical_perf::force_use_fp16": global_config.force_use_fp16,
             "analytical_perf::verbose": 0,
         }
-        print(hardware_config | common_text)
+        # print(hardware_config | common_text)
         with XlaPassContext(hardware_config | common_text):
             cost = xe.analytical_perf_of_hlo_module(hlo_module)
     else:
+        # use alpa's cost model: offline profile, multi stage linear cost model
         with XlaPassContext({
                 "gpu_cost_model::profiling_results": profiling_results,
                 "gpu_cost_model::num_micro_batches": num_micro_batches,

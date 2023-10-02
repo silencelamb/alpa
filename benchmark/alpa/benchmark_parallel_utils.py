@@ -471,11 +471,11 @@ def compute_network_anaysis(executable: PipeshardDriverExecutable):
         estimated_cost_cur = estimate_hlo_module_cost(hlo_module, global_config, None, 1, grad_sync_channel_ids)
         estimated_cost += estimated_cost_cur
         max_stage_cost = max(max_stage_cost, estimated_cost_cur)
-        analysis_result = hlo_module_cost_analysis(hlo_module, 1, grad_sync_channel_ids)        
+        analysis_result = hlo_module_cost_analysis(spmd_partitioned_hlo, 1, grad_sync_channel_ids)        
         df = pd.DataFrame.from_dict(analysis_result)
         estimated_cost_cur = df['estimated_time'].sum()
-        max_stage_cost = max(max_stage_cost, estimated_cost_cur)
-        estimated_cost_sum += estimated_cost_cur
+        # max_stage_cost = max(max_stage_cost, estimated_cost_cur)
+        # estimated_cost_sum += estimated_cost_cur
         df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{idx}_peak_memory-{peak_memory: .3f}GB.xlsx")
         print(f'compute_network_anaysis: stage_{idx} peak_memory: {peak_memory: .3f} GB !!!!!!')
     
@@ -495,11 +495,13 @@ def compile_and_benchmark_pipeshard_training_executable(
     
     if global_config.full_on_hlo_analysis:
         executable: HloAnalysisSimulator
+        executable.hlo_module_cost_analysis()
         estimated_time_sum, estimated_max_mem, stage_times = executable.estimate_cost_on_hlo_analysis()
         max_stage_time = max(stage_times)
         latencies = estimated_time = estimated_time_sum
         global last_dp_cost 
         last_dp_cost = estimated_time_sum
+        print(executable.stage_latency)
         
     else:
         # add compute and network cost analysis

@@ -11,6 +11,7 @@ from jax.core import (ClosedJaxpr, Var, gensym)
 from jax.interpreters import pxla
 from jax._src.lib import xla_bridge as xb, xla_client as xc, xla_extension as xe
 import numpy as np
+import pandas as pd
 import tqdm
 import ray
 from ray.exceptions import RayActorError
@@ -22,7 +23,8 @@ from alpa.global_env import global_config, get_global_config
 from alpa.mesh_executable import (PartialGradAccMeshDriverExecutable,
                                   get_grad_sync_channel_ids)
 from alpa.mesh_profiling import (ProfilingResultDatabase,
-                                 estimate_hlo_module_cost)
+                                 estimate_hlo_module_cost,
+                                 hlo_module_cost_analysis)
 from alpa.pipeline_parallel.apply_grad import APPLY_GRAD_MARKER_SUFFIX
 from alpa.pipeline_parallel.computation import (
     JaxPipelineComputation, get_donation_mapping_and_modify,
@@ -466,7 +468,8 @@ class HloAnalysisSimulator:
             and self.stage_latency is not None:
             return self.total_latency, self.peak_memory, self.stage_latency
         
-        self.stage_peak_memory = self.stage_latency = []
+        self.stage_peak_memory = []
+        self.stage_latency = []
         self.peak_memory = self.total_latency = 0
         global_config = get_global_config()
         for stage_idx, spmd_module in enumerate(self.spmd_module_list):
@@ -489,7 +492,22 @@ class HloAnalysisSimulator:
                 cur_clock_max_latency = max(cur_clock_max_latency, self.stage_latency[stage_idx])
             self.total_latency += cur_clock_max_latency
         return self.total_latency, self.peak_memory, self.stage_latency
-    
+
+    def hlo_module_cost_analysis(self):
+            """for debug, detail analysis of hlo module
+            """
+            global_config = get_global_config()
+            for stage_idx, spmd_module in enumerate(self.spmd_module_list):
+                grad_sync_channel_ids = ""
+                if True:
+                    grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
+                analysis_result = hlo_module_cost_analysis(spmd_module, self.num_batch,  grad_sync_channel_ids)    
+                df = pd.DataFrame.from_dict(analysis_result)
+                estimated_time_sum = df['estimated_time'].sum()
+                print(f"stage {stage_idx} estimated_time_sum: {estimated_time_sum}")
+                df.iloc[-1, -1] = estimated_time_sum
+                df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{stage_idx}_peak_memory.xlsx")
+        
 
 def compile_all(stages, num_micro_batches, default_as_option):
     """
