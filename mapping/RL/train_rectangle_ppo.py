@@ -22,9 +22,9 @@ model = PPO.load("rectangle_grid_agent")
 
 # Test the trained agent
 obs = vec_env.reset()
-for _ in range(1000):
+for _ in range(100):
     action, _ = model.predict(obs, deterministic=False)
     obs, reward, done, info = vec_env.step(action)
     vec_env.render()
-    if done:
-        obs = vec_env.reset()
+    # if done:
+    #     obs = vec_env.reset()

@@ -3,24 +3,31 @@ import gymnasium as gym
 from gymnasium import spaces
 
 class RectangleGridEnv(gym.Env):
-    def __init__(self, render_mode='human'):
+    def __init__(self, render_mode='human', use_tuple=False, use_image=False):
         super(RectangleGridEnv, self).__init__()
         
         self.rows, self.cols = (5, 5)
         self.grid = np.zeros((self.rows, self.cols))
         self.render_mode = render_mode
         
+        self.use_tuple = use_tuple
         # Action space: (col_start, row_start, col_end, row_end)
-        # self.action_space = spaces.Tuple(
-        #     (spaces.Discrete(self.cols), 
-        #      spaces.Discrete(self.rows), 
-        #      spaces.Discrete(self.cols), 
-        #      spaces.Discrete(self.rows))
-        # )
-        self.action_space = spaces.Discrete(self.cols * self.rows * self.cols * self.rows)
+        if use_tuple:
+            self.action_space = spaces.Tuple(
+                (spaces.Discrete(self.cols), 
+                spaces.Discrete(self.rows), 
+                spaces.Discrete(self.cols), 
+                spaces.Discrete(self.rows))
+            )
+        else:
+            self.action_space = spaces.Discrete(self.cols * self.rows * self.cols * self.rows)
         
+        self.use_image = use_image
         # Observation space
-        self.observation_space = spaces.Box(low=0, high=1, shape=(self.rows, self.cols), dtype=int)
+        if self.use_image:
+            self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(1, self.rows, self.cols), dtype=np.int8)
+        else:
+            self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(self.rows, self.cols), dtype=int)
         
         self.current_step = 0
         self.max_steps = 2000
@@ -36,8 +43,10 @@ class RectangleGridEnv(gym.Env):
         return self.grid, {}
 
     def step(self, action):
-        # col_start, row_start, col_end, row_end  = action
-        col_start, row_start, col_end, row_end  = self.decode_action(action)
+        if self.use_tuple:
+            col_start, row_start, col_end, row_end  = action
+        else:
+            col_start, row_start, col_end, row_end  = self.decode_action(action)
         
         # Check for valid rectangle
         is_valid = self._is_valid_rectangle(col_start, row_start, col_end, row_end)
