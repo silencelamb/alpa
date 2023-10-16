@@ -3,11 +3,11 @@ import gymnasium as gym
 from gymnasium import spaces
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
-from rectangle_cutting_env import RectangleGridEnv
+from mapping_simple_env import MappingSimpleEnv
 from cnn_extractor import MeshCNN
 
 # Vectorize the environment
-vec_env = DummyVecEnv([lambda: RectangleGridEnv(render_mode='human', use_image=True)])
+vec_env = DummyVecEnv([lambda: MappingSimpleEnv(render_mode='human', use_image=True)])
 
 # Initialize the agent
 model = PPO("CnnPolicy", vec_env, verbose=1, 
@@ -24,18 +24,16 @@ model = PPO("CnnPolicy", vec_env, verbose=1,
 model.learn(total_timesteps=50000)
 
 # # Save the trained model
-model.save("rectangle_grid_agent_cnn")
+model.save("mapping_simple_agent_cnn")
 
 # Load the model for testing
-model = PPO.load("rectangle_grid_agent_cnn")
+model = PPO.load("mapping_simple_agent_cnn")
 
 # Test the trained agent
 obs = vec_env.reset()
 for step in range(25):
     action, _ = model.predict(obs, deterministic=False)
-    
-    decode_action = RectangleGridEnv().decode_action(action=action)
-    print(f"Step {step}: {decode_action}")
+    print(f"Step {step}: {action}")
     obs, reward, done, info = vec_env.step(action)
     print(f"Obs: {obs}")
     print(f"Reward: {reward}")
