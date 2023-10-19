@@ -238,7 +238,7 @@ def compile_pipeshard_executable_internal(
         output_sharding_dict = {}
 
     # Call auto-sharding pass to shard each stage
-    xla_stages, total_flops = shard_each_stage(
+    xla_stages, total_flops, stage_id_dict = shard_each_stage(
         jax_all_stages, sliced_virtual_meshes, schedule, n_stages, num_meshes,
         grad_in_to_out, global_invars, acc_grad_outvars, donate_invars_dict,
         num_microbatch, manual_stage_option.submesh_logical_shapes,
@@ -248,6 +248,21 @@ def compile_pipeshard_executable_internal(
     total_flops *= num_microbatch
     debug_compilation_time("shard stages")
 
+    # DEBUG code
+    # for merge_stage_id in stage_id_dict: 
+    #     print("\n\n$$$$$$$$$$$$$  ", merge_stage_id)
+    #     fw_bw_apply = []
+    #     for id in merge_stage_id:
+    #         print(id, xla_stages[id].name)
+    #         fw_bw_apply.append(xla_stages[id].get_spmd_partitioned())
+    #     g_config = get_global_config()
+
+    #     from alpa.util import XlaPassContext
+    #     with XlaPassContext(g_config.gpu_config):
+    #        cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
+    #     print(cost)
+    # exit(0)
+    
     # Launch the physical mesh group
     if virtual_mesh.launched_physical_mesh_group is None:
         virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
@@ -261,7 +276,8 @@ def compile_pipeshard_executable_internal(
             stages=xla_stages,
             mesh_group=virtual_mesh.launched_physical_mesh_group,
             schedule=schedule,
-            num_micro_batches=num_microbatch)
+            num_micro_batches=num_microbatch, 
+            stage_id_dict=stage_id_dict)
     
     # Wrap all things into a distributed runtime
     # TODO(yonghao): use virtual mesh instead of launched physical group
@@ -397,7 +413,7 @@ def shard_each_stage(jax_all_stages, virtual_meshes, schedule, n_stages,
     for mesh_idx, module_str in module_str_dict.items():
         with open(f"{global_config_.maping_rst_dir}/compute_network_anaysis_mesh_{mesh_idx}_origin.hlo", 'w') as f:
             f.write(module_str)
-    return xla_stages, total_flops
+    return xla_stages, total_flops, stage_id_dict
 
 
 def _slice_apply_grad_for_stage_construction(pipeline_layers, apply_grad_jaxpr,

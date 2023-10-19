@@ -888,6 +888,7 @@ def _call_solver_serialized_args(N,
 # These global variables are used to receive values from XLA c++ passes.
 auto_sharded_hlo_stage_names: Sequence[str] = []
 auto_sharded_hlo_stages: Sequence[xe.HloModule] = []
+auto_sharded_hlo_module: xe.HloModule = None
 
 hooked_sharding_protos = None
 
@@ -915,3 +916,13 @@ def get_auto_sharded_hlo_stages(
 
 def get_hooked_sharding_protos() -> bytes:
     return hooked_sharding_protos
+
+def set_auto_sharded_hlo_module(module: xe.HloModule):
+    """ Set the auto-sharded hlo module. This is called in XLA
+    AutoSharding pass, before SliceAutoShardedStages pass"""
+    global auto_sharded_hlo_module
+    auto_sharded_hlo_module = module
+
+def get_auto_sharded_hlo_module() -> xe.HloModule:
+    """Get the sharded hlo module from AutoSharding pass"""
+    return auto_sharded_hlo_module
