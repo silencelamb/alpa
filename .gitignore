@@ -8,7 +8,7 @@ dist
 
 #zip file
 *.tar.gz*
-
+*.zip
 # NFS temp files
 .nfs*
 
