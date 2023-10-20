@@ -2,10 +2,10 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 
-class MappingSimpleMaskALLEnv(gym.Env):
+class RectangleCutingOptionAllEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(MappingSimpleMaskALLEnv, self).__init__()
+        super(RectangleCutingOptionAllEnv, self).__init__()
         
         # total compute in a microbatch
         self.compute_of_a_microbatch= 100
@@ -147,28 +147,15 @@ class MappingSimpleMaskALLEnv(gym.Env):
             self.rect_list.append([col_start, row_start, col_end, row_end])
             self.latest_position = [col_start, row_start, col_end, row_end]
             
-            cur_compute =  (col_end-col_start+1) * (row_end-row_start+1) * self.compute_of_a_microbatch / (self.cols*self.rows)
             
-            # check if compute is valid, if not then termimated is true
-            if cur_compute > self.left_compute:
-                cur_compute = self.left_compute
-                self.compute_list.append(cur_compute)
-                self.left_compute = 0
-                reward = self.reward()
-                return self.grid, reward, True, False, {}
                 
             # Check if grid is full, if true then compute is the compute left
-            elif np.sum(self.grid == 0) == 0:
-                cur_compute = self.left_compute
-                self.compute_list.append(cur_compute)
-                self.left_compute = 0
-                reward = self.reward()
+            if np.sum(self.grid == 0) == 0:
+                reward = len(self.rect_list)
                 return self.grid, reward, True, False, {}
             else:
                 # internal state, reward is none
                 reward = 0
-                self.compute_list.append(cur_compute)
-                self.left_compute = self.left_compute - cur_compute
                 return self.grid, reward, False, False, {}
                 
         else:
@@ -185,10 +172,12 @@ class MappingSimpleMaskALLEnv(gym.Env):
             """
             
             # option 2: continue the game, and the reward is negative
-            reward = -self.constant/2
+            
             if self.current_step > self.max_steps:
+                reward = -10
                 done, truncted = True, True
             else:
+                reward = 0
                 done, truncted = False, False
             return self.grid, reward, done, truncted, {}
 
@@ -311,11 +300,11 @@ class MappingSimpleMaskALLEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = MappingSimpleMaskALLEnv()
+    env = RectangleCutingOptionAllEnv()
     
     best_reward = -1000
     reward_list = []
-    while len(reward_list) < 1:
+    while len(reward_list) < 10:
         obs = env.reset()
         done = False
         while not done:
@@ -324,7 +313,7 @@ if __name__ == '__main__':
             print(f"Step {env.current_step}: action {action}")
             print(f"Obs: \n{obs}")
             print(f"Reward: {reward}")
-        if reward > -102400:
+        if reward:
             print(f"Reward: {reward}")
             env.render()
             reward_list.append(reward)
