@@ -1,13 +1,11 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-from collections import deque
-import statistics
 
-class RectangleCutingOptionAllEnv(gym.Env):
+class MappingSimpleMaskALLAVEEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(RectangleCutingOptionAllEnv, self).__init__()
+        super(MappingSimpleMaskALLAVEEnv, self).__init__()
         
         # total compute in a microbatch
         self.compute_of_a_microbatch= 100
@@ -24,7 +22,7 @@ class RectangleCutingOptionAllEnv(gym.Env):
         else:
             self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(self.rows, self.cols), dtype=int)
                     
-        self.action_space = spaces.MultiDiscrete([self.compute_of_a_microbatch, 
+        self.action_space = spaces.MultiDiscrete([50,   # ratio of ave compute, 
                                                   4,     # direction
                                                   2,     # basepoint
                                                   self.cols, self.rows])
@@ -38,13 +36,6 @@ class RectangleCutingOptionAllEnv(gym.Env):
         self.compute_list = []
         self.rect_list = []
         self.rect_id = 0
-        self.total_reward = 0
-        self.max_ave_episode = 50
-        self.reward_record = deque(maxlen=self.max_ave_episode)
-        self.average_reward = 0
-        self.mae_reward = 0
-        self.mae_param = 0.9
-        self.max_ave_episode = 0
         
     def reward(self):
         """Reward function
@@ -74,15 +65,15 @@ class RectangleCutingOptionAllEnv(gym.Env):
         self.rect_id = 0
         self.latest_position = []
         self.compute_list = []
-        self.total_reward = 0
         
         return self.grid, {}
 
     def step(self, action):
         # import pdb; pdb.set_trace()
-        cur_compute, direction, base_point, width, height  = action
+        ratio, direction, base_point, width, height  = action
         assert base_point in [0, 1]
-        cur_compute += 1
+        ratio = (ratio+1-100)/100
+        ave_compute = self.compute_of_a_microbatch / (self.cols*self.rows)
         width += 1
         height += 1
         self.current_step += 1
@@ -150,23 +141,35 @@ class RectangleCutingOptionAllEnv(gym.Env):
         is_valid, col_start, row_start, col_end, row_end = self._is_valid_rectangle(
                         direction, base_point, base_col, base_row, col_start, row_start, col_end, row_end)
         
+        cur_compute =  int((col_end-col_start+1) * (row_end-row_start+1) * ave_compute * (1+ratio))
         reward = -self.constant
-        done = False
-        truncted = False
         if is_valid:
             self.rect_id += 1
             self.grid[row_start:row_end+1, col_start:col_end+1] = self.rect_id
             self.rect_list.append([col_start, row_start, col_end, row_end])
             self.latest_position = [col_start, row_start, col_end, row_end]
+            
+            # check if compute is valid, if not then termimated is true
+            if cur_compute > self.left_compute:
+                cur_compute = self.left_compute
+                self.compute_list.append(cur_compute)
+                self.left_compute = 0
+                reward = self.reward()
+                return self.grid, reward, True, False, {}
                 
             # Check if grid is full, if true then compute is the compute left
-            if np.sum(self.grid == 0) == 0:
-                # reward = len(self.rect_list)
-                reward = 1
-                done = True
+            elif np.sum(self.grid == 0) == 0:
+                cur_compute = self.left_compute
+                self.compute_list.append(cur_compute)
+                self.left_compute = 0
+                reward = self.reward()
+                return self.grid, reward, True, False, {}
             else:
                 # internal state, reward is none
-                reward = 1
+                reward = 0
+                self.compute_list.append(cur_compute)
+                self.left_compute = self.left_compute - cur_compute
+                return self.grid, reward, False, False, {}
                 
         else:
             # invalid action
@@ -184,17 +187,12 @@ class RectangleCutingOptionAllEnv(gym.Env):
             # option 2: continue the game, and the reward is negative
             
             if self.current_step > self.max_steps:
-                reward = -10
                 done, truncted = True, True
+                reward = -self.constant/2
             else:
-                reward = -1
-        self.total_reward += reward
-        if done:
-            self.reward_record.append(self.total_reward)
-            self.average_reward = statistics.mean(self.reward_record)
-            self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
-            print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
-        return self.grid, reward, done, truncted, {}
+                done, truncted = False, False
+                reward = -self.constant/10
+            return self.grid, reward, done, truncted, {}
 
     def _is_valid_rectangle(self, direction, base_point, base_col, base_row, col_start, row_start, col_end, row_end):
         rect_action = [col_start, row_start, col_end, row_end]
@@ -315,11 +313,11 @@ class RectangleCutingOptionAllEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = RectangleCutingOptionAllEnv()
+    env = MappingSimpleMaskALLAVEEnv()
     
     best_reward = -1000
     reward_list = []
-    while len(reward_list) < 10:
+    while len(reward_list) < 1:
         obs = env.reset()
         done = False
         while not done:
@@ -328,7 +326,7 @@ if __name__ == '__main__':
             print(f"Step {env.current_step}: action {action}")
             print(f"Obs: \n{obs}")
             print(f"Reward: {reward}")
-        if reward:
+        if reward > -102400:
             print(f"Reward: {reward}")
             env.render()
             reward_list.append(reward)

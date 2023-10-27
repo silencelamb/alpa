@@ -320,7 +320,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
             for item1 in benchmark_case[4].stage_option.submeshes:
                 row_max = max(item1[0], item1[2])                
                 clo_max = max(item1[1], item1[3])
-                if row_max> num_devices_per_host_:
+                if row_max > num_devices_per_host_:
                     num_devices_per_host_ = row_max
                 if clo_max> host_ids_:
                     host_ids_ = clo_max

@@ -1,16 +1,22 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
-from collections import deque
-import statistics
+import sys
+sys.path.insert(0, "/code/alpa/benchmark/alpa/")
+from benchmark_one_case import benchmark_one_case
+from benchmark_parallel_utils import BenchmarkCase
+from alpa.global_env import get_global_config
+from suite_manual_gpt import gpt_specs
+from alpa import ManualStageOption, WSCManualStageOption
+from suite_auto_gpt import get_config_cases_idx
 
-class RectangleCutingOptionAllEnv(gym.Env):
+class MappingEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(RectangleCutingOptionAllEnv, self).__init__()
+        super(MappingEnv, self).__init__()
         
         # total compute in a microbatch
-        self.compute_of_a_microbatch= 100
+        self.compute_of_a_microbatch= 1000
         self.left_compute = self.compute_of_a_microbatch
         self.num_microbatch = 1024
         self.rows, self.cols = (5, 5)
@@ -24,7 +30,7 @@ class RectangleCutingOptionAllEnv(gym.Env):
         else:
             self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(self.rows, self.cols), dtype=int)
                     
-        self.action_space = spaces.MultiDiscrete([self.compute_of_a_microbatch, 
+        self.action_space = spaces.MultiDiscrete([50,   # ratio of ave compute, 
                                                   4,     # direction
                                                   2,     # basepoint
                                                   self.cols, self.rows])
@@ -38,32 +44,55 @@ class RectangleCutingOptionAllEnv(gym.Env):
         self.compute_list = []
         self.rect_list = []
         self.rect_id = 0
-        self.total_reward = 0
-        self.max_ave_episode = 50
-        self.reward_record = deque(maxlen=self.max_ave_episode)
-        self.average_reward = 0
-        self.mae_reward = 0
-        self.mae_param = 0.9
-        self.max_ave_episode = 0
         
     def reward(self):
         """Reward function
         """
-        rect_num = self.rect_id
-        bubble_ratio = rect_num / self.num_microbatch
-        stage_latency_list = []
-        for compute, submesh in zip(self.compute_list, self.rect_list):
-            left, top, right, bottom = submesh
-            die_num = (right - left + 1) * (bottom - top + 1)
-            
-            communication_ratio = die_num/25
-            compute_time = compute / die_num
-            stage_time = compute_time * (1+communication_ratio)  # condider communication ratio
-            
-            stage_latency_list.append(stage_time)
-        max_stage_lantecy = max(stage_latency_list)
-        # reshard_comm = 
-        total_latency = sum(stage_latency_list) + max_stage_lantecy*(self.num_microbatch-1)
+        model_type = "gpt"
+        total_compute = sum(self.compute_list)
+        normalized_compute_list = [compute / total_compute for compute in self.compute_list]
+        partition_index = []
+        cur_sum = 0.0
+        for x in normalized_compute_list:
+            partition_index.append(cur_sum)
+            cur_sum = cur_sum + x
+        suite = get_config_cases_idx(gpt_specs["1.3B"], [128],
+                        # partition_index="uniform",
+                        partition_index=partition_index,
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[x] for x in range(len(self.rect_list)) ],
+                                                          submeshes=self.rect_list,
+                                                          submesh_physical_shapes=None,
+                                                          submesh_logical_shapes=None,
+                                                          submesh_autosharding_option_dicts=[{} for x in range(len(self.rect_list))])
+                )
+
+        # Run all cases
+        for benchmark_case in suite:
+            benchmark_case: BenchmarkCase
+            totol_batch_size = benchmark_case.batch_size
+            model_config = benchmark_case.model_config
+            num_micro_batches = benchmark_case.num_micro_batches
+            try:
+                auto_layers = benchmark_case.parallel_args.num_auto_layers
+            except AttributeError:
+                auto_layers = 'auto'
+
+            parallel_args = benchmark_case.parallel_args
+
+            # Run one case
+            print("Working on case: {}".format(str(benchmark_case)))
+            result = benchmark_one_case(model_type,
+                                    benchmark_case,
+                                    niter=3,
+                                    num_hosts=self.rows,
+                                    num_devices_per_host=self.cols,
+                                    shard_only=False,
+                                    local=False,
+                                    profile_driver_time=False,
+                                    disable_tqdm=True,
+                                    use_separate_process=False)
+            (parameter_count, peak_mem, latencies, tflops, metadata) = result  
+            total_latency = metadata['estimated_total_time']
         return -total_latency
 
     def reset(self, seed=None):
@@ -74,15 +103,15 @@ class RectangleCutingOptionAllEnv(gym.Env):
         self.rect_id = 0
         self.latest_position = []
         self.compute_list = []
-        self.total_reward = 0
         
         return self.grid, {}
 
     def step(self, action):
         # import pdb; pdb.set_trace()
-        cur_compute, direction, base_point, width, height  = action
+        ratio, direction, base_point, width, height  = action
         assert base_point in [0, 1]
-        cur_compute += 1
+        ratio = (ratio+1-100)/100
+        ave_compute = self.compute_of_a_microbatch / (self.cols*self.rows)
         width += 1
         height += 1
         self.current_step += 1
@@ -150,23 +179,35 @@ class RectangleCutingOptionAllEnv(gym.Env):
         is_valid, col_start, row_start, col_end, row_end = self._is_valid_rectangle(
                         direction, base_point, base_col, base_row, col_start, row_start, col_end, row_end)
         
+        cur_compute =  int((col_end-col_start+1) * (row_end-row_start+1) * ave_compute * (1+ratio))
         reward = -self.constant
-        done = False
-        truncted = False
         if is_valid:
             self.rect_id += 1
             self.grid[row_start:row_end+1, col_start:col_end+1] = self.rect_id
             self.rect_list.append([col_start, row_start, col_end, row_end])
             self.latest_position = [col_start, row_start, col_end, row_end]
+            
+            # check if compute is valid, if not then termimated is true
+            if cur_compute > self.left_compute:
+                cur_compute = self.left_compute
+                self.compute_list.append(cur_compute)
+                self.left_compute = 0
+                reward = self.reward()
+                return self.grid, reward, True, False, {}
                 
             # Check if grid is full, if true then compute is the compute left
-            if np.sum(self.grid == 0) == 0:
-                # reward = len(self.rect_list)
-                reward = 1
-                done = True
+            elif np.sum(self.grid == 0) == 0:
+                cur_compute = self.left_compute
+                self.compute_list.append(cur_compute)
+                self.left_compute = 0
+                reward = self.reward()
+                return self.grid, reward, True, False, {}
             else:
                 # internal state, reward is none
-                reward = 1
+                reward = 0
+                self.compute_list.append(cur_compute)
+                self.left_compute = self.left_compute - cur_compute
+                return self.grid, reward, False, False, {}
                 
         else:
             # invalid action
@@ -182,19 +223,12 @@ class RectangleCutingOptionAllEnv(gym.Env):
             """
             
             # option 2: continue the game, and the reward is negative
-            
+            reward = -self.constant/2
             if self.current_step > self.max_steps:
-                reward = -10
                 done, truncted = True, True
             else:
-                reward = -1
-        self.total_reward += reward
-        if done:
-            self.reward_record.append(self.total_reward)
-            self.average_reward = statistics.mean(self.reward_record)
-            self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
-            print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
-        return self.grid, reward, done, truncted, {}
+                done, truncted = False, False
+            return self.grid, reward, done, truncted, {}
 
     def _is_valid_rectangle(self, direction, base_point, base_col, base_row, col_start, row_start, col_end, row_end):
         rect_action = [col_start, row_start, col_end, row_end]
@@ -315,11 +349,11 @@ class RectangleCutingOptionAllEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = RectangleCutingOptionAllEnv()
+    env = MappingEnv()
     
     best_reward = -1000
     reward_list = []
-    while len(reward_list) < 10:
+    while len(reward_list) < 1:
         obs = env.reset()
         done = False
         while not done:
@@ -328,7 +362,7 @@ if __name__ == '__main__':
             print(f"Step {env.current_step}: action {action}")
             print(f"Obs: \n{obs}")
             print(f"Reward: {reward}")
-        if reward:
+        if reward > -102400:
             print(f"Reward: {reward}")
             env.render()
             reward_list.append(reward)

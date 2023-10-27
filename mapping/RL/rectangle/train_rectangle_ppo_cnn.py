@@ -4,6 +4,8 @@ from gymnasium import spaces
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from rectangle_cutting_env import RectangleGridEnv
+import sys
+sys.path.insert(0, "..")
 from cnn_extractor import MeshCNN
 
 # Vectorize the environment

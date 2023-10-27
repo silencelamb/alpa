@@ -4,3 +4,6 @@
 [submodule "third_party/tensorflow-alpa"]
 	path = third_party/tensorflow-alpa
 	url = https://github.com/silencelamb/tensorflow-alpa.git
+[submodule "cleanrl"]
+	path = mapping/RL/cleanrl
+	url = https://github.com/silencelamb/cleanrl.git

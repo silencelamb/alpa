@@ -119,7 +119,7 @@ class GlobalConfig:
 
         ########## Options of mapping ################
         # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
-        self.only_mapping = False
+        self.only_mapping = True
         # full on hlo analysis, don't depend on cuda platform any more
         self.full_on_hlo_analysis = True
         # result folder
