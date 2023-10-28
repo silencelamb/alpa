@@ -1,6 +1,8 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
+from collections import deque
+import statistics
 
 class MappingSimpleActionMaskALLAVEEnv(gym.Env):
     
@@ -12,7 +14,7 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         self.left_compute = self.compute_of_a_microbatch
         self.num_microbatch = 1024
         self.rows, self.cols = (5, 5)
-        self.grid = np.zeros((self.rows, self.cols))
+        self.grid = np.zeros((self.rows, self.cols), int)
         self.render_mode = render_mode
         
         self.use_image = use_image
@@ -35,6 +37,15 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         self.compute_list = []
         self.rect_list = []
         self.rect_id = 0
+        self.action_mask = None
+
+        self.total_reward = 0
+        self.max_ave_episode = 50
+        self.reward_record = deque(maxlen=self.max_ave_episode)
+        self.average_reward = 0
+        self.mae_reward = 0
+        self.mae_param = 0.9
+        self.max_ave_episode = 0
         
     def reward(self):
         """Reward function
@@ -56,8 +67,8 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         total_latency = sum(stage_latency_list) + max_stage_lantecy*(self.num_microbatch-1)
         return -total_latency
 
-    def reset(self, seed=None):
-        self.grid = np.zeros((self.rows, self.cols))
+    def reset(self, seed=None, options=None):
+        self.grid = np.zeros((self.rows, self.cols), int)
         self.current_step = 0
         self.left_compute = self.compute_of_a_microbatch
         self.rect_list = []
@@ -65,10 +76,12 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         self.latest_position = []
         self.compute_list = []
         
+        self.total_reward = 0
+        
         return self.grid, {}
 
     def step(self, action):
-        # import pdb; pdb.set_trace()
+        self.current_step += 1
         ratio, rect_action  = action
         col_start, row_start, col_end, row_end  = self.decode_action(rect_action)
         ratio = (ratio+1-100)/100
@@ -110,23 +123,29 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
                 
         else:
             # invalid action
-            """
+
             # option 1: terminated is true, and fix the mapping, compute reward
+            self.compute_list[-1] += self.left_compute
+            reward = self.reward()
+            done = True
+
             
-            if len(self.compute_list) > 0:
-                self.compute_list[-1] += self.left_compute
-                reward = self.reward()
-            else:
-                reward = -self.constant/2
-            return self.grid, reward, True, False, {}
-            """
+            # # option 2: continue the game, and the reward is negative
+            # reward = -self.constant/10
             
-            # option 2: continue the game, and the reward is negative
-        
-            reward = -self.constant/10
-            return self.grid, reward, done, truncted, {}
+            # print(f"Step {self.current_step}: invalid action, {col_start, row_start, col_end, row_end}, {self.latest_position}")
+            # print(self.grid)
+            # print(np.sum(self.action_mask))
+            
         if self.current_step >= self.max_steps:
             done, truncted = True, True
+        self.total_reward += reward
+        # if done:
+        #     self.reward_record.append(self.total_reward)
+        #     self.average_reward = statistics.mean(self.reward_record)
+        #     self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
+            # print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
+            
         return self.grid, reward, done, truncted, {}
 
     def decode_action(self, action):
@@ -155,14 +174,14 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
 
         # 检查是否在水平方向相邻
         horizontal_adjacent = (
-            (col_end1 == col_start2-1 and not (row_start1 > row_end2 or row_end1 < row_start2)) or
-            (col_start1 == col_end2-1 and not (row_start1 > row_end2 or row_end1 < row_start2))
+            (col_end1+1 == col_start2 and not (row_start1 > row_end2 or row_end1 < row_start2)) or
+            (col_start1 == col_end2+1 and not (row_start1 > row_end2 or row_end1 < row_start2))
         )
 
         # 检查是否在垂直方向相邻
         vertical_adjacent = (
-            (row_end1 == row_start2-1 and not (col_start1 > col_end2 or col_end1 < col_start2)) or
-            (row_start1 == row_end2-1 and not (col_start1 > col_end2 or col_end1 < col_start2))
+            (row_end1+1 == row_start2 and not (col_start1 > col_end2 or col_end1 < col_start2)) or
+            (row_start1 == row_end2+1 and not (col_start1 > col_end2 or col_end1 < col_start2))
         )
 
         return horizontal_adjacent or vertical_adjacent
@@ -174,7 +193,7 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         Return: 
         action_mask: 0 for invalid action, 1 for valid action；
         """
-        action_mask = np.zeros(self.action_space.n)
+        action_mask = np.zeros(self.action_space.nvec[1], dtype=np.int8)
         if self.latest_position == []:
             # actions start from (0, 0)
             left, top = 0, 0
@@ -261,6 +280,7 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
                                                         (self.cols, self.rows, self.cols, self.rows)
                                                         )
                         action_mask[index] = 1
+        self.action_mask = action_mask
         return action_mask        
 
     def render(self, mode=None):

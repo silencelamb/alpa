@@ -79,6 +79,7 @@ class RectangleGridEnv(gym.Env):
         truncted = (self.current_step >= self.max_steps)
         done = (np.sum(self.grid == 0) == 0) or truncted
         self.total_reward += reward
+        # print(f"Step {self.current_step}: self.total_reward {self.total_reward}")
         if done:
             self.reward_record.append(self.total_reward)
             self.average_reward = statistics.mean(self.reward_record)
