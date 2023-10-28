@@ -175,15 +175,92 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         action_mask: 0 for invalid action, 1 for valid action；
         """
         action_mask = np.zeros(self.action_space.n)
-        for left in range(self.cols):
-            for top in range(self.rows):
-                for right in range(left, self.cols):
-                    for bottom in range(top, self.rows):
-                        if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
-                            index = np.ravel_multi_index((left, top, right, bottom), 
-                                                         (self.cols, self.rows, self.cols, self.rows)
-                                                         )
-                            action_mask[index] = 1
+        if self.latest_position == []:
+            # actions start from (0, 0)
+            left, top = 0, 0
+            for right in range(left, self.cols):
+                for bottom in range(top, self.rows):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+        else:
+            # actions should be adjacent to the latest position
+            latest_left, latest_top, latest_right, latest_bottom = self.latest_position
+            # case 1: position -> bottom adjacent -> left side
+            left, top = latest_left, latest_bottom+1
+            for right in range(left, self.cols):
+                for bottom in range(top, self.rows):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 2: position -> bottom adjacent -> right side
+            right = latest_right
+            top = latest_bottom + 1
+            for left in range(right+1):
+                for bottom in range(top, self.rows):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 3: position -> right adjacent-> top side
+            left, top = latest_right+1, latest_top
+            for right in range(left, self.cols):
+                for bottom in range(top, self.rows):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 4: position -> right adjacent-> bottom side
+            left, bottom = latest_right+1, latest_bottom
+            for right in range(left, self.cols):
+                for top in range(bottom+1):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 5: position -> top adjacent-> left side
+            left, bottom = latest_left, latest_top-1
+            for right in range(left, self.cols):
+                for top in range(bottom+1):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 6: position -> top adjacent-> right side
+            right, bottom = latest_right, latest_top-1
+            for left in range(right+1):
+                for top in range(bottom+1):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 7: position -> left adjacent-> top side
+            right, top = latest_left-1, latest_top
+            for left in range(right+1):
+                for bottom in range(top, self.rows):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
+            # case 8: position -> left adjacent-> bottom side
+            right, bottom = latest_left-1, latest_bottom
+            for left in range(right+1):
+                for top in range(bottom+1):
+                    if np.sum(self.grid[top:bottom+1, left:right+1]) == 0:
+                        index = np.ravel_multi_index((left, top, right, bottom), 
+                                                        (self.cols, self.rows, self.cols, self.rows)
+                                                        )
+                        action_mask[index] = 1
         return action_mask        
 
     def render(self, mode=None):
