@@ -7,6 +7,7 @@ from enum import Enum
 GB = 1 << 30  # Gigabyte
 MB = 1 << 20  # Megabyte
 TOPS =  10 ** 12 # TOPS
+ns = 10 ** -9 # ns
 
 class PrimitiveType(Enum):
     INVALID = 0
@@ -150,24 +151,73 @@ class GlobalConfig:
             "analytical_perf::cmp_ul": 0.7,
             "analytical_perf::bw_ul": 0.7
         }
+        # tx8 config
         self.wsc_config = {
             "analytical_perf::hardware": "wsc",
-            "analytical_perf_wsc::die_r_num": 6,
-            "analytical_perf_wsc::die_c_num": 6,
+            "analytical_perf_wsc::die_r_num": 5,
+            "analytical_perf_wsc::die_c_num": 4,
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 256/36 * TOPS),
-                PrimitiveType.F32.value: int( 256/36  * TOPS),
+                PrimitiveType.F16.value: int( 256/16 * TOPS),
+                PrimitiveType.F32.value: int( 256/16  * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
-            "analytical_perf_wsc::tile_r_num": 6,
-            "analytical_perf_wsc::tile_c_num": 6,
-            "analytical_perf_wsc::tile_mem": 1 * GB,
-            "analytical_perf_wsc::tile_bw": 200 * GB,
-            "analytical_perf_wsc::die_bw": 200 * GB,
-            "analytical_perf_wsc::ddr_bandwidth": 500 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::tile_r_num": 4,
+            "analytical_perf_wsc::tile_c_num": 4,
+            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
+            "analytical_perf_wsc::tile_bw": 128 * GB,
+            "analytical_perf_wsc::die_bw": 25 * GB,
+            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
+        """
+        # Tesla DOJO  config
+        #TODO add dojo config @dehao
+        self.wsc_config = {
+            "analytical_perf::hardware": "wsc",
+            "analytical_perf_wsc::die_r_num": 5,
+            "analytical_perf_wsc::die_c_num": 4,
+            "analytical_perf::compute_dict": {
+                PrimitiveType.F16.value: int( 256/16 * TOPS),
+                PrimitiveType.F32.value: int( 256/16  * TOPS),
+                # PrimitiveType.F32.value: int( 20/36  * TOPS),
+            },
+            "analytical_perf_wsc::tile_r_num": 4,
+            "analytical_perf_wsc::tile_c_num": 4,
+            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
+            "analytical_perf_wsc::tile_bw": 128 * GB,
+            "analytical_perf_wsc::die_bw": 25 * GB,
+            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf::cmp_ul": 0.8,
+            "analytical_perf::bw_ul": 0.8
+        }
+        # Wafer-Scale GPU config
+        #TODO add Wafer-Scale GPU config @dehao
+        self.wsc_config = {
+            "analytical_perf::hardware": "wsc",
+            "analytical_perf_wsc::die_r_num": 5,
+            "analytical_perf_wsc::die_c_num": 4,
+            "analytical_perf::compute_dict": {
+                PrimitiveType.F16.value: int( 256/16 * TOPS),
+                PrimitiveType.F32.value: int( 256/16  * TOPS),
+                # PrimitiveType.F32.value: int( 20/36  * TOPS),
+            },
+            "analytical_perf_wsc::tile_r_num": 4,
+            "analytical_perf_wsc::tile_c_num": 4,
+            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
+            "analytical_perf_wsc::tile_bw": 128 * GB,
+            "analytical_perf_wsc::die_bw": 25 * GB,
+            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf::cmp_ul": 0.8,
+            "analytical_perf::bw_ul": 0.8
+        }
+        """
 
 
 global_config = GlobalConfig()

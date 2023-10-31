@@ -880,6 +880,7 @@ def _call_solver_serialized_args(N,
 
     if objective > INFINITY_COST:
         warnings.warn("Detect unexpected behaviors in the auto-sharding pass.")
+        print("ILP solved optimal objective: ", objective)
 
     return s_val, e_val, objective, status
 
