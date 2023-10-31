@@ -508,13 +508,16 @@ class HloAnalysisSimulator:
         self.peak_memory = self.total_latency = 0
         global_config = get_global_config()
         for stage_idx, spmd_module in enumerate(self.spmd_module_list):
+            mesh_idx = list(self.schedule.stage_mesh_mapping[stage_idx])[0]
+            mesh_shape = self.mesh_group[mesh_idx].shape
             peak_memory = xe.estimate_hlo_module_memory(spmd_module)
             self.stage_peak_memory.append(peak_memory)
             self.peak_memory = max(self.peak_memory, peak_memory)
             grad_sync_channel_ids = ""
             if True:
                 grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
-            latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids)
+            latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids, mesh_shape)
+            print('stage_idx: ', stage_idx, 'latency: ', latency)
             self.stage_latency.append(latency)
         
         # estimate memory offload cost

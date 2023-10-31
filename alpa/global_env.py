@@ -163,12 +163,13 @@ class GlobalConfig:
             },
             "analytical_perf_wsc::tile_r_num": 4,
             "analytical_perf_wsc::tile_c_num": 4,
-            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
+            "analytical_perf_wsc::tile_mem": 3 * MB,  # sram size / tile
             "analytical_perf_wsc::tile_bw": 128 * GB,
             "analytical_perf_wsc::die_bw": 25 * GB,
             "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
@@ -191,7 +192,8 @@ class GlobalConfig:
             "analytical_perf_wsc::die_bw": 25 * GB,
             "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
@@ -213,7 +215,8 @@ class GlobalConfig:
             "analytical_perf_wsc::die_bw": 25 * GB,
             "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::d2d_latency": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }

@@ -896,7 +896,8 @@ def estimate_hlo_module_cost(hlo_module,
                              g_config,
                              profiling_results=None,
                              num_micro_batches=1,
-                             grad_sync_channel_ids=""):
+                             grad_sync_channel_ids="",
+                             mesh_shape=(1,1)):
     """Estimate the cost of an HLO module with the HLO instruction level cost
     model."""
     global_config = g_config
@@ -907,6 +908,7 @@ def estimate_hlo_module_cost(hlo_module,
             hardware_config = global_config.gpu_config
         else:
             hardware_config = global_config.wsc_config
+        hardware_config["analytical_perf_wsc::mesh_shape"] = mesh_shape
         common_text = {
             "analytical_perf::num_micro_batches": num_micro_batches,
             "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
@@ -925,7 +927,7 @@ def estimate_hlo_module_cost(hlo_module,
                 "gpu_cost_model::verbose": 0,
         }):
             cost =  xe.estimate_hlo_module_cost(hlo_module)
-    print(cost)
+    # print(cost)
     return cost
 
 
@@ -944,6 +946,6 @@ def hlo_module_cost_analysis(hlo_module,
         "analytical_perf::force_use_fp16": global_config.force_use_fp16,
         "analytical_perf::verbose": 0,
     }
-    print(hardware_config | common_text)
+    # print(hardware_config | common_text)
     with XlaPassContext(hardware_config | common_text):
         return xe.hlo_module_cost_analysis(hlo_module)

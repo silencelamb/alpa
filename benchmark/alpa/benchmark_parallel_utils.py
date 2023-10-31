@@ -495,7 +495,7 @@ def compile_and_benchmark_pipeshard_training_executable(
     
     if global_config.full_on_hlo_analysis:
         executable: HloAnalysisSimulator
-        executable.hlo_module_cost_analysis()
+        executable.hlo_module_cost_analysis()   # for debug, compre with estimate_cost_on_hlo_analysis
         estimated_time_sum, estimated_max_mem, stage_times = executable.estimate_cost_on_hlo_analysis()
         max_stage_time = max(stage_times)
         latencies = estimated_time = estimated_time_sum
