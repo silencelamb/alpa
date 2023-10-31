@@ -8,7 +8,7 @@ import json
 
 import numpy as np
 
-from alpa.global_env import get_global_config, set_global_config
+from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
 from gen_mapping_vis_result import gen_mapping_vis_result
@@ -178,6 +178,7 @@ if __name__ == "__main__":
     parser.add_argument("--rst_folder", type=str, default="")
     parser.add_argument("--hardware", type=str, default="gpu")
     parser.add_argument("--force_use_fp16", action="store_true")
+    parser.add_argument("--use-greedy-collective-cost", action="store_true")
     args = parser.parse_args()
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 
@@ -187,6 +188,10 @@ if __name__ == "__main__":
 
     # set whether use analytical model
     global_config.use_analytical_perf_model = args.use_analytical_perf_model
+    # set whether use the greedy-collective cost in analytical model
+    global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
+    if args.use_greedy_collective_cost:
+        get_collective_cost_dict()
 
     # set mapping result save dir
     if args.rst_folder == "":

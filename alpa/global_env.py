@@ -3,11 +3,14 @@ import gc
 import os
 from enum import Enum
 
+from .mesh_search import gen_collective_cost_dict
+
 
 GB = 1 << 30  # Gigabyte
 MB = 1 << 20  # Megabyte
 TOPS =  10 ** 12 # TOPS
 ns = 10 ** -9 # ns
+us = 10**(-6)
 
 class PrimitiveType(Enum):
     INVALID = 0
@@ -171,7 +174,10 @@ class GlobalConfig:
             "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
-            "analytical_perf::bw_ul": 0.8
+            "analytical_perf::bw_ul": 0.8,
+            "analytical_perf::use_greedy_coll_cost": False,
+            "analytical_perf_wsc::die_alpha": 1.0 * us,      # alpha, 1.0 us
+            "analytical_perf_wsc::die_beta": 1 / (200 * GB)  # beta, s/GB
         }
         """
         # Tesla DOJO  config
@@ -222,12 +228,20 @@ class GlobalConfig:
         }
         """
 
+        self.use_greedy_collective_cost = False  
+        self.collective_cost_dict = None
 
 global_config = GlobalConfig()
 
 def get_global_config():
     return global_config
 
+def get_collective_cost_dict():
+    die_row_num = global_config.wsc_config["analytical_perf_wsc::die_r_num"]
+    die_col_num = global_config.wsc_config["analytical_perf_wsc::die_c_num"]
+    if global_config.wsc_config["analytical_perf::use_greedy_coll_cost"]:
+        global_config.collective_cost_dict = gen_collective_cost_dict(die_row_num, die_col_num)
+        print(global_config.collective_cost_dict)
 
 def set_global_config(global_config_new: GlobalConfig):
     global global_config

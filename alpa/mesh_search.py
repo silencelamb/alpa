@@ -5,10 +5,6 @@ from collections import deque
 from enum import Enum
 import pickle
 
-from alpa.global_env import get_global_config
-
-GLOBAL_CONFIG = get_global_config()
-
 class Collective(Enum):
     ALL_GATHER = 1
     REDUCE_SCATTER = 2
@@ -210,8 +206,8 @@ class Mesh(object):
 
 # compute all gather cost
 def compute_all_gather_cost(mesh: Mesh):
-    # if mesh.row_len < 3 and (mesh.row_len % 2 == 0 or mesh.col_len % 2 == 0):
-    #     return mesh.rank_num - 1
+    if mesh.rank_num == 2:
+        return mesh.rank_num - 1
     queue = deque(mesh.node_map.values())
     time_steps = 0
     total_cost = 0
@@ -322,19 +318,18 @@ class MeshCollectiveCostDatabase:
         else:
             self.data[key].update(mesh_result)
     
-
     def update(self, data):
         self.data = data
         # for ((coll, mesh_shape), timesteps) in new_database.data.items():
             # self.update_one_mesh(, mesh_shape, mesh_result)
 
-    def insert_dummy_mesh_result(self, cluster_key, mesh_shape):
+    def insert_dummy_mesh_result(self, coll, mesh_shape):
         """Insert dummy results for a mesh."""
-        key = (cluster_key, mesh_shape)
+        key = (coll, mesh_shape)
         assert key not in self.data
 
         # Copy data from mesh shape (1, 1)
-        src_key = (cluster_key, (1, 1))
+        src_key = (coll, (1, 1))
         assert src_key in self.data
         self.data[key] = self.data[src_key]
 
@@ -346,7 +341,6 @@ class MeshCollectiveCostDatabase:
         with open(filename, "rb") as f:
             new_data = pickle.load(f)
         self.update(new_data)
-        # self.update(MeshCollectiveCostDatabase(new_data))
     
     def inspect(self, filename):
         self.load(filename)
@@ -360,31 +354,28 @@ class MeshCollectiveCostDatabase:
         return ret
 
 
-def generate_database():
+def gen_collective_cost_dict(die_r_num, die_c_num):
     mesh_db = MeshCollectiveCostDatabase()
-    collectives = [
-                    Collective.ALL_GATHER,
-                    Collective.REDUCE_SCATTER, 
-                    Collective.ALL_REDUCE
-                  ]
-    row_num = GLOBAL_CONFIG.wsc_config["analytical_perf_wsc::die_r_num"]
-    col_num = GLOBAL_CONFIG.wsc_config["analytical_perf_wsc::die_c_num"]
-    for coll in collectives:
-        for i in range(1, row_num + 1):
-            for j in range(1, col_num + 1):
+    collectives = {
+        0: Collective.ALL_GATHER,
+        1: Collective.REDUCE_SCATTER,
+        2: Collective.ALL_REDUCE
+    }
+    for coll in collectives.keys():
+        for i in range(1, die_r_num + 1):
+            for j in range(1, die_c_num + 1):
                 mesh = Mesh(i, j, Collective.ALL_GATHER)
                 mesh.init_mesh()
-                if coll == Collective.ALL_GATHER:
+                if collectives[coll] == Collective.ALL_GATHER:
                     timesteps = compute_all_gather_cost(mesh)
-                    # print(mesh.sent_dict)
-                elif coll == Collective.REDUCE_SCATTER:
+                elif collectives[coll] == Collective.REDUCE_SCATTER:
                     timesteps = compute_reduce_scatter_cost(mesh)
                 else:
                     timesteps = compute_all_reduce_cost(mesh)
                 mesh_db.update_one_mesh(coll, (i, j), timesteps)
-
+    # print(mesh_db.data)
     mesh_db.save('mesh_coll_cost_database.pkl')
-    mesh_db.inspect('mesh_coll_cost_database.pkl')
+    return mesh_db.data
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -435,4 +426,4 @@ if __name__ == '__main__':
         print(f"Finish {collective} in {timesteps} time steps")
     else:
         # search for all mesh results and store in databaseg
-        generate_database()
+        gen_collective_cost_dict(6, 6)

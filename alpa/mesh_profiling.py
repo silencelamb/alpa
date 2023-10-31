@@ -914,6 +914,7 @@ def estimate_hlo_module_cost(hlo_module,
             "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
             "analytical_perf::force_use_fp16": global_config.force_use_fp16,
             "analytical_perf::verbose": 0,
+            "collective_cost_dict": global_config.collective_cost_dict
         }
         # print(hardware_config | common_text)
         with XlaPassContext(hardware_config | common_text):
@@ -927,7 +928,7 @@ def estimate_hlo_module_cost(hlo_module,
                 "gpu_cost_model::verbose": 0,
         }):
             cost =  xe.estimate_hlo_module_cost(hlo_module)
-    # print(cost)
+    print(f"Analytical Cost: {cost}")
     return cost
 
 
@@ -945,6 +946,7 @@ def hlo_module_cost_analysis(hlo_module,
         "gpu_cost_model::grad_sync_channel_ids": grad_sync_channel_ids,
         "analytical_perf::force_use_fp16": global_config.force_use_fp16,
         "analytical_perf::verbose": 0,
+        "collective_cost_dict": global_config.collective_cost_dict
     }
     # print(hardware_config | common_text)
     with XlaPassContext(hardware_config | common_text):
