@@ -176,8 +176,6 @@ class GlobalConfig:
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8,
             "analytical_perf::use_greedy_coll_cost": False,
-            "analytical_perf_wsc::die_alpha": 1.0 * us,      # alpha, 1.0 us
-            "analytical_perf_wsc::die_beta": 1 / (200 * GB)  # beta, s/GB
         }
 
         # Tesla DOJO  config
@@ -249,7 +247,7 @@ def get_collective_cost_dict():
     die_col_num = global_config.wsc_config["analytical_perf_wsc::die_c_num"]
     if global_config.wsc_config["analytical_perf::use_greedy_coll_cost"]:
         global_config.collective_cost_dict = gen_collective_cost_dict(die_row_num, die_col_num)
-        print(global_config.collective_cost_dict)
+        # print(global_config.collective_cost_dict)
 
 def set_global_config(global_config_new: GlobalConfig):
     global global_config
