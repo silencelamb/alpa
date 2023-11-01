@@ -49,8 +49,10 @@ class RectangleGridOrderEnv(gym.Env):
         self.latest_position = []
         
         self.total_reward = 0
-        
-        return self.grid, {}
+        if self.use_image:
+            return self.grid[np.newaxis, :], {}
+        else:
+            return self.grid, {}
 
     def step(self, action):
         self.current_step += 1
@@ -90,8 +92,10 @@ class RectangleGridOrderEnv(gym.Env):
             self.average_reward = statistics.mean(self.reward_record)
             self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
             print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
-            
-        return self.grid, reward, done, truncted, {}
+        if self.use_image:
+            return self.grid[np.newaxis, :], reward, done, truncted, {}
+        else:
+            return self.grid, reward, done, truncted, {}
 
     def decode_action(self, action):
         a, b, c, d = np.unravel_index(action, (self.cols, self.rows, self.cols, self.rows))
