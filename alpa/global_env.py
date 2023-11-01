@@ -176,25 +176,28 @@ class GlobalConfig:
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
-        """
+
         # Tesla DOJO  config
         #TODO add dojo config @dehao
-        self.wsc_config = {
+        self.dojo_config = {
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 5,
-            "analytical_perf_wsc::die_c_num": 4,
+            "analytical_perf_wsc::die_c_num": 5,
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 256/16 * TOPS),
-                PrimitiveType.F32.value: int( 256/16  * TOPS),
+                PrimitiveType.F16.value: int( 362/354 * TOPS),
+                PrimitiveType.F32.value: int( 22/354  * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
-            "analytical_perf_wsc::tile_r_num": 4,
-            "analytical_perf_wsc::tile_c_num": 4,
-            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
-            "analytical_perf_wsc::tile_bw": 128 * GB,
-            "analytical_perf_wsc::die_bw": 25 * GB,
-            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
-            "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::tile_r_num": 19,
+            "analytical_perf_wsc::tile_c_num": 19,
+            "analytical_perf_wsc::tile_mem": 1.25 * MB,  # SRAM size / tile
+            "analytical_perf_wsc::tile_bw": 14.2 * GB,
+
+            "analytical_perf_wsc::die_bw": 2048 * GB,
+            # NOTE: ddr only consider one, not 5 edge of training Tile
+            "analytical_perf_wsc::ddr_bandwidth": 800 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::ddr_mem":  32 * GB,   # add 2023-10-31
+
             "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
@@ -202,28 +205,33 @@ class GlobalConfig:
         }
         # Wafer-Scale GPU config
         #TODO add Wafer-Scale GPU config @dehao
-        self.wsc_config = {
+        self.wsgpu_config = {
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 5,
-            "analytical_perf_wsc::die_c_num": 4,
+            "analytical_perf_wsc::die_c_num": 8,
+
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 256/16 * TOPS),
-                PrimitiveType.F32.value: int( 256/16  * TOPS),
+                PrimitiveType.F16.value: int( 65 * TOPS),
+                PrimitiveType.F32.value: int( 8.1  * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
-            "analytical_perf_wsc::tile_r_num": 4,
-            "analytical_perf_wsc::tile_c_num": 4,
-            "analytical_perf_wsc::tile_mem": 3/1000 * GB,  # sram size / tile
-            "analytical_perf_wsc::tile_bw": 128 * GB,
-            "analytical_perf_wsc::die_bw": 25 * GB,
-            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
-            "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
+            "analytical_perf_wsc::tile_r_num": 1,
+            "analytical_perf_wsc::tile_c_num": 1,
+
+            "analytical_perf_wsc::tile_mem": 4*MB,  # SRAM size / tile
+            "analytical_perf_wsc::tile_bw": 320 * GB,
+
+            "analytical_perf_wsc::die_bw": 1536 * GB, # 1.5TB
+            "analytical_perf_wsc::ddr_bandwidth": 1536 * GB, # ddr bandwidth, GB/s
+            # NOTE: two DDR 
+            "analytical_perf_wsc::ddr_mem":  2 * 16 * GB,   # add 2023-10-31
+            # GPM interconnect
+            "analytical_perf_wsc::die_alpha": 20 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
-        """
+
 
         self.use_greedy_collective_cost = False  
         self.collective_cost_dict = None
