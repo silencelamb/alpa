@@ -172,10 +172,9 @@ class GlobalConfig:
             "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
             "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
-            "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf::use_greedy_coll_cost": False, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
-            "analytical_perf::bw_ul": 0.8,
-            "analytical_perf::use_greedy_coll_cost": False,
+            "analytical_perf::bw_ul": 0.8
         }
         """
         # Tesla DOJO  config

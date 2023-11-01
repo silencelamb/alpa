@@ -80,13 +80,14 @@ def compute_gpt_tflops(batch_size,
     total_flop = factor * batch_size * seq_len * (hidden_size ** 2) * num_layers * \
           (1 + seq_len / (6 * hidden_size)) \
           + 6 * batch_size * seq_len * hidden_size * vocab_size
+    total_tflops = total_flop / 1e12
     # Note: The above formula does not count the first embedding table lookup
     # because it is a sparse operation.
     # If we use dense dot to compute the first embedding table lookup,
     # then the last term in total_flops should be
     # "+ 10 * batch_size * seq_len * hidden_size * vocab_size".
     tflops = total_flop / latency / num_gpus / 1e12
-    return tflops
+    return tflops, total_tflops
 
 
 def compute_mlp_tflops(batch_size,                       
