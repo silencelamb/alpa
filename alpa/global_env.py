@@ -184,9 +184,10 @@ class GlobalConfig:
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 5,
             "analytical_perf_wsc::die_c_num": 5,
+            # NOTE: 361 match 19*19 instead of 354 -- single tile compute capacity is 362/22TFLOPS
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 362/354 * TOPS),
-                PrimitiveType.F32.value: int( 22/354  * TOPS),
+                PrimitiveType.F16.value: int( 362/361 * TOPS),
+                PrimitiveType.F32.value: int( 22/361  * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
             "analytical_perf_wsc::tile_r_num": 19,
@@ -210,7 +211,7 @@ class GlobalConfig:
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 5,
             "analytical_perf_wsc::die_c_num": 8,
-
+            # NVIDIA T4 compute capacity
             "analytical_perf::compute_dict": {
                 PrimitiveType.F16.value: int( 65 * TOPS),
                 PrimitiveType.F32.value: int( 8.1  * TOPS),
@@ -224,8 +225,8 @@ class GlobalConfig:
 
             "analytical_perf_wsc::die_bw": 1536 * GB, # 1.5TB
             "analytical_perf_wsc::ddr_bandwidth": 1536 * GB, # ddr bandwidth, GB/s
-            # NOTE: two DDR 
-            "analytical_perf_wsc::ddr_mem":  2 * 16 * GB,   # add 2023-10-31
+            # NOTE: two 3D stacked-HBM = 2 * 4GB
+            "analytical_perf_wsc::ddr_mem":  2 * 4 * GB,   # add 2023-10-31
             # GPM interconnect
             "analytical_perf_wsc::die_alpha": 20 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
