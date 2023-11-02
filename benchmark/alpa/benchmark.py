@@ -17,10 +17,13 @@ from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 from benchmark_one_case import benchmark_one_case
 import suite_auto_gpt
 import suite_auto_moe
+import suite_auto_bert
 import suite_manual_gpt
+import suite_manual_bert
 import suite_manual_moe
 import suite_wresnet
 import suite_inference_gpt
+import suite_inference_bert
 import suite_auto_mlp
 import suite_manual_mlp
 from suite_auto_gpt import model_type_size_dict
@@ -30,16 +33,33 @@ benchmark_suites = {
     "gpt.tmp_auto": suite_auto_gpt.tmp_suite,
     "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
     "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
-    "mlp.perf_test_manual": suite_manual_mlp.mlp_perf_test_suite,
     "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
-    
+
     "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
-    "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
+
     "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
     "gpt_inference.profile": suite_inference_gpt.profile_suite,
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
     "gpt.config_test": suite_auto_gpt.config_test_suite,
     "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
+
+    "bert.tmp": suite_manual_bert.tmp_suite,
+    "bert.tmp_auto": suite_auto_bert.tmp_suite,
+    "bert.perf_test_fast_2d": suite_manual_bert.perf_test_fast_2d_suite,
+    "bert.perf_test_manual": suite_manual_bert.perf_test_suite,
+    "bert.perf_test_auto": suite_auto_bert.perf_test_suite,
+    
+    "bert.grid_search_auto": suite_auto_bert.grid_search_suite,
+
+    "bert.correctness_test_auto": suite_auto_bert.correctness_test_suite,
+    "bert_inference.profile": suite_inference_bert.profile_suite,
+    "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
+    "bert.config_test": suite_auto_bert.config_test_suite,
+    "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite, 
+
+
+    "mlp.perf_test_manual": suite_manual_mlp.mlp_perf_test_suite,
+    "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
     "mlp.wsc_config_test": suite_auto_mlp.wsc_config_test_suite_mlp,
     "moe.tmp": suite_manual_moe.tmp_suite,
     "moe.tmp_auto": suite_auto_moe.tmp_suite,
@@ -135,6 +155,7 @@ def benchmark_suite(suite_name,
         write_tsv(heads, values, output_name)
         values = [str(x) for x in values]
         result_dict = dict(zip(heads, values))
+        # NOTE: generate final result performance
         with open(global_config.maping_rst_dir+"/over_all_perf.json", "w") as f:
             json.dump(result_dict, f, indent=4)
         if not global_config.full_on_hlo_analysis:
@@ -210,7 +231,20 @@ if __name__ == "__main__":
     os.makedirs(args.rst_folder, exist_ok=True)
 
     global_config.rst_folder = args.rst_folder
-    global_config.hardware = args.hardware
+    # global_config.hardware = args.hardware
+    # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
+    if args.hardware == "dojo":
+        global_config.wsc_config = global_config.dojo_config
+        global_config.hardware = "wsc"
+        print(f"Set DOJO config = {global_config.wsc_config}")
+    elif args.hardware == "wsgpu":
+        global_config.wsc_config = global_config.wsgpu_config
+        global_config.hardware = "wsc"
+        print(f"Set SW-GPU config = {global_config.wsc_config}")
+    else:
+        # NOTE: origin support for GPU & TX8 WSC
+        global_config.hardware = args.hardware
+
     global_config.force_use_fp16 = args.force_use_fp16
 
     set_global_config(global_config)

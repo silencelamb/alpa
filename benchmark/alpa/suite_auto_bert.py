@@ -1,8 +1,8 @@
-"""Benchmark suites for gpt with auto parallelization."""
+"""Benchmark suites for bert with auto parallelization."""
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__))) # add to sys.path.
 
-from suite_manual_gpt import gpt_specs, mlp_specs
+from suite_manual_bert import bert_specs, mlp_specs
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
                                       LoadSolutionParallelArgs, ConfigParallelArgs)
 from alpa import ManualStageOption, WSCManualStageOption
@@ -89,6 +89,15 @@ model_type_size_dict = {
         32: "15B",
         64: "39B"
     },
+    "bert":{
+        1: "Tiny",
+        2: "Mini",
+        4: "Small",
+        8: "Medium",
+        16: "Base",
+        32: "Base",
+        64: "Large"
+    },
     "moe":{
         1: "380M",
         2: "690M",
@@ -111,32 +120,32 @@ model_type_size_dict = {
 # Performance test with search solutions found for p3.16xlarge
 perf_test_suite = {
     1:
-        get_solution_case(gpt_specs["350M"], 512, 1, [[0]], [(1, 1)], [(1, 1)],
+        get_solution_case(bert_specs["Tiny"], 128, 1, [[0]], [(1, 1)], [(1, 1)],
                           [{}]),
     2:
-        get_solution_case(gpt_specs["760M"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(bert_specs["Mini"], 128, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 1)] * 2, [(1, 1)] * 2, [force_dp_dict] * 2),
     4:
-        get_solution_case(gpt_specs["1.3B"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(bert_specs["Small"], 128, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 2)] * 2, [(2, 1)] * 2, [force_dp_dict] * 2),
     8:
-        get_solution_case(gpt_specs["2.6B"], 128,
+        get_solution_case(bert_specs["Medium"], 128,
                           8, [[0, 1], [2, 3], [4, 5, 6, 7]], [(1, 2), (1, 2),
                                                               (1, 4)], [(2, 1),
                                                                         (2, 1),
                                                                         (4, 1)],
                           [force_dp_dict, {}, {}]),
     16:
-        get_solution_case(gpt_specs["6.7B"], 64, 8,
+        get_solution_case(bert_specs["Base"], 64, 8,
                           [[0, 1, 2, 3], [4, 5, 6, 7]], [(1, 8)] * 2,
                           [(2, 4)] * 2, [force_dp_dict] * 2),
-    32:
-        get_solution_case(
-            gpt_specs["15B"], 128, 16,
-            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
-            [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
+    # 32:
+    #     get_solution_case(
+    #         bert_specs["15B"], 128, 16,
+    #         [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+    #         [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
     64:
-        get_solution_case(gpt_specs["39B"], 1024,
+        get_solution_case(bert_specs["Large"], 1024,
                           16, [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],
                                [10], [11], [12], [13], [14], [15]],
                           [(1, 4)] * 16, [(1, 4)] * 16, [force_dp_dict] * 16),
@@ -156,32 +165,32 @@ perf_test_suite = {
 # }
 
 grid_search_suite = {
-    1: get_search_cases(gpt_specs["350M"], [512], [1]),
-    2: get_search_cases(gpt_specs["760M"], [128], [6]),
-    4: get_search_cases(gpt_specs["1.3B"], [128], [6]),
-    8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
-    # 16: get_search_cases(gpt_specs["6.7B"], [64], [8]),
-    16: get_search_cases(gpt_specs["6.7B"], [128], [8]),
-    # 16: get_search_cases(gpt_specs["15B"], [128], [8]),
-    32: get_search_cases(gpt_specs["15B"], [128], [16]),
-    64: get_search_cases(gpt_specs["39B"], [1024], [16]),
-    1024: get_search_cases(gpt_specs["39B"], [32], [64]),    
+    1: get_search_cases(bert_specs["Tiny"], [512], [1]),
+    2: get_search_cases(bert_specs["Mini"], [128], [6]),
+    4: get_search_cases(bert_specs["Small"], [128], [6]),
+    8: get_search_cases(bert_specs["Medium"], [128], [8]),
+    # 16: get_search_cases(bert_specs["6.7B"], [64], [8]),
+    16: get_search_cases(bert_specs["Base"], [128], [8]),
+    # 16: get_search_cases(bert_specs["15B"], [128], [8]),
+    32: get_search_cases(bert_specs["Base"], [128], [16]),
+    64: get_search_cases(bert_specs["Large"], [1024], [16]),
+    1024: get_search_cases(bert_specs["Large"], [32], [64]),    
 }
 
 # Small test cases for correctness test
 correctness_test_suite = {
-    8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
+    8: get_search_cases(bert_specs["Medium"], [128], [8]),
 }
 
 config_test_suite = {
-    # 2: get_config_cases(gpt_specs["760M"], [128], 
-    #                     'tmp_a100_gpu_real/gpt.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
+    # 2: get_config_cases(bert_specs["760M"], [128], 
+    #                     'tmp_a100_gpu_real/bert.grid_search_auto-2X1-actualA100-2023-03-01-02-57-12/Batchsize_1024-num_b_128-auto_layers_6/input_placement_specs.pkl', 
     #                     stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1]], 
     #                                                    submesh_physical_shapes=[[1, 1], [1, 1]], 
     #                                                    submesh_logical_shapes=[[1, 1], [1, 1]], 
     #                                                    submesh_autosharding_option_dicts=[{}, {}])
     #                     ),
-    2: get_config_cases_idx(gpt_specs["760M"], [128], 
+    2: get_config_cases_idx(bert_specs["Mini"], [128], 
                         # partition_index="uniform", 
                         # partition_index=[0, 1210, 2419],
                         partition_index=[0, 1210],
@@ -191,14 +200,14 @@ config_test_suite = {
                                                        submesh_logical_shapes=[[1, 1], [1, 1]], 
                                                        submesh_autosharding_option_dicts=[{}, {}])
                         ),
-    # 8: get_config_cases(gpt_specs["2.6B"], [128], 
-    #                     'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
+    # 8: get_config_cases(bert_specs["2.6B"], [128], 
+    #                     'tmp_wsc_perf_15GB_fp16/bert.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl', 
     #                     stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
     #                                                    submesh_physical_shapes=[[1, 2], [1, 2], [1, 4]], 
     #                                                    submesh_logical_shapes=[[2, 1], [2, 1], [4, 1]], 
     #                                                    submesh_autosharding_option_dicts=[{}, {}, {}])
     #                     ),
-    8: get_config_cases_idx(gpt_specs["2.6B"], [128], 
+    8: get_config_cases_idx(bert_specs["Medium"], [128], 
                         # partition_index="uniform",
                         partition_index=[0, 1000, 2000, 3203],
                         stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 
@@ -209,7 +218,7 @@ config_test_suite = {
 }
 
 wsc_config_test_suite = { 
-    2: get_config_cases_idx(gpt_specs["760M"], [128],
+    2: get_config_cases_idx(bert_specs["Mini"], [128],
                         # partition_index="uniform",
                         # partition_index=[0, 1210, 2419],
                         # partition_index=[0, 1210],
@@ -224,7 +233,7 @@ wsc_config_test_suite = {
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=[{}, {}])
     ),   
-    4: get_config_cases_idx(gpt_specs["350M"], [128],
+    4: get_config_cases_idx(bert_specs["Small"], [128],
                         partition_index=[0.0, 0.7142857142857143],
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]], 
                                                           submeshes=[[0, 0, 0, 2], [0, 3, 0, 3]],
@@ -232,7 +241,7 @@ wsc_config_test_suite = {
                                                         submesh_logical_shapes=None,
                                                         submesh_autosharding_option_dicts=[{}, {}])
     ),  
-    8: get_config_cases_idx(gpt_specs["2.6B"], [128],
+    8: get_config_cases_idx(bert_specs["Medium"], [128],
                         # partition_index="uniform",
                         partition_index=[0, 1000, 2000, 3203],
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]],
@@ -245,7 +254,7 @@ wsc_config_test_suite = {
         submesh_logical_shapes=None,
         submesh_autosharding_option_dicts=[{}, {}, {}])
     ),
-    16: get_config_cases_idx(gpt_specs["1.3B"], [128],
+    16: get_config_cases_idx(bert_specs["Base"], [128],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
                                                           submeshes=[[0, 0, 3, 3]],
@@ -254,14 +263,14 @@ wsc_config_test_suite = {
                                                           submesh_autosharding_option_dicts=[{}])
     ),
     # tx8
-    20: get_config_cases_idx(gpt_specs["350M"], [128],
+    20: get_config_cases_idx(bert_specs["Base"], [128],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
                                                           submeshes=[[0, 0, 4, 3]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
                                                           submesh_autosharding_option_dicts=[{}]),
-    # 25: get_config_cases_idx(gpt_specs["1.3B"], [128],
+    # 25: get_config_cases_idx(bert_specs["1.3B"], [128],
     #                     # partition_index="uniform",
     #                     partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
     #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
@@ -270,7 +279,7 @@ wsc_config_test_suite = {
     #     submesh_logical_shapes=None,
     #     submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
     # ),
-    # 25: get_config_cases_idx(gpt_specs["1.3B"], [128],
+    # 25: get_config_cases_idx(bert_specs["1.3B"], [128],
     #                     partition_index="uniform",
     #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
     #                                                       submeshes=[[0, 0, 4, 4]],
@@ -282,5 +291,5 @@ wsc_config_test_suite = {
     )
 }
 
-# 'tmp_wsc_perf_15GB_fp16/gpt.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'
-# 'tmp_a100_gpu_onlymapping/gpt.grid_search_auto-8X1-costmodel-2023-03-13-10-05-53/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'
+# 'tmp_wsc_perf_15GB_fp16/bert.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'
+# 'tmp_a100_gpu_onlymapping/bert.grid_search_auto-8X1-costmodel-2023-03-13-10-05-53/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'

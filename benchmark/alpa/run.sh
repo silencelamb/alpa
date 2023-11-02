@@ -42,6 +42,9 @@ python benchmark.py --suite  gpt.wsc_config_test --num-hosts 1 --num-devices-per
 
 python benchmark.py --suite  gpt.wsc_config_test --num-hosts 2 --num-devices-per-host 4 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc  --rst_folder tmp_wsc_perf_15GB_fp16
 
+python benchmark.py --suite gpt.wsc_config_test --num-hosts 5 --num-devices-per-host 4 --no-separate-process --only-mapping --hardware dojo --use-analytical-perf-model --use-greedy-collective-cost --rst_folder tmp_wsc_perf_dojo
+python benchmark.py --suite gpt.wsc_config_test --num-hosts 5 --num-devices-per-host 4 --no-separate-process --only-mapping --hardware wsgpu --use-analytical-perf-model --use-greedy-collective-cost --rst_folder tmp_wsc_perf_wsgpu
+
 python benchmark.py --suite gpt.wsc_config_test --num-hosts 5 --num-devices-per-host 4 --no-separate-process --only-mapping --hardware wsc --use-analytical-perf-model --use-greedy-collective-cost --rst_folder tmp_wsc_perf_tx8_tacos
 
 # 遗传算法 (Genetic Algorithm, GA) 

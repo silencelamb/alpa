@@ -18,6 +18,7 @@ from alpa.global_env import get_global_config, set_global_config
 
 from flax import linen as nn
 from suite_manual_gpt import MLPModelConfig, GPTModelConfig
+from suite_manual_bert import BERTModelConfig
 
 
 from util import compute_gpt_parameter_count,compute_mlp_parameter_count, compute_gpt_tflops,compute_mlp_tflops
@@ -221,6 +222,32 @@ def prepare_gpt_bert_input_and_model(model_type,
         }
         print_used_time("Prepare input")
 
+        gpt_config = BertConfig(
+            vocab_size=vocab_size,
+            hidden_size=hidden_size,
+            num_attention_heads=num_heads,
+            intermediate_size=hidden_size * 4,
+            num_hidden_layers=num_layers,
+            type_vocab_size=0,
+            tie_word_embeddings=tie_word_embeddings,
+            gradient_checkpointing=add_manual_remat,
+            add_manual_pipeline_markers=add_manual_layer_marker,
+            pipeline_mp_size=num_manual_pipeline_stages,
+        )    
+    elif (type(benchmark_case.model_config) is BERTModelConfig):  
+        (seq_len, hidden_size, num_layers, num_heads,
+        vocab_size) = benchmark_case.model_config  
+        dtype = jnp.float16
+        # Prepare input batch
+        batch = {
+            "input_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "attention_mask": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "token_type_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "position_ids": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+            "labels": jnp.ones((batch_size, seq_len), dtype=jnp.int32),
+        }
+        print_used_time("Prepare input")
+
         bert_config = BertConfig(
             vocab_size=vocab_size,
             hidden_size=hidden_size,
@@ -243,7 +270,7 @@ def prepare_gpt_bert_input_and_model(model_type,
     if model_type == "bert":
         model = FlaxBertForMaskedLMModule(bert_config, dtype=dtype)
     elif model_type == "gpt":
-        model = FlaxGPTForLMModule(bert_config, dtype=dtype)
+        model = FlaxGPTForLMModule(gpt_config, dtype=dtype)
     elif model_type == "mlp":        
         model = mlp_Model()   
     else:
