@@ -268,7 +268,7 @@ def prepare_gpt_bert_input_and_model(model_type,
 
 def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
     batch_size = benchmark_case.batch_size
-    
+    total_tflops = 0.0
     if (type(benchmark_case.model_config) is MLPModelConfig):
         pass 
         (num_layers, hidden_size, use_bias) = benchmark_case.model_config 
@@ -283,7 +283,7 @@ def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
         (seq_len, hidden_size, num_layers, num_heads,
         vocab_size) = benchmark_case.model_config  
         use_remat = benchmark_case.parallel_args.use_remat
-        tflops = compute_gpt_tflops(batch_size,
+        tflops, total_tflops = compute_gpt_tflops(batch_size,
                                     seq_len,
                                     num_layers,
                                     hidden_size,
@@ -296,7 +296,7 @@ def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
     
     
     
-    return tflops, parameter_count
+    return tflops, parameter_count, total_tflops
 
 
 def benchmark_gpt_bert_3d_internal(model_type,
@@ -380,7 +380,7 @@ def benchmark_gpt_bert_3d_internal(model_type,
          profile_driver_time=profile_driver_time)
 
     
-    tflops, parameter_count = compute_gpt_bert_statistics(benchmark_case, latencies, virtual_mesh.num_devices)
+    tflops, parameter_count, total_tflops = compute_gpt_bert_statistics(benchmark_case, latencies, virtual_mesh.num_devices)
 
     # report_pipeline_breakdown(executable,
     #                           ["resharding_send", "resharding_recv",
@@ -405,7 +405,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
         "estimated_time_sum": estimated_time_sum,
         "estimated_time": estimated_time,
         "max_stage_cost": max_stage_cost,
-        "estimated_total_time": estimated_total_time
+        "estimated_total_time": estimated_total_time,
+        "total_tflops": total_tflops,
     }
 
     return parameter_count, max_mem_allocated, latencies, tflops, metadata

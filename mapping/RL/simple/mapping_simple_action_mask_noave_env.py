@@ -4,10 +4,10 @@ from gymnasium import spaces
 from collections import deque
 import statistics
 
-class MappingSimpleActionMaskALLAVEEnv(gym.Env):
+class MappingSimpleActionMaskNoAVEEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(MappingSimpleActionMaskALLAVEEnv, self).__init__()
+        super(MappingSimpleActionMaskNoAVEEnv, self).__init__()
         
         # total compute in a microbatch
         self.compute_of_a_microbatch= 100
@@ -24,7 +24,7 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
         else:
             self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(self.rows, self.cols), dtype=int)
                     
-        self.action_space = spaces.MultiDiscrete([50,   # ratio of ave compute, 
+        self.action_space = spaces.MultiDiscrete([100,   # ratio of ave compute, 
                                                   self.cols * self.rows * self.cols * self.rows  # rect action
                                                   ])
         # latest position of the rectangle, [left, top, right, bottom]
@@ -85,15 +85,14 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
 
     def step(self, action):
         self.current_step += 1
-        ratio, rect_action  = action
+        cur_compute, rect_action  = action
+        cur_compute += 1
         col_start, row_start, col_end, row_end  = self.decode_action(rect_action)
-        ratio = (ratio+1-100)/100
-        ave_compute = self.compute_of_a_microbatch / (self.cols*self.rows)
+        
         
         # Check for valid rectangle
         is_valid = self._is_valid_rectangle(col_start, row_start, col_end, row_end)
         
-        cur_compute =  (col_end-col_start+1) * (row_end-row_start+1) * ave_compute * (1+ratio)
         reward = -self.constant
         truncted = False
         done = False
@@ -304,7 +303,7 @@ class MappingSimpleActionMaskALLAVEEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = MappingSimpleActionMaskALLAVEEnv()
+    env = MappinkNopleActionMaskALLAVEEnv()
     
     best_reward = -1000
     reward_list = []
