@@ -22,6 +22,7 @@ mlp_specs = {
 }
 
 bert_specs = {
+    # NOTE: BERT-Large: 340M, BERT-Base: 110M
     #                    Seq_len, Hidden, Layer,  heads, vocab
     "Tiny": BERTModelConfig(512, 128, 2, 8, 30522),
     "Mini": BERTModelConfig(512, 256, 4, 8, 30522),

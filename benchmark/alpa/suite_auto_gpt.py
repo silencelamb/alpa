@@ -11,7 +11,7 @@ from alpa import ManualStageOption, WSCManualStageOption
 # max_global_batch_size = 1000
 # NOTE: normal is 1024
 max_global_batch_size = 1024
-
+# NOTE: For auto search option
 auto_stage_option = {
     "submesh_physical_shape_space": "small_power_of_two",
     "submesh_logical_shape_space": "all",
@@ -23,7 +23,7 @@ auto_stage_option = {
 prefer_reduce_scatter = True
 use_remat = True
 
-
+# get auto search Benchmark Case -- BenchmarkCase parallel args is search
 def get_search_cases(model_spec, num_micro_batches_list, num_auto_layers_list):
     return [
         BenchmarkCase(
@@ -154,7 +154,7 @@ perf_test_suite = {
 #     32: get_search_cases(gpt_specs["15B"], [64, 128, 256, 512], [16]),
 #     64: get_search_cases(gpt_specs["39B"], [128, 256, 512, 1024], [8]),
 # }
-
+# suite: key represent num of GPUs
 grid_search_suite = {
     1: get_search_cases(gpt_specs["350M"], [512], [1]),
     2: get_search_cases(gpt_specs["760M"], [128], [6]),

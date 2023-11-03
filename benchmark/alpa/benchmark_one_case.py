@@ -98,6 +98,7 @@ def benchmark_one_case_internal(model,
             # performance will be much better if we turn it on
             global_config.xla_gpu_autotune_level = 0
             result = benchmark_wresnet_3d_internal(
+                model,
                 case,
                 niter,
                 num_hosts,

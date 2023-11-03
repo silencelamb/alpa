@@ -94,6 +94,14 @@ perf_test_2d_suite = {
                       48, "2d_shard",
                       ShardParallelArgs(False, False, (1, 1), False)),
     ],
+    2:  [
+        BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+                      1, "2d_shard",
+                      ShardParallelArgs(False, False, (4, 1), False)),
+        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+                      48, "2d_shard",
+                      ShardParallelArgs(False, False, (4, 1), False)),
+    ],
     4: [
         BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp32"),
                       1, "2d_shard",

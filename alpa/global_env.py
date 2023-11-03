@@ -192,7 +192,7 @@ class GlobalConfig:
             "analytical_perf_wsc::tile_r_num": 19,
             "analytical_perf_wsc::tile_c_num": 19,
             "analytical_perf_wsc::tile_mem": 1.25 * MB,  # SRAM size / tile
-            "analytical_perf_wsc::tile_bw": 14.2 * GB,
+            "analytical_perf_wsc::tile_bw": 14 * GB,
 
             "analytical_perf_wsc::die_bw": 2048 * GB,
             # NOTE: ddr only consider one, not 5 edge of training Tile

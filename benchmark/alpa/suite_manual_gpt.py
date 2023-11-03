@@ -38,7 +38,7 @@ _ = None
 
 # Temporary debug suite
 # key = the number of gpus, value = a list of cases
-# B, model, NB, PM, (RS, Remat, 3D Config, FM)
+# BenchmarCase(B, model, NB, PM, (RS, Remat, 3D Config, FM))
 tmp_suite = {
     1: [
         BenchmarkCase(16, gpt_specs["350M"], 1, "uniform",

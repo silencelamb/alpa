@@ -2,7 +2,7 @@
 python benchmark.py --suite  gpt.grid_search_auto --num-hosts 8 --num-devices-per-host 8 --no-separate-process --only-mapping
 
 # uniform parallen, analytical model gpu 8
-python benchmark.py --suite  gpt.perf_test_manual --num-hosts 1 --num-devices-per-host 8 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical
+python benchmark.py --suite  gpt.perf_test_suite --num-hosts 8 --num-devices-per-host 8 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical
 
 # uniform parallen, analytical model gpu 2
 python benchmark.py --suite  gpt.perf_test_manual --num-hosts 1 --num-devices-per-host 2 --no-separate-process --only-mapping --use-analytical-perf-model  --rst_folder tmp_a100_gpu_analytical

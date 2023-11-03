@@ -66,6 +66,7 @@ benchmark_suites = {
     "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,
     "moe.perf_test_auto": suite_auto_moe.perf_test_suite,
     "moe.grid_search_auto": suite_auto_moe.grid_search_suite,
+
     "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
     "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
     "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
@@ -90,6 +91,7 @@ def benchmark_suite(suite_name,
 
     assert num_gpus in benchmark_suites[suite_name], (
         f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
+    # NOTE: First select suite_name, then select num_gpus
     suite = benchmark_suites[suite_name][num_gpus]
 
     os.makedirs("tmp", exist_ok=True)
