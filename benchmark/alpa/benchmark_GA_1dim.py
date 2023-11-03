@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 
-from alpa.global_env import get_global_config, set_global_config
+from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
 from gen_mapping_vis_result import gen_mapping_vis_result
@@ -307,16 +307,17 @@ class GA_problem_alpa(Problem):
 
 def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log = None):
         
-    try:
-        log.logger.info('paras_list: ' + str(paras_list))
-        result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
-                        args_.niter, args_.shard_only, args_.local,
-                        args_.profile_driver_time, args.disable_tqdm,
-                                  args_.use_separate_process, parameters_list=paras_list,log =log)
-        
-    except:
-        result_ = 10e10
-    # print("result_ : "+str(result_))
+    # try:
+    log.logger.info('paras_list: ' + str(paras_list))
+    result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
+                    args_.niter, args_.shard_only, args_.local,
+                    args_.profile_driver_time, args.disable_tqdm,
+                                args_.use_separate_process, parameters_list=paras_list,log =log)     
+    # except Exception as e:
+    #     log.logger.warning(f"Wrong !!!!!!!!!!!!!!!!!!!!!")
+    #     print(e)
+    #     result_ = 10e10
+    print("result_ : "+str(result_))
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
     log.logger.info('One Mid Result : ' + str(result_))
     return result_ 
@@ -397,7 +398,7 @@ def benchmark_suite(suite_name,
         forward_stage_layer_ids.append([i])
         submesh_autosharding_option_dicts.append({})
         device_end = device_start + len(device_per_stage[i]) -1   
-        submeshes.append([0, device_start, 0, device_end])
+        submeshes.append([device_start, 0, device_end, 0])
         device_start = device_end + 1
 
 
@@ -409,7 +410,7 @@ def benchmark_suite(suite_name,
         
     # import pdb; pdb.set_trace()   
     # 350M  1.3B
-    suite = get_config_cases_idx(gpt_specs["350M"], [128],
+    suite = get_config_cases_idx(gpt_specs["350M"], [100],
                          partition_index=partition_index,                         
                          stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
                                                            submeshes=submeshes,
@@ -428,6 +429,7 @@ def benchmark_suite(suite_name,
         totol_batch_size = benchmark_case.batch_size
         model_config = benchmark_case.model_config
         num_micro_batches = benchmark_case.num_micro_batches
+        parallel_args = benchmark_case.parallel_args
         try:
             auto_layers = benchmark_case.parallel_args.num_auto_layers
         except AttributeError:
@@ -446,8 +448,26 @@ def benchmark_suite(suite_name,
                                         profile_driver_time=profile_driver_time,
                                         disable_tqdm=disable_tqdm,
                                         use_separate_process=use_separate_process)
-            (parameter_count, peak_mem, latencies, tflops, metadata) = result  
-            log.logger.info('One result: ' + str(result))
+            (parameter_count, peak_mem, latencies, tflops, metadata) = result
+
+            heads = [
+                "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
+                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "TFLOPs",
+                "Peak Mem (GB)", "Metadata"
+            ]
+            if isinstance(parallel_args, ConfigParallelArgs):
+                parallel_args = parallel_args._replace(input_placement_specs=[])
+                
+            values = [
+                model_type, model_config, num_micro_batches, num_gpus,
+                parallel_args, f"{np.mean(latencies):.3f}",
+                f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
+                f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
+                to_str_round(metadata, 6)
+            ]
+            values = [str(x) for x in values]
+            result_dict = dict(zip(heads, values)) 
+            log.logger.info('One result: ' + str(result_dict))
         except RuntimeError:
             log.logger.error("alpa runtime error !!!")
 
@@ -496,6 +516,7 @@ if __name__ == "__main__":
     parser.add_argument("--rst_folder", type=str, default="")
     parser.add_argument("--hardware", type=str, default="gpu")
     parser.add_argument("--force_use_fp16", action="store_true")
+    parser.add_argument("--use-greedy-collective-cost", action="store_true")
     args = parser.parse_args()
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 
@@ -532,6 +553,10 @@ if __name__ == "__main__":
     global_config.hardware = args.hardware
     global_config.force_use_fp16 = args.force_use_fp16
 
+    global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
+    if args.use_greedy_collective_cost:
+        get_collective_cost_dict()
+        
     set_global_config(global_config)
     global_config = get_global_config()
     print(global_config.use_analytical_perf_model)

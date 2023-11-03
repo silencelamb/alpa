@@ -10,10 +10,10 @@ from suite_manual_gpt import gpt_specs
 from alpa import ManualStageOption, WSCManualStageOption
 from suite_auto_gpt import get_config_cases_idx
 
-class MappingEnv(gym.Env):
+class MappingDirectionBasepointEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(MappingEnv, self).__init__()
+        super(MappingDirectionBasepointEnv, self).__init__()
         
         # total compute in a microbatch
         self.compute_of_a_microbatch= 1000
@@ -349,7 +349,7 @@ class MappingEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = MappingEnv()
+    env = MappingDirectionBasepointEnv()
     
     best_reward = -1000
     reward_list = []
