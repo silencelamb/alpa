@@ -1780,7 +1780,7 @@ def check_submesh_is_valid(virtual_mesh_shape: Sequence[int],
 
 def get_submesh_physical_shapes(submeshes: Sequence[Sequence[int]]):
     submesh_physical_shapes = [
-        [submesh[2]-submesh[0]+1, submesh[3]-submesh[1]+1]
+        [submesh[3]-submesh[1]+1, submesh[2]-submesh[0]+1]
         for submesh in submeshes
     ]
     return submesh_physical_shapes

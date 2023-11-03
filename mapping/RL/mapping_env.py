@@ -33,7 +33,7 @@ class WSCMappingEnv(gym.Env):
         self.compute_of_a_microbatch= 100
         self.left_compute = self.compute_of_a_microbatch
         self.num_microbatch = 1024
-        self.rows, self.cols = (5, 5)
+        self.rows, self.cols = (5, 4)
         self.grid = np.zeros((self.rows, self.cols), int)
         self.render_mode = render_mode
         
