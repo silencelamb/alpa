@@ -262,7 +262,14 @@ def compile_pipeshard_executable_internal(
     #        cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
     #     print(cost)
     # exit(0)
-    
+    if global_config.full_on_hlo_analysis:
+        return HloAnalysisSimulator(
+            stages=xla_stages,
+            mesh_group=sliced_virtual_meshes,
+            schedule=schedule,
+            num_micro_batches=num_microbatch, 
+            stage_id_dict=stage_id_dict)
+        
     # Launch the physical mesh group
     if virtual_mesh.launched_physical_mesh_group is None:
         virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
@@ -271,13 +278,7 @@ def compile_pipeshard_executable_internal(
         virtual_mesh.get_physical_mesh_group(sliced_virtual_meshes)
     debug_compilation_time("launch meshes")
 
-    if global_config.full_on_hlo_analysis:
-        return HloAnalysisSimulator(
-            stages=xla_stages,
-            mesh_group=virtual_mesh.launched_physical_mesh_group,
-            schedule=schedule,
-            num_micro_batches=num_microbatch, 
-            stage_id_dict=stage_id_dict)
+
     
     # Wrap all things into a distributed runtime
     # TODO(yonghao): use virtual mesh instead of launched physical group

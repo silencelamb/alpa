@@ -496,7 +496,7 @@ class HloAnalysisSimulator:
         self.stage_id_dict = stage_id_dict
 
         
-    def estimate_cost_on_hlo_analysis(self):
+    def estimate_cost_on_hlo_analysis(self, offload_analysis=False):
         """Estimate the cost of a schedule using HLO analysis.
         """
         if self.total_latency is not None and self.peak_memory is not None \
@@ -520,27 +520,28 @@ class HloAnalysisSimulator:
             print('stage_idx: ', stage_idx, 'latency: ', latency)
             self.stage_latency.append(latency)
         
-        # estimate memory offload cost
-        if global_config.hardware == "gpu":
-            hardware_config = global_config.gpu_config
-        else:
-            hardware_config = global_config.wsc_config
-        common_text = {
-            "analytical_perf::num_micro_batches": self.num_batch,
-            "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
-            "analytical_perf::force_use_fp16": global_config.force_use_fp16,
-            "analytical_perf::verbose": 0,
-        }
-        for merge_stage_id in self.stage_id_dict: 
-            fw_bw_apply = []
-            for stage_id in merge_stage_id:
-                fw_bw_apply.append(self.spmd_module_list[stage_id])
-            # get fw, bw, apply_grad state mem offload cost
-            with XlaPassContext(hardware_config | common_text):
-                cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
-            # add back to each stage
-            for i, stage_id in enumerate(merge_stage_id):
-                self.stage_latency[stage_id] += cost[i]
+        if offload_analysis:
+            # estimate memory offload cost
+            if global_config.hardware == "gpu":
+                hardware_config = global_config.gpu_config
+            else:
+                hardware_config = global_config.wsc_config
+            common_text = {
+                "analytical_perf::num_micro_batches": self.num_batch,
+                "analytical_perf::grad_sync_channel_ids": grad_sync_channel_ids,
+                "analytical_perf::force_use_fp16": global_config.force_use_fp16,
+                "analytical_perf::verbose": 0,
+            }
+            for merge_stage_id in self.stage_id_dict: 
+                fw_bw_apply = []
+                for stage_id in merge_stage_id:
+                    fw_bw_apply.append(self.spmd_module_list[stage_id])
+                # get fw, bw, apply_grad state mem offload cost
+                with XlaPassContext(hardware_config | common_text):
+                    cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
+                # add back to each stage
+                for i, stage_id in enumerate(merge_stage_id):
+                    self.stage_latency[stage_id] += cost[i]
                                         
         # use schedule to estimate the total latency
         for clock_idx, batch_stage_pair_list in  enumerate(self.schedule.schedules):
