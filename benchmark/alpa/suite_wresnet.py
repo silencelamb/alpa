@@ -16,7 +16,12 @@ WResNetModelConfig = namedtuple(
     ["image_size", "num_layers", "num_channels", "width_factor", "dtype"])
 
 wresnet_specs = {
+    # NOTE: k^2 == #params, num_channels^2 == #params, #params proportion to Flops
+    # WResNet50-2 = ResNet50 + width_factor=2,: 69M params, 11B FLops -- 11427/68.88=165.89
+    # Wide ResNet101-2: 127M params, 23B FLops
+    # 250M/69M = 3.6 -- sqrt(3.6)=1.9 -- 160/1.9=84
     #                      I,   L,   C,   W,  dtype,
+    # 250M = 41.47B Flops, 500M = 82.95B, 165.89B, 331.78B, 663.56B
     "250M": WResNetModelConfig(224, 50, 160, 2, "fp32"),
     "500M": WResNetModelConfig(224, 50, 224, 2, "fp32"),
     "1B": WResNetModelConfig(224, 50, 320, 2, "fp32"),
@@ -24,6 +29,18 @@ wresnet_specs = {
     "4B": WResNetModelConfig(224, 50, 640, 2, "fp32"),
     "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp32"),
     "13B": WResNetModelConfig(224, 101, 320, 16, "fp32"),
+}
+
+
+wresnet_params = {
+    # NOTE: get params (Billion) & Flops (Trillion) by config
+    tuple(WResNetModelConfig(224, 50, 160, 2, "fp32")): [0.25*1e9, 0.0415],
+    tuple(WResNetModelConfig(224, 50, 224, 2, "fp32")): [0.5*1e9, 0.0829],
+    tuple(WResNetModelConfig(224, 50, 320, 2, "fp32")): [1*1e9, 0.1659],
+    tuple(WResNetModelConfig(224, 50, 448, 2, "fp32")): [2*1e9, 0.3318],
+    tuple(WResNetModelConfig(224, 50, 640, 2, "fp32")): [4*1e9, 0.6636],
+    tuple(WResNetModelConfig(224, 50, 320, 16, "fp32")): [6.8*1e9, 1.1281],
+    tuple(WResNetModelConfig(224, 101, 320, 16, "fp32")): [13*1e9, 2.1566],
 }
 
 prefer_reduce_scatter = True

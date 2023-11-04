@@ -33,6 +33,21 @@ bert_specs = {
 
 }
 
+bert_params = {
+    #                      S，   H,   L,  head,   V,
+    tuple(BERTModelConfig(512, 128, 2, 8, 30522)): ["125M", ""],
+    tuple(BERTModelConfig(512, 256, 4, 8, 30522)): ["350M", ""],
+    tuple(BERTModelConfig(512, 512, 4, 8, 30522)): ["760M", ""],
+    tuple(BERTModelConfig(512, 512, 8, 8, 30522)): ["1.3B", ""],
+    tuple(BERTModelConfig(512, 768, 12, 12, 30522)): ["110M", ""],
+    tuple(BERTModelConfig(512, 1024, 24, 16, 30522)): ["340M", ""],
+
+    tuple(BERTModelConfig(512, 5120, 48, 40, 30522)): ["15B", ""],
+    tuple(BERTModelConfig(512, 8192, 48, 64, 30522)): ["39B", ""],
+    tuple(BERTModelConfig(512, 10240, 60, 80, 30522)): ["76B", ""],
+}
+
+
 _ = None
 
 # Temporary debug suite

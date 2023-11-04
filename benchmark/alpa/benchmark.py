@@ -94,9 +94,11 @@ def benchmark_suite(suite_name,
     # NOTE: First select suite_name, then select num_gpus
     suite = benchmark_suites[suite_name][num_gpus]
 
+
     os.makedirs("tmp", exist_ok=True)
 
     model_type = suite_name.split(".")[0]
+    
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     global_config = get_global_config()
     output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
@@ -138,20 +140,26 @@ def benchmark_suite(suite_name,
                                     use_separate_process=use_separate_process)
 
         (parameter_count, peak_mem, latencies, tflops, metadata) = result
+        # NOTE: only WResNet is static tuple, GPT&BERT computed by func
+        if model_type == "wresnet":
+            params_list = suite_wresnet.wresnet_params[tuple(model_config)]
+            parameter_count, tflops = params_list
+        # elif model_type == "gpt":
+        #     params_list = suite_manual_gpt.gpt_params[tuple(model_config)]
 
         heads = [
-            "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-            "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "TFLOPs",
-            "Peak Mem (GB)", "Metadata"
+            "Type", "#Params (Billion)", "TFLOPs", "Model Config", 
+            "#Microbatch", "#GPU", "Parallel Config",
+            "Mean Time (s)", "Std Time (s)", "Peak Mem (GB)", "Metadata"
         ]
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
             
         values = [
-            model_type, model_config, num_micro_batches, num_gpus,
+            model_type, f"{parameter_count/1e9:.3f}B",
+            f"{tflops:.4f}", model_config, num_micro_batches, num_gpus,
             parallel_args, f"{np.mean(latencies):.3f}",
-            f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
-            f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
+            f"{np.std(latencies):.3f}", f"{peak_mem/GB:.3f}",
             to_str_round(metadata, 6)
         ]
         write_tsv(heads, values, output_name)

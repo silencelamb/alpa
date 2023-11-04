@@ -314,12 +314,11 @@ def benchmark_wresnet_3d_internal(model_type,
     # Compute statistics
     num_gpus = virtual_mesh.num_devices
     # TODO: compute WResNet TFlops & Param
-    # tflops = 0.
-    # parameter_count = 0.
+    # print(f"&&&&&&&&&&&& executable = {executable}")
     # tflops = executable.flop_count / num_gpus / np.mean(latencies) / 1e12
     # parameter_count = compute_param_number(state.params)
 
-    
+    # NOTE: below is wrong
     tflops, parameter_count, total_tflops = compute_wresnet_statistics(benchmark_case, latencies, num_gpus)
 
 

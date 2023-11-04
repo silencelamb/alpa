@@ -34,6 +34,19 @@ gpt_specs = {
     "76B": GPTModelConfig(1024, 10240, 60, 80, 51200),
 }
 
+gpt_params = {
+    #                      S，   H,   L,  head,   V,
+    tuple(GPTModelConfig(1024, 768, 12, 12, 51200)): ["125M", ""],
+    tuple(GPTModelConfig(1024, 1024, 24, 16, 51200)): ["350M", ""],
+    tuple(GPTModelConfig(1024, 1536, 24, 16, 51200)): ["760M", ""],
+    tuple(GPTModelConfig(1024, 2048, 24, 32, 51200)): ["1.3B", ""],
+    tuple(GPTModelConfig(1024, 2560, 32, 32, 51200)): ["2.6B", ""],
+    tuple(GPTModelConfig(1024, 4096, 32, 32, 51200)): ["6.7B", ""],
+    tuple(GPTModelConfig(1024, 5120, 48, 40, 51200)): ["15B", ""],
+    tuple(GPTModelConfig(1024, 8192, 48, 64, 51200)): ["39B", ""],
+    tuple(GPTModelConfig(1024, 10240, 60, 80, 51200)): ["76B", ""],
+}
+
 _ = None
 
 # Temporary debug suite
