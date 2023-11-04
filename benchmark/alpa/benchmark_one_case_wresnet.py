@@ -227,8 +227,8 @@ def benchmark_wresnet_3d_internal(model_type,
             host_ids_ =0
             num_devices_per_host_ = 0
             for item1 in benchmark_case[4].stage_option.submeshes:
-                row_max = max(item1[0], item1[2])                
-                clo_max = max(item1[1], item1[3])
+                row_max = max(item1[1], item1[3])                
+                clo_max = max(item1[0], item1[2])
                 if row_max > host_ids_:
                     host_ids_ = row_max
                 if clo_max> num_devices_per_host_:

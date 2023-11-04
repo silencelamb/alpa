@@ -1750,6 +1750,7 @@ class OverLapError(Exception):
 def check_submesh_is_valid(virtual_mesh_shape: Sequence[int], 
                            submeshes: Sequence[Sequence[int]]):
     rows, cols = virtual_mesh_shape
+    print(virtual_mesh_shape)
     np_array = np.array(submeshes)
     left, top, right, bottom = np_array[:,0], np_array[:,1], np_array[:,2], np_array[:,3]
     # 1. 越界判断
@@ -1779,7 +1780,7 @@ def check_submesh_is_valid(virtual_mesh_shape: Sequence[int],
 
 def get_submesh_physical_shapes(submeshes: Sequence[Sequence[int]]):
     submesh_physical_shapes = [
-        [submesh[2]-submesh[0]+1, submesh[3]-submesh[1]+1]
+        [submesh[3]-submesh[1]+1, submesh[2]-submesh[0]+1]
         for submesh in submeshes
     ]
     return submesh_physical_shapes
