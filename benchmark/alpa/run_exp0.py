@@ -43,6 +43,29 @@ model_search_suites = {
 cluster_settings = [(8, 8), (4, 8), (2, 8), (1, 8), (1, 4), (1, 2), (1, 1)]
 
 if __name__ == "__main__":
+    import wandb
+    import pandas as pd
+
+    # 初始化W&B
+    wandb.init(project='Wafer Search')
+
+    # 创建一个空的表格
+    table = wandb.Table(columns=["Type", "Column 2", "Column 3"])
+
+    # 添加数据到表格
+    table.add_data(1, 2, 3)
+    table.add_data(4, 5, 6)
+    table.add_data(7, 8, 9)
+
+    # 将表格保存到W&B
+    wandb.log({"my_table": table})
+
+    # 可选：将表格转换为Pandas DataFrame
+    df = pd.DataFrame(table.data, columns=table.columns)
+
+    # 打印表格
+    print(df)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("model", type=str, choices=model_search_suites.keys())
     args = parser.parse_args()

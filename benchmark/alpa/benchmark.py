@@ -9,8 +9,7 @@ import json
 import numpy as np
 
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
-from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
-                       GB)
+from alpa.util import (write_tsv, to_str_round, GB)
 from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
@@ -83,8 +82,13 @@ def benchmark_suite(suite_name,
                     profile_driver_time=False,
                     disable_tqdm=False,
                     use_separate_process=True):
-    num_gpus = num_hosts * num_devices_per_host
+    heads = [
+        "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+        "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
+        "#GPU", "Parallel Config", "Metadata"
+    ]
 
+    num_gpus = num_hosts * num_devices_per_host
     if local:
         assert shard_only, ("Only shard-only mode is supported for execution "
                             "on local GPUs.")
@@ -102,9 +106,11 @@ def benchmark_suite(suite_name,
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     global_config = get_global_config()
     output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
-
+    cc = 0
+    res = {}
     # Run all cases
     for benchmark_case in suite:
+
         benchmark_case: BenchmarkCase
         totol_batch_size = benchmark_case.batch_size
         model_config = benchmark_case.model_config
@@ -147,11 +153,7 @@ def benchmark_suite(suite_name,
         # elif model_type == "gpt":
         #     params_list = suite_manual_gpt.gpt_params[tuple(model_config)]
 
-        heads = [
-            "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
-            "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
-            "#GPU", "Parallel Config", "Metadata"
-        ]
+
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
             
@@ -159,9 +161,11 @@ def benchmark_suite(suite_name,
             model_type, f"{parameter_count/1e9:.3f}B",
             f"{tflops:.4f}", f"{np.mean(latencies):.5f}",
             f"{np.std(latencies):.5f}", f"{peak_mem/GB:.5f}",
-            model_config, num_micro_batches, num_gpus,
+            str(model_config), str(num_micro_batches), num_gpus,
             parallel_args, to_str_round(metadata, 6)
         ]
+
+
         write_tsv(heads, values, output_name)
         values = [str(x) for x in values]
         result_dict = dict(zip(heads, values))
@@ -172,19 +176,66 @@ def benchmark_suite(suite_name,
             gen_mapping_vis_result(global_config.maping_rst_dir)
         time.sleep(0.1)  # for ctrl+c to work
 
+        res[cc] = values
+        cc+=1
+    return res
+
+# 自定义类型转换函数，将逗号分隔的字符串转换为列表
+def str_list(string):
+    if ',' in string:
+        return string.split(',')
+    else:
+        return [string]
+    
+def int_list(string):
+    if ',' in string:
+        return [int(s) for s in string.split(',')]
+    else:
+        return [int(string)]
+    
+def get_num_hosts_and_num_devices(args, i):
+    import ray
+    import subprocess
+    def list_gpu_info():
+        """List all gpu information by calling nvidia-sim."""
+        ret = subprocess.getoutput("nvidia-smi -L")
+        visible_devices = os.environ.get("CUDA_VISIBLE_DEVICES", None)
+        if visible_devices:
+            ids = [int(x) for x in visible_devices.split(",")]
+            lines = ret.split("\n")
+            lines = [lines[i] for i in ids]
+            ret = "\n".join(lines)
+        return ret
+    """Get the number of hosts and the number of devices per host for benchmark
+    scripts."""
+    if args.num_hosts[i] is not None or args.num_devices_per_host[i] is not None:
+        assert (args.num_hosts[i] is not None and
+                args.num_devices_per_host[i] is not None)
+        num_hosts, num_devices_per_host = (args.num_hosts[i],
+                                           args.num_devices_per_host[i])
+    else:
+        if hasattr(args, "local") and args.local:
+            num_hosts = 1
+            num_devices_per_host = list_gpu_info().count("UUID")
+        else:
+            ray.init(address="auto")
+            num_hosts = len(ray.nodes())
+            num_devices_per_host = int(
+                ray.cluster_resources()["GPU"]) // num_hosts
+    return num_hosts, num_devices_per_host
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--suite",
-                        choices=list(benchmark_suites.keys()),
-                        type=str,
+                        # choices=list(benchmark_suites.keys()),
+                        type=str_list,
                         required=True, default="")
     parser.add_argument("--niter",
                         type=int,
                         default=3,
                         help="The number of benchmark iterations")
-    parser.add_argument("--num-hosts", type=int, default=2)
-    parser.add_argument("--num-devices-per-host", type=int, default=4)
+    parser.add_argument("--num-hosts", type=int_list, default=2)
+    parser.add_argument("--num-devices-per-host", type=int_list, default=4)
     parser.add_argument("--shard-only",
                         action="store_true",
                         help="Only profile the 2D case. No pipeline "
@@ -212,58 +263,79 @@ if __name__ == "__main__":
     parser.add_argument("--force_use_fp16", action="store_true")
     parser.add_argument("--use-greedy-collective-cost", action="store_true")
     args = parser.parse_args()
-    num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
 
-    # set global_config, only_mapping
-    global_config = get_global_config()
-    global_config.only_mapping = args.only_mapping
+    heads = [
+        "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+        "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
+        "#GPU", "Parallel Config", "Metadata"
+    ]
+    import wandb
+    import pandas as pd
 
-    # set whether use analytical model
-    global_config.use_analytical_perf_model = args.use_analytical_perf_model
-    # set whether use the greedy-collective cost in analytical model
-    global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
-    if args.use_greedy_collective_cost:
-        get_collective_cost_dict()
+    # 初始化W&B
+    wandb.init(project='Benckmark')
 
-    # set mapping result save dir
-    if args.rst_folder == "":
-        args.rst_folder = "tmp"
-    
-    date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    if args.only_mapping:
-        if global_config.use_analytical_perf_model:
-            actual_or_virtual = f"perf@{global_config.hardware}"
+    # 创建一个空的表格
+    table = wandb.Table(columns=heads)
+    for i in range(len(args.suite)):
+
+        num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args, i)
+
+        # set global_config, only_mapping
+        global_config = get_global_config()
+        global_config.only_mapping = args.only_mapping
+
+        # set whether use analytical model
+        global_config.use_analytical_perf_model = args.use_analytical_perf_model
+        # set whether use the greedy-collective cost in analytical model
+        global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
+        if args.use_greedy_collective_cost:
+            get_collective_cost_dict()
+
+        # set mapping result save dir
+        if args.rst_folder == "":
+            args.rst_folder = "tmp"
+        
+        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        if args.only_mapping:
+            if global_config.use_analytical_perf_model:
+                actual_or_virtual = f"perf@{global_config.hardware}"
+            else:
+                actual_or_virtual = "costmodel"
         else:
-            actual_or_virtual = "costmodel"
-    else:
-        actual_or_virtual =  "actualA100"
-    args.rst_folder = f"{args.rst_folder}/{args.suite}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
-    print(args.rst_folder)
-    os.makedirs(args.rst_folder, exist_ok=True)
+            actual_or_virtual =  "actualA100"
+        args.rst_folder = f"{args.rst_folder}/{args.suite[i]}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
+        print(args.rst_folder)
+        os.makedirs(args.rst_folder, exist_ok=True)
 
-    global_config.rst_folder = args.rst_folder
-    # global_config.hardware = args.hardware
-    # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
-    if args.hardware == "dojo":
-        global_config.wsc_config = global_config.dojo_config
-        global_config.hardware = "wsc"
-        print(f"Set DOJO config = {global_config.wsc_config}")
-    elif args.hardware == "wsgpu":
-        global_config.wsc_config = global_config.wsgpu_config
-        global_config.hardware = "wsc"
-        print(f"Set SW-GPU config = {global_config.wsc_config}")
-    else:
-        # NOTE: origin support for GPU & TX8 WSC
-        global_config.hardware = args.hardware
+        global_config.rst_folder = args.rst_folder
+        # global_config.hardware = args.hardware
+        # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
+        if args.hardware == "dojo":
+            global_config.wsc_config = global_config.dojo_config
+            global_config.hardware = "wsc"
+            print(f"Set DOJO config = {global_config.wsc_config}")
+        elif args.hardware == "wsgpu":
+            global_config.wsc_config = global_config.wsgpu_config
+            global_config.hardware = "wsc"
+            print(f"Set SW-GPU config = {global_config.wsc_config}")
+        else:
+            # NOTE: origin support for GPU & TX8 WSC
+            global_config.hardware = args.hardware
 
-    global_config.force_use_fp16 = args.force_use_fp16
+        global_config.force_use_fp16 = args.force_use_fp16
 
-    set_global_config(global_config)
-    global_config = get_global_config()
-    print(global_config.use_analytical_perf_model)
+        set_global_config(global_config)
+        global_config = get_global_config()
+        print(global_config.use_analytical_perf_model)
 
 
-    benchmark_suite(args.suite, num_hosts, num_devices_per_host, args.exp_name,
-                    args.niter, args.shard_only, args.local,
-                    args.profile_driver_time, args.disable_tqdm,
-                    args.use_separate_process)
+        res = benchmark_suite(args.suite[i], num_hosts, num_devices_per_host, args.exp_name,
+                        args.niter, args.shard_only, args.local,
+                        args.profile_driver_time, args.disable_tqdm,
+                        args.use_separate_process)
+        for key, val in res.items():
+            table.add_data(*val)
+
+    # 将表格保存到W&B
+    wandb.log({"Wafer": table})  

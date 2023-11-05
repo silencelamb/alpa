@@ -85,3 +85,5 @@ examples/imagenet/imagenet
 benchmark/alpa/data
 benchmark/alpa/zhc_test
 benchmark/alpa/zhc.sh
+benchmark/alpa/kong_test*
+benchmark/alpa/wandb
