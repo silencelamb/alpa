@@ -435,8 +435,10 @@ def benchmark_gpt_bert_3d_internal(model_type,
         "estimated_total_time": estimated_total_time,
         "total_tflops": total_tflops,
     }
-
-    return parameter_count, max_mem_allocated, latencies, tflops, metadata
+    # NOTE: As too low latency, we need return total_tflops, instead of TFlops
+    # #param=0.124B, TFlops=1531.8073(too large), #params = 2.65B, TFlops = 108.2885
+    # tflops = total_flop / latency / num_gpus
+    return parameter_count, max_mem_allocated, latencies, total_tflops, metadata
 
 
 def benchmark_gpt_bert_2d_internal(physical_mesh,

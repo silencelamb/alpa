@@ -664,6 +664,9 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
     num_devices_per_host = virtual_mesh.num_devices_per_host
     submesh_sizes = [np.prod(submesh) for submesh in submesh_shapes]
     virtual_submeshes = [None] * len(submesh_shapes)
+    if sum(submesh_sizes) != virtual_mesh.num_devices:
+        print(f"sum of submesh = {sum(submesh_sizes)}")
+        print(f"virtual mesh = {virtual_mesh.num_devices}")
     assert sum(submesh_sizes) == virtual_mesh.num_devices
     sorted_submesh_indices = np.argsort(submesh_sizes)
     current_host_id = 0

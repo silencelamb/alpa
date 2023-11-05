@@ -120,32 +120,32 @@ model_type_size_dict = {
 # Performance test with search solutions found for p3.16xlarge
 perf_test_suite = {
     1:
-        get_solution_case(bert_specs["Tiny"], 128, 1, [[0]], [(1, 1)], [(1, 1)],
+        get_solution_case(bert_specs["Large"], 128, 1, [[0]], [(1, 1)], [(1, 1)],
                           [{}]),
     2:
-        get_solution_case(bert_specs["Mini"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(bert_specs["LL"], 128, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 1)] * 2, [(1, 1)] * 2, [force_dp_dict] * 2),
     4:
-        get_solution_case(bert_specs["Small"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(bert_specs["LLL"], 128, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 2)] * 2, [(2, 1)] * 2, [force_dp_dict] * 2),
     8:
-        get_solution_case(bert_specs["Medium"], 128,
+        get_solution_case(bert_specs["LLLL"], 128,
                           8, [[0, 1], [2, 3], [4, 5, 6, 7]], [(1, 2), (1, 2),
                                                               (1, 4)], [(2, 1),
                                                                         (2, 1),
                                                                         (4, 1)],
                           [force_dp_dict, {}, {}]),
     16:
-        get_solution_case(bert_specs["Base"], 64, 8,
+        get_solution_case(bert_specs["LLLLL"], 64, 8,
                           [[0, 1, 2, 3], [4, 5, 6, 7]], [(1, 8)] * 2,
                           [(2, 4)] * 2, [force_dp_dict] * 2),
-    # 32:
-    #     get_solution_case(
-    #         bert_specs["15B"], 128, 16,
-    #         [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
-    #         [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
+    32:
+        get_solution_case(
+            bert_specs["LLLLLL"], 128, 16,
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
     64:
-        get_solution_case(bert_specs["Large"], 1024,
+        get_solution_case(bert_specs["LLLLLLL"], 1024,
                           16, [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],
                                [10], [11], [12], [13], [14], [15]],
                           [(1, 4)] * 16, [(1, 4)] * 16, [force_dp_dict] * 16),

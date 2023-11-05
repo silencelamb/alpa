@@ -346,8 +346,8 @@ def benchmark_wresnet_3d_internal(model_type,
         # NOTE: no compute WResNet Total_TFlops
         "total_tflops": total_tflops,
     }
-
-    return parameter_count, max_mem_allocated, latencies, tflops, metadata
+    # NOTE: We need return total_tflops, instead of TFlops -- otherwise for #gpu=1, TFlops=1531.8073(too huge)
+    return parameter_count, max_mem_allocated, latencies, total_tflops, metadata
 
 
 def benchmark_wresnet_2d_internal(physical_mesh,

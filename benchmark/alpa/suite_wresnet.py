@@ -40,7 +40,8 @@ wresnet_params = {
     tuple(WResNetModelConfig(224, 50, 448, 2, "fp32")): [2*1e9, 0.3318],
     tuple(WResNetModelConfig(224, 50, 640, 2, "fp32")): [4*1e9, 0.6636],
     tuple(WResNetModelConfig(224, 50, 320, 16, "fp32")): [6.8*1e9, 1.1281],
-    tuple(WResNetModelConfig(224, 101, 320, 16, "fp32")): [13*1e9, 2.1566],
+    # Following is WResNet-101-2, layer is 101, WResnet: 127M params, 23B FLops --> 2.354TFlops
+    tuple(WResNetModelConfig(224, 101, 320, 16, "fp32")): [13*1e9, 2.354],
 }
 
 prefer_reduce_scatter = True

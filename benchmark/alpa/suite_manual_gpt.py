@@ -83,22 +83,45 @@ perf_test_fast_2d_suite = {
 
 # Performance test on normal models
 # B, model, NB, PM, (RS, Remat, 3D Config, FM)
+# NOTE: for manual test -- #gpu must be equal to prod(3D config)
 perf_test_suite = {
+    # 1: [
+    #     BenchmarkCase(16, gpt_specs["125M"], 1, "uniform",
+    #                   UniformParallelArgs(True, True, 1, 1, 1, True))
+    # ],
     1: [
         BenchmarkCase(16, gpt_specs["350M"], 1, "uniform",
                       UniformParallelArgs(True, True, 1, 1, 1, True))
     ],
     # add for test by daixu
     2: [
-        BenchmarkCase(16, gpt_specs["350M"], 4, "uniform",
+        BenchmarkCase(16, gpt_specs["760M"], 4, "uniform",
                       UniformParallelArgs(True, True, 1, 2, 1, True))
     ],
+    4: [
+        BenchmarkCase(16, gpt_specs["1.3B"], 4, "uniform",
+                      UniformParallelArgs(True, True, 2, 2, 1, True))
+    ],
     8: [
-        BenchmarkCase(32, gpt_specs["2.6B"], 4, "uniform",
-                      UniformParallelArgs(True, True, 2, 2, 2, True))
+        BenchmarkCase(32, gpt_specs["2.6B"], 8, "uniform",
+                      UniformParallelArgs(True, True, 2, 4, 1, True))
+    ],
+    16: [
+        BenchmarkCase(128, gpt_specs["6.7B"], 16, "uniform",
+                      UniformParallelArgs(True, True, 2, 4, 2, True))
+    ],
+
+    32: [
+        BenchmarkCase(256, gpt_specs["15B"], 32, "uniform",
+                      UniformParallelArgs(True, True, 2, 4, 4, True))
     ],
     64: [
-        BenchmarkCase(1024, gpt_specs["39B"], 1024, "uniform",
+        BenchmarkCase(1024, gpt_specs["39B"], 128, "uniform",
                       UniformParallelArgs(True, True, 1, 4, 16, True))
+    ],
+    # NOTE: 76B layers = 60, max factor=15, PP(pipeline parallel)=15
+    120: [
+        BenchmarkCase(2048, gpt_specs["76B"], 256, "uniform",
+                      UniformParallelArgs(True, True, 2, 4, 15, True))
     ],
 }

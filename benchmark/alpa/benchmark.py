@@ -67,7 +67,7 @@ benchmark_suites = {
     "moe.perf_test_auto": suite_auto_moe.perf_test_suite,
     "moe.grid_search_auto": suite_auto_moe.grid_search_suite,
 
-    "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
+    # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
     "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
     "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
 }
@@ -148,19 +148,19 @@ def benchmark_suite(suite_name,
         #     params_list = suite_manual_gpt.gpt_params[tuple(model_config)]
 
         heads = [
-            "Type", "#Params (Billion)", "TFLOPs", "Model Config", 
-            "#Microbatch", "#GPU", "Parallel Config",
-            "Mean Time (s)", "Std Time (s)", "Peak Mem (GB)", "Metadata"
+            "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+            "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
+            "#GPU", "Parallel Config", "Metadata"
         ]
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
             
         values = [
             model_type, f"{parameter_count/1e9:.3f}B",
-            f"{tflops:.4f}", model_config, num_micro_batches, num_gpus,
-            parallel_args, f"{np.mean(latencies):.3f}",
-            f"{np.std(latencies):.3f}", f"{peak_mem/GB:.3f}",
-            to_str_round(metadata, 6)
+            f"{tflops:.4f}", f"{np.mean(latencies):.5f}",
+            f"{np.std(latencies):.5f}", f"{peak_mem/GB:.5f}",
+            model_config, num_micro_batches, num_gpus,
+            parallel_args, to_str_round(metadata, 6)
         ]
         write_tsv(heads, values, output_name)
         values = [str(x) for x in values]
@@ -178,13 +178,13 @@ if __name__ == "__main__":
     parser.add_argument("--suite",
                         choices=list(benchmark_suites.keys()),
                         type=str,
-                        required=True)
+                        required=True, default="")
     parser.add_argument("--niter",
                         type=int,
                         default=3,
                         help="The number of benchmark iterations")
-    parser.add_argument("--num-hosts", type=int, default=None)
-    parser.add_argument("--num-devices-per-host", type=int, default=None)
+    parser.add_argument("--num-hosts", type=int, default=2)
+    parser.add_argument("--num-devices-per-host", type=int, default=4)
     parser.add_argument("--shard-only",
                         action="store_true",
                         help="Only profile the 2D case. No pipeline "
@@ -201,11 +201,12 @@ if __name__ == "__main__":
                         help="Do not launch separate processes for benchmark. "
                         "Errors in a single case will terminate this "
                         "script.",
-                        dest="use_separate_process")
+                        dest="use_separate_process",
+                        default=False)
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
-    parser.add_argument("--only-mapping", action="store_true", dest="only_mapping")
-    parser.add_argument("--use-analytical-perf-model", action="store_true", dest="use_analytical_perf_model")
+    parser.add_argument("--only-mapping", action="store_true", dest="only_mapping", default=True)
+    parser.add_argument("--use-analytical-perf-model", action="store_true", dest="use_analytical_perf_model", default=True)
     parser.add_argument("--rst_folder", type=str, default="")
     parser.add_argument("--hardware", type=str, default="gpu")
     parser.add_argument("--force_use_fp16", action="store_true")
