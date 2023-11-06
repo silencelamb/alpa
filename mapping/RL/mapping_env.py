@@ -89,6 +89,7 @@ class WSCMappingEnv(gym.Env):
         for benchmark_case in suite:
             benchmark_case: BenchmarkCase
             print(benchmark_case.batch_size)
+            print(self.grid)
             model_config = benchmark_case.model_config
             num_micro_batches = benchmark_case.num_micro_batches
             try:
@@ -199,7 +200,6 @@ class WSCMappingEnv(gym.Env):
             self.average_reward = statistics.mean(self.reward_record)
             self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
             print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
-            print(self.grid)
             
         if self.use_image:
             return self.grid[np.newaxis, :], reward, done, truncted, {}
