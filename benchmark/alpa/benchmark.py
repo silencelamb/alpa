@@ -265,7 +265,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     heads = [
-        "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+        "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)","Mean Time (s)", 
         "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
         "#GPU", "Parallel Config", "Metadata"
     ]
