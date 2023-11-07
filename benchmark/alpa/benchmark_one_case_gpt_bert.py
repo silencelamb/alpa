@@ -21,7 +21,7 @@ from suite_manual_gpt import MLPModelConfig, GPTModelConfig
 from suite_manual_bert import BERTModelConfig
 
 
-from util import compute_gpt_parameter_count,compute_mlp_parameter_count, compute_gpt_tflops,compute_mlp_tflops
+from util import *
 from benchmark_parallel_utils import (
     BenchmarkCase, get_pipeshard_parallel_method, get_shard_parallel_method,
     compile_and_benchmark_pipeshard_training_executable,
@@ -165,7 +165,6 @@ def get_train_step_mlp(parallel_method,
 
 class mlp_Model(nn.Module):
     
-    @nn.compact
     def __call__(self, x):
         for i in range(16):
             x = nn.Dense(features=1024,dtype= jnp.float16,use_bias=True)(x)
@@ -306,7 +305,7 @@ def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
                                     np.mean(latencies)
                                     )
         parameter_count = compute_mlp_parameter_count(num_layers, hidden_size)
-    else:        
+    elif (type(benchmark_case.model_config) is GPTModelConfig):        
         (seq_len, hidden_size, num_layers, num_heads,
         vocab_size) = benchmark_case.model_config  
         use_remat = benchmark_case.parallel_args.use_remat
@@ -320,8 +319,20 @@ def compute_gpt_bert_statistics(benchmark_case, latencies, num_devices):
                                     checkpoint_activations=use_remat)
         parameter_count = compute_gpt_parameter_count(num_layers, hidden_size,
                                                     vocab_size)
-    
-    
+    elif (type(benchmark_case.model_config) is BERTModelConfig):
+        (seq_len, hidden_size, num_layers, num_heads,
+        vocab_size) = benchmark_case.model_config  
+        use_remat = benchmark_case.parallel_args.use_remat
+        tflops, total_tflops = compute_gpt_tflops(batch_size,
+                                    seq_len,
+                                    num_layers,
+                                    hidden_size,
+                                    vocab_size,
+                                    num_devices,
+                                    np.mean(latencies),
+                                    checkpoint_activations=use_remat)
+        parameter_count = compute_bert_parameter_count(seq_len, 
+                            hidden_size, num_layers, num_heads, vocab_size)
     
     return tflops, parameter_count, total_tflops
 
@@ -435,10 +446,9 @@ def benchmark_gpt_bert_3d_internal(model_type,
         "estimated_total_time": estimated_total_time,
         "total_tflops": total_tflops,
     }
-    # NOTE: As too low latency, we need return total_tflops, instead of TFlops
     # #param=0.124B, TFlops=1531.8073(too large), #params = 2.65B, TFlops = 108.2885
     # tflops = total_flop / latency / num_gpus
-    return parameter_count, max_mem_allocated, latencies, total_tflops, metadata
+    return parameter_count, max_mem_allocated, latencies, tflops, metadata
 
 
 def benchmark_gpt_bert_2d_internal(physical_mesh,

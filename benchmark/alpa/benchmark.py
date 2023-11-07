@@ -69,6 +69,7 @@ benchmark_suites = {
     # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
     "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
     "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
+    "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
 }
 
 
@@ -83,7 +84,7 @@ def benchmark_suite(suite_name,
                     disable_tqdm=False,
                     use_separate_process=True):
     heads = [
-        "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+        "Type", "#Params (Billion)", "TFLOPs", "Utilization (% A100 FP32)", "Mean Time (s)", 
         "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
         "#GPU", "Parallel Config", "Metadata"
     ]
@@ -146,20 +147,21 @@ def benchmark_suite(suite_name,
                                     use_separate_process=use_separate_process)
 
         (parameter_count, peak_mem, latencies, tflops, metadata) = result
-        # NOTE: only WResNet is static tuple, GPT&BERT computed by func
-        if model_type == "wresnet":
-            params_list = suite_wresnet.wresnet_params[tuple(model_config)]
-            parameter_count, tflops = params_list
+        # # NOTE: only WResNet is static tuple, GPT&BERT computed by func
+        # if model_type == "wresnet":
+        #     params_list = suite_wresnet.wresnet_params[tuple(model_config)]
+        #     parameter_count, tflops = params_list
         # elif model_type == "gpt":
         #     params_list = suite_manual_gpt.gpt_params[tuple(model_config)]
 
 
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
-            
+        A100_FP32 = 19.5
         values = [
             model_type, f"{parameter_count/1e9:.3f}B",
-            f"{tflops:.4f}", f"{np.mean(latencies):.5f}",
+            f"{tflops:.4f}", f"{tflops/A100_FP32*100}",
+            f"{np.mean(latencies):.5f}",
             f"{np.std(latencies):.5f}", f"{peak_mem/GB:.5f}",
             str(model_config), str(num_micro_batches), num_gpus,
             parallel_args, to_str_round(metadata, 6)
@@ -234,8 +236,8 @@ if __name__ == "__main__":
                         type=int,
                         default=3,
                         help="The number of benchmark iterations")
-    parser.add_argument("--num-hosts", type=int_list, default=2)
-    parser.add_argument("--num-devices-per-host", type=int_list, default=4)
+    parser.add_argument("--num-hosts", type=int_list, default=4)
+    parser.add_argument("--num-devices-per-host", type=int_list, default=5)
     parser.add_argument("--shard-only",
                         action="store_true",
                         help="Only profile the 2D case. No pipeline "
@@ -259,13 +261,13 @@ if __name__ == "__main__":
     parser.add_argument("--only-mapping", action="store_true", dest="only_mapping", default=True)
     parser.add_argument("--use-analytical-perf-model", action="store_true", dest="use_analytical_perf_model", default=True)
     parser.add_argument("--rst_folder", type=str, default="")
-    parser.add_argument("--hardware", type=str, default="gpu")
+    parser.add_argument("--hardware", type=str_list, default="wsc")
     parser.add_argument("--force_use_fp16", action="store_true")
     parser.add_argument("--use-greedy-collective-cost", action="store_true")
     args = parser.parse_args()
 
     heads = [
-        "Type", "#Params (Billion)", "TFLOPs","Mean Time (s)", 
+        "Type", "#Params (Billion)", "TFLOPs", "Utilization (% A100 FP32)", "Mean Time (s)", 
         "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
         "#GPU", "Parallel Config", "Metadata"
     ]
@@ -299,7 +301,7 @@ if __name__ == "__main__":
         date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         if args.only_mapping:
             if global_config.use_analytical_perf_model:
-                actual_or_virtual = f"perf@{global_config.hardware}"
+                actual_or_virtual = f"perf@{global_config.hardware[i]}"
             else:
                 actual_or_virtual = "costmodel"
         else:
@@ -311,17 +313,17 @@ if __name__ == "__main__":
         global_config.rst_folder = args.rst_folder
         # global_config.hardware = args.hardware
         # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
-        if args.hardware == "dojo":
+        if args.hardware[i] == "dojo":
             global_config.wsc_config = global_config.dojo_config
             global_config.hardware = "wsc"
-            print(f"Set DOJO config = {global_config.wsc_config}")
-        elif args.hardware == "wsgpu":
+            # print(f"Set DOJO config = {global_config.wsc_config}")
+        elif args.hardware[i] == "wsgpu":
             global_config.wsc_config = global_config.wsgpu_config
             global_config.hardware = "wsc"
-            print(f"Set SW-GPU config = {global_config.wsc_config}")
+            # print(f"Set SW-GPU config = {global_config.wsc_config}")
         else:
             # NOTE: origin support for GPU & TX8 WSC
-            global_config.hardware = args.hardware
+            global_config.hardware = args.hardware[i]
 
         global_config.force_use_fp16 = args.force_use_fp16
 
