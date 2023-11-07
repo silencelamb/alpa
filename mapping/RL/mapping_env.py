@@ -13,7 +13,7 @@ from benchmark_parallel_utils import BenchmarkCase
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from suite_manual_gpt import gpt_specs
 from alpa import ManualStageOption, WSCManualStageOption
-from suite_auto_gpt import get_config_cases_idx, max_global_batch_size
+from suite_auto_gpt import get_one_config_case_idx, max_global_batch_size
 from alpa.util import to_str_round, GB
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
@@ -88,7 +88,7 @@ class WSCMappingEnv(gym.Env):
             cur_sum = cur_sum + x
         global max_global_batch_size
         max_global_batch_size = 1000
-        suite = get_config_cases_idx(gpt_specs["350M"], [100],
+        suite = get_one_config_case_idx(gpt_specs["350M"], [100],
                         # partition_index="uniform",
                         partition_index=partition_index,
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[x] for x in range(len(self.rect_list)) ],
