@@ -45,10 +45,10 @@ bert_specs = {
 bert_wsc_specs = {
     # NOTE: BERT-Large: 340M, BERT-Base: 110M
     #                    Seq_len, Hidden, Layer,  heads, vocab
-    "Tiny": BERTModelConfig(512, 128, 2, 8, 30522),
-    "Mini": BERTModelConfig(512, 256, 4, 8, 30522),
-    "Small": BERTModelConfig(512, 512, 4, 8, 30522),
-    "Medium": BERTModelConfig(512, 512, 8, 8, 30522),
+    # "Tiny": BERTModelConfig(512, 128, 2, 8, 30522),
+    # "Mini": BERTModelConfig(512, 256, 4, 8, 30522),
+    # "Small": BERTModelConfig(512, 512, 4, 8, 30522),
+    # "Medium": BERTModelConfig(512, 512, 8, 8, 30522),
     "Base": BERTModelConfig(512, 768, 12, 12, 30522),
     "Large": BERTModelConfig(512, 1024, 24, 16, 30522),
     "LL": BERTModelConfig(512, 1536, 24, 16, 30522),

@@ -17,10 +17,7 @@ from alpa import (parallelize, get_global_cluster,
 from alpa.model.wide_resnet import get_wide_resnet, TrainState
 from alpa.pipeline_parallel.stage_construction import get_last_dp_result
 from alpa.util import print_used_time, compute_param_number
-from benchmark_parallel_utils import (
-    get_pipeshard_parallel_method, get_shard_parallel_method,
-    compile_and_benchmark_pipeshard_training_executable,
-    compile_and_benchmark_shard_training_executable)
+from benchmark_parallel_utils import *
 from alpa.global_env import get_global_config, set_global_config
 from alpa.device_mesh import VirtualPhysicalMesh, get_global_virtual_physical_mesh
 from util import compute_wresnet_parameter_count, compute_wresnet_tflops
@@ -209,7 +206,7 @@ def compute_wresnet_statistics(benchmark_case, latencies, num_devices):
 
 
 def benchmark_wresnet_3d_internal(model_type,
-                                  benchmark_case,
+                                  benchmark_case: BenchmarkCase,
                                   niter,
                                   num_hosts,
                                   num_devices_per_host,
@@ -274,7 +271,8 @@ def benchmark_wresnet_3d_internal(model_type,
     (method, add_manual_remat, add_manual_layer_marker,num_manual_pipeline_stages) = get_pipeshard_parallel_method(
          benchmark_case,
          virtual_mesh.num_devices_per_host,
-         use_fine_grained_remat=use_fine_grained_remat)
+         use_fine_grained_remat=use_fine_grained_remat,
+         allow_mixed_mesh_shape=allow_mixed_mesh_shape)
 
     use_grad_acc = benchmark_case.num_micro_batches > 1
     grad_func = alpa.grad if use_grad_acc else jax.grad
@@ -324,7 +322,8 @@ def benchmark_wresnet_3d_internal(model_type,
     model_config = benchmark_case.model_config
     params_list = suite_wresnet.wresnet_params[tuple(model_config)]
     parameter_count, total_tflops = params_list
-    tflops = total_tflops / latencies / num_gpus 
+    total_tflops *= benchmark_case.batch_size
+    tflops = total_tflops / np.mean(latencies) / num_gpus 
 
     (compute_cost_file_name, forward_stage_layer_ids, submesh_shapes,
      logical_mesh_shapes, autosharding_option_dicts, dp_cost) = get_last_dp_result()

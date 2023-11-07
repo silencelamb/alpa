@@ -208,8 +208,8 @@ class GlobalConfig:
         #TODO add Wafer-Scale GPU config @dehao
         self.wsgpu_config = {
             "analytical_perf::hardware": "wsc",
-            "analytical_perf_wsc::die_r_num": 5,
-            "analytical_perf_wsc::die_c_num": 8,
+            "analytical_perf_wsc::die_r_num": 6,
+            "analytical_perf_wsc::die_c_num": 4,
             # NVIDIA T4 compute capacity
             "analytical_perf::compute_dict": {
                 PrimitiveType.F16.value: int( 65 * TOPS),

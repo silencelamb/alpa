@@ -10,7 +10,7 @@ from alpa import ManualStageOption, WSCManualStageOption
 # NOTE: match for wsc 5 size, micro batch = 100, global bactch = 1000
 # max_global_batch_size = 1000
 # NOTE: normal is 1024
-max_global_batch_size = 1024
+max_global_batch_size = 1000
 # NOTE: For auto search option
 auto_stage_option = {
     "submesh_physical_shape_space": "small_power_of_two",
@@ -81,14 +81,14 @@ force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
 # NOTE: research how to construct different suite
 wsc_config_test_suite = { 
         # tx8
-    20: get_config_cases_idx(gpt_wsc_specs.values(), [128],
+    20: get_config_cases_idx(gpt_wsc_specs.values(), [10],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
                                                           submeshes=[[0, 0, 4, 3]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
                                                           submesh_autosharding_option_dicts=[{}])),
-    25: get_config_cases_idx(gpt_wsc_specs.values(), [128],
+    25: get_config_cases_idx(gpt_wsc_specs.values(), [10],
                         # partition_index="uniform",
                         partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
@@ -98,7 +98,7 @@ wsc_config_test_suite = {
         submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
     ),
 
-    40: get_config_cases_idx(gpt_wsc_specs.values(), [128],
+    40: get_config_cases_idx(gpt_wsc_specs.values(), [10],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
                                                           submeshes=[[0, 0, 4, 4]],

@@ -316,7 +316,7 @@ if __name__ == "__main__":
         if args.hardware[i] == "dojo":
             global_config.wsc_config = global_config.dojo_config
             global_config.hardware = "wsc"
-            # print(f"Set DOJO config = {global_config.wsc_config}")
+            print(f"Set DOJO config = {global_config.wsc_config}")
         elif args.hardware[i] == "wsgpu":
             global_config.wsc_config = global_config.wsgpu_config
             global_config.hardware = "wsc"

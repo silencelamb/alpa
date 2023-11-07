@@ -20,21 +20,21 @@ wresnet_specs = {
     # 250M/69M = 3.6 -- sqrt(3.6)=1.9 -- 160/1.9=84
     #                      I,   L,   C,   W,  dtype,
 
-    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp32"),  # resnet50
-    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp32"), # resnet101
-    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp32"), # resnet152
+    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp16"),  # resnet50
+    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp16"), # resnet101
+    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp16"), # resnet152
 
-    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp32"), # wresnet50-2
-    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp32"), # wresnet101-2
+    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp16"), # wresnet50-2
+    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp16"), # wresnet101-2
 
 
-    "250M": WResNetModelConfig(224, 50, 160, 2, "fp32"),
-    "500M": WResNetModelConfig(224, 50, 224, 2, "fp32"),
-    "1B": WResNetModelConfig(224, 50, 320, 2, "fp32"),
-    "2B": WResNetModelConfig(224, 50, 448, 2, "fp32"),
-    "4B": WResNetModelConfig(224, 50, 640, 2, "fp32"),
-    "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp32"),
-    "13B": WResNetModelConfig(224, 101, 320, 16, "fp32"),
+    "250M": WResNetModelConfig(224, 50, 160, 2, "fp16"),
+    "500M": WResNetModelConfig(224, 50, 224, 2, "fp16"),
+    "1B": WResNetModelConfig(224, 50, 320, 2, "fp16"),
+    "2B": WResNetModelConfig(224, 50, 448, 2, "fp16"),
+    "4B": WResNetModelConfig(224, 50, 640, 2, "fp16"),
+    "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp16"),
+    "13B": WResNetModelConfig(224, 101, 320, 16, "fp16"),
 }
 
 
@@ -45,42 +45,42 @@ wresnet_wsc_specs = {
     # 250M/69M = 3.6 -- sqrt(3.6)=1.9 -- 160/1.9=84
     #                      I,   L,   C,   W,  dtype,
 
-    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp32"),  # resnet50
-    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp32"), # resnet101
-    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp32"), # resnet152
+    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp16"),  # resnet50
+    # "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp16"), # resnet101
+    # "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp16"), # resnet152
 
-    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp32"), # wresnet50-2
-    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp32"), # wresnet101-2
+    # "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp16"), # wresnet50-2
+    # "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp16"), # wresnet101-2
 
 
 
-    # "250M": WResNetModelConfig(224, 50, 160, 2, "fp32"),
-    # "500M": WResNetModelConfig(224, 50, 224, 2, "fp32"),
-    # "1B": WResNetModelConfig(224, 50, 320, 2, "fp32"),
-    # "2B": WResNetModelConfig(224, 50, 448, 2, "fp32"),
-    # "4B": WResNetModelConfig(224, 50, 640, 2, "fp32"),
-    # "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp32"),
-    # "13B": WResNetModelConfig(224, 101, 320, 16, "fp32"),
+    # "250M": WResNetModelConfig(224, 50, 160, 2, "fp16"),
+    # "500M": WResNetModelConfig(224, 50, 224, 2, "fp16"),
+    # "1B": WResNetModelConfig(224, 50, 320, 2, "fp16"),
+    # "2B": WResNetModelConfig(224, 50, 448, 2, "fp16"),
+    # "4B": WResNetModelConfig(224, 50, 640, 2, "fp16"),
+    # "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp16"),
+    # "13B": WResNetModelConfig(224, 101, 320, 16, "fp16"),
 }
 
 wresnet_params = { 
     # NOTE: get params (Billion) & Flops (Trillion) by config
-    tuple(WResNetModelConfig(224, 50, 64, 1, "fp32")): [0.0256*1e9, 0.0041],
-    tuple(WResNetModelConfig(224, 101, 64, 1, "fp32")): [0.04455*1e9, 0.0078],
-    tuple(WResNetModelConfig(224, 152, 64, 1, "fp32")): [0.06019*1e9, 0.0116],
+    tuple(WResNetModelConfig(224, 50, 64, 1, "fp16")): [0.0256*1e9, 0.0041],
+    tuple(WResNetModelConfig(224, 101, 64, 1, "fp16")): [0.04455*1e9, 0.0078],
+    tuple(WResNetModelConfig(224, 152, 64, 1, "fp16")): [0.06019*1e9, 0.0116],
 
-    tuple(WResNetModelConfig(224, 50, 64, 2, "fp32")): [0.06888*1e9, 0.0114],
-    tuple(WResNetModelConfig(224, 101, 64, 2, "fp32")): [0.12688*1e9, 0.0228],
+    tuple(WResNetModelConfig(224, 50, 64, 2, "fp16")): [0.06888*1e9, 0.0114],
+    tuple(WResNetModelConfig(224, 101, 64, 2, "fp16")): [0.12688*1e9, 0.0228],
 
     # old part
-    tuple(WResNetModelConfig(224, 50, 160, 2, "fp32")): [0.25*1e9, 0.0415],
-    tuple(WResNetModelConfig(224, 50, 224, 2, "fp32")): [0.5*1e9, 0.0829],
-    tuple(WResNetModelConfig(224, 50, 320, 2, "fp32")): [1*1e9, 0.1659],
-    tuple(WResNetModelConfig(224, 50, 448, 2, "fp32")): [2*1e9, 0.3318],
-    tuple(WResNetModelConfig(224, 50, 640, 2, "fp32")): [4*1e9, 0.6636],
-    tuple(WResNetModelConfig(224, 50, 320, 16, "fp32")): [6.8*1e9, 1.1281],
+    tuple(WResNetModelConfig(224, 50, 160, 2, "fp16")): [0.25*1e9, 0.0415],
+    tuple(WResNetModelConfig(224, 50, 224, 2, "fp16")): [0.5*1e9, 0.0829],
+    tuple(WResNetModelConfig(224, 50, 320, 2, "fp16")): [1*1e9, 0.1659],
+    tuple(WResNetModelConfig(224, 50, 448, 2, "fp16")): [2*1e9, 0.3318],
+    tuple(WResNetModelConfig(224, 50, 640, 2, "fp16")): [4*1e9, 0.6636],
+    tuple(WResNetModelConfig(224, 50, 320, 16, "fp16")): [6.8*1e9, 1.1281],
     # Following is WResNet-101-2, layer is 101, WResnet: 127M params, 23B FLops --> 2.354TFlops
-    tuple(WResNetModelConfig(224, 101, 320, 16, "fp32")): [13*1e9, 2.354],
+    tuple(WResNetModelConfig(224, 101, 320, 16, "fp16")): [13*1e9, 2.354],
 }
 
 prefer_reduce_scatter = True
@@ -134,7 +134,7 @@ def get_solution_case(model_name, max_global_batch_size, num_micro_batches,
     ]
 
 # NOTE: normal is 1024
-max_global_batch_size = 1024
+max_global_batch_size = 1000
 
 def get_config_cases_idx(model_specs, num_micro_batches_list, partition_index, stage_option):
     stage_num = len(stage_option.forward_stage_layer_ids)
@@ -155,24 +155,24 @@ force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
 wsc_config_test_suite = { 
 
     # tx8
-    20: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
+    20: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
                                                           submeshes=[[0, 0, 4, 3]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
-                                                          submesh_autosharding_option_dicts=[{}]),
+                                                          submesh_autosharding_option_dicts=[{}])),
 
-    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
-    #                     # partition_index="uniform",
-    #                     partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
-    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
-    #                                                       submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
-    #     submesh_physical_shapes=None,
-    #     submesh_logical_shapes=None,
-    #     submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
-    # ),
-    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
+    25: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
+                        # partition_index="uniform",
+                        partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
+                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+    ),
+    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
     #                     partition_index="uniform",
     #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
     #                                                       submeshes=[[0, 0, 4, 4]],
@@ -243,7 +243,6 @@ wsc_config_test_suite = {
     #                                                       submesh_autosharding_option_dicts=[{}])
     # ),
 
-    )
 }
 
 
@@ -255,37 +254,37 @@ tmp_suite = {}
 # B,    I,   L,   C,   W, dtype,  NB, PM,          RS,    Remat, L_shape, FM
 perf_test_2d_suite = {
     1: [
-        BenchmarkCase(32, WResNetModelConfig(224, 50, 160, 2, "fp32"),
+        BenchmarkCase(32, WResNetModelConfig(224, 50, 160, 2, "fp16"),
                       1, "2d_shard",
                       ShardParallelArgs(False, False, (1, 1), False)),
-        BenchmarkCase(1536, WResNetModelConfig(224, 50, 160, 2, "fp32"),
+        BenchmarkCase(1536, WResNetModelConfig(224, 50, 160, 2, "fp16"),
                       48, "2d_shard",
                       ShardParallelArgs(False, False, (1, 1), False)),
     ],
     2:  [
-        BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       1, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
-        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       48, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
     ],
     4: [
-        BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(32, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       1, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
-        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       48, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
-        BenchmarkCase(64, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(64, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       1, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
-        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(1536, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       24, "2d_shard",
                       ShardParallelArgs(False, False, (4, 1), False)),
     ],
     8: [
-        BenchmarkCase(64, WResNetModelConfig(224, 50, 320, 2, "fp32"),
+        BenchmarkCase(64, WResNetModelConfig(224, 50, 320, 2, "fp16"),
                       1, "2d_shard",
                       ShardParallelArgs(False, False, (8, 1), False)),
     ],
