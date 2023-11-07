@@ -307,16 +307,16 @@ class GA_problem_alpa(Problem):
 
 def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log = None):
         
-    # try:
-    log.logger.info('paras_list: ' + str(paras_list))
-    result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
-                    args_.niter, args_.shard_only, args_.local,
-                    args_.profile_driver_time, args.disable_tqdm,
-                                args_.use_separate_process, parameters_list=paras_list,log =log)     
-    # except Exception as e:
-    #     log.logger.warning(f"Wrong !!!!!!!!!!!!!!!!!!!!!")
-    #     print(e)
-    #     result_ = 10e10
+    try:
+        log.logger.info('paras_list: ' + str(paras_list))
+        result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
+                        args_.niter, args_.shard_only, args_.local,
+                        args_.profile_driver_time, args.disable_tqdm,
+                                    args_.use_separate_process, parameters_list=paras_list,log =log)     
+    except Exception as e:
+        log.logger.warning(f"Wrong !!!!===========================================================")
+        print(e)
+        result_ = 10e10
     print("result_ : "+str(result_))
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
     log.logger.info('One Mid Result : ' + str(result_))

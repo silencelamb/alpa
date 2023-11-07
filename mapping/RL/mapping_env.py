@@ -1,8 +1,11 @@
 import numpy as np
 from collections import deque
 import statistics
+from collections import namedtuple
 import gymnasium as gym
 from gymnasium import spaces
+import torch
+from torch_geometric.data import Data
 import sys
 sys.path.insert(0, "/code/alpa/benchmark/alpa/")
 from benchmark_one_case import benchmark_one_case
@@ -13,6 +16,8 @@ from alpa import ManualStageOption, WSCManualStageOption
 from suite_auto_gpt import get_config_cases_idx, max_global_batch_size
 from alpa.util import to_str_round, GB
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
+
+GraphData = namedtuple('GraphData', ['model_type', 'model_size', 'graph_data'])
 
 class WSCMappingEnv(gym.Env):
     
@@ -29,7 +34,6 @@ class WSCMappingEnv(gym.Env):
         set_global_config(global_env_new)
         global_env = get_global_config()
         
-        self.num_microbatch = 1024
         self.rows, self.cols = (5, 4)
         self.grid = np.zeros((self.rows, self.cols), int)
         self.render_mode = render_mode
@@ -48,12 +52,21 @@ class WSCMappingEnv(gym.Env):
         self.latest_position = []
         
         self.current_step = 0
-        self.max_steps = 100
+        self.max_steps = 25
         self.compute_list = []
         self.rect_list = []
         self.rect_id = 0
         self.action_mask = None
-
+        
+        # load graph data, temporarily use mock data
+        node_features, edge_index = self.gen_mock_graph_data()
+        # 创建图数据
+        data = Data(x=node_features, edge_index=edge_index)
+        self.GraphDataSet = [
+            GraphData("gpt", "2.6B", data)
+        ]
+        
+        # for reward statistics
         self.total_reward = 0
         self.max_ave_episode = 50
         self.reward_record = deque(maxlen=self.max_ave_episode)
@@ -341,6 +354,35 @@ class WSCMappingEnv(gym.Env):
         self.action_mask = action_mask
         return action_mask        
 
+    def get_graph_data(self):
+        return self.GraphDataSet[0].graph_data
+    
+    def get_graph_feature_dim(self):
+        return self.GraphDataSet[0].graph_data.x.shape[1]
+           
+    def gen_mock_graph_data(self):
+        # 假设我们有5个节点，每个节点有3个特征
+        num_nodes = 1000
+        num_node_features = 128
+
+        # 创建一个有随机特征的节点特征矩阵
+        node_features = torch.randn(num_nodes, num_node_features)
+
+        # 假设图是无向的，并且我们随机创建了10条边
+        num_edges = 500
+
+        # 对于无向图，每一条边都需要两个方向，因此实际上有num_edges * 2个边的索引
+        edge_indices = torch.randint(0, num_nodes, (2, num_edges * 2), dtype=torch.long)
+
+        # 由于我们的图是无向的，我们需要确保对于每一条边(u, v)，都存在相对的边(v, u)
+        # 下面的代码将创建一个镜像边缘索引并将其与原边缘索引连接
+        edge_indices = torch.cat([edge_indices, edge_indices.flip([0])], dim=1)
+
+        # 除去自循环和重复的边
+        edge_indices = edge_indices[:, edge_indices[0] != edge_indices[1]]  # 去掉自环
+        edge_indices = torch.unique(edge_indices, dim=1)  # 去掉重复的边
+        return node_features, edge_indices
+    
     def render(self, mode=None):
         # This can be improved, but for simplicity, just print the grid
         mode = mode or self.render_mode
