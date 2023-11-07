@@ -25,7 +25,7 @@ import suite_inference_gpt
 import suite_auto_mlp
 from suite_manual_gpt import gpt_specs
 from alpa import ManualStageOption, WSCManualStageOption
-from suite_auto_gpt import get_config_cases_idx
+from suite_auto_gpt import get_one_config_case_idx
 
 
 from pymoo.factory import get_sampling, get_crossover, get_mutation
@@ -410,7 +410,7 @@ def benchmark_suite(suite_name,
         
     # import pdb; pdb.set_trace()   
     # 350M  1.3B
-    suite = get_config_cases_idx(gpt_specs["350M"], [100],
+    suite = get_one_config_case_idx(gpt_specs["350M"], [100],
                          partition_index=partition_index,                         
                          stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
                                                            submeshes=submeshes,
