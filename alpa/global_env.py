@@ -151,6 +151,7 @@ class GlobalConfig:
             # "analytical_perf_gpu::node_bw": 200 * GB,
             # "analytical_perf_gpu::node_bw": 600 * GB,   # nv link
             "analytical_perf_gpu::ddr_bandwidth": 500 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_gpu::pcie_bandwidth": 32 * GB, # PCIE 4.0 x 16 lane, GB/s
             "analytical_perf::cmp_ul": 0.7,
             "analytical_perf::bw_ul": 0.7
         }
@@ -171,6 +172,7 @@ class GlobalConfig:
             "analytical_perf_wsc::die_bw": 25 * GB,
             "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::pcie_bandwidth": 32 * GB, #  PCIE 4.0 x 16 lane, GB/s
             "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
             "analytical_perf::cmp_ul": 0.8,
@@ -197,7 +199,8 @@ class GlobalConfig:
             "analytical_perf_wsc::die_bw": 2048 * GB,
             # NOTE: ddr only consider one, not 5 edge of training Tile
             "analytical_perf_wsc::ddr_bandwidth": 800 * GB, # ddr bandwidth, GB/s
-            "analytical_perf_wsc::ddr_mem":  32 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::ddr_mem":  6553 * MB,   # add 2023-10-31, config as 32*5/25 for each die
+            "analytical_perf_wsc::pcie_bandwidth": 160 * GB, #  PCIE 4.0 x 80 lane, GB/s
 
             "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
@@ -226,6 +229,8 @@ class GlobalConfig:
             "analytical_perf_wsc::ddr_bandwidth": 1536 * GB, # ddr bandwidth, GB/s
             # NOTE: two 3D stacked-HBM = 2 * 4GB
             "analytical_perf_wsc::ddr_mem":  2 * 4 * GB,   # add 2023-10-31
+            "analytical_perf_wsc::pcie_bandwidth": 32 * GB, #  PCIE 4.0 x 16 lane, GB/s
+
             # GPM interconnect
             "analytical_perf_wsc::die_alpha": 20 * ns, # add 2023-10-31, d2d latency, ns
             "analytical_perf::use_greedy_coll_cost": True, # add  2023-10-31, mesh topo-aware collective
