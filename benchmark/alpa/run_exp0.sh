@@ -1,13 +1,13 @@
 
 # wsc search
-python benchmark.py --suite  gpt.grid_search_auto --num-hosts 1 --num-devices-per-host 8 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
+python benchmark.py --suite  gpt.grid_search_auto --num-hosts 4 --num-devices-per-host 5 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
 
 
 # config parallel, anylytical model, wsc manual, 2x4
 
-python benchmark.py --suite  gpt.wsc_config_test --num-hosts 2 --num-devices-per-host 4 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
+python benchmark.py --suite  gpt.wsc_config_test --num-hosts 4 --num-devices-per-host 5 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
 
-python benchmark.py --suite  gpt.wsc_config_test --num-hosts 1 --num-devices-per-host 2 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
+python benchmark.py --suite  gpt.wsc_config_test --num-hosts 4 --num-devices-per-host 5 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc --force_use_fp16 --rst_folder tmp_wsc_perf_15GB_fp16
 
 # config parallel, anylytical model WSC
 python benchmark.py --suite  gpt.wsc_config_test --num-hosts 1 --num-devices-per-host 2 --no-separate-process --only-mapping --use-analytical-perf-model --hardware wsc  --rst_folder tmp_wsc_perf_15GB_fp16

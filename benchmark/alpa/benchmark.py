@@ -157,7 +157,7 @@ def benchmark_suite(suite_name,
 
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
-        A100_FP32 = 19.5
+        A100_FP32 = 256
         values = [
             model_type, f"{parameter_count/1e9:.3f}B",
             f"{tflops:.4f}", f"{tflops/A100_FP32*100}",
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     heads = [
-        "Type", "#Params (Billion)", "TFLOPs", "Utilization (% A100 FP32)", "Mean Time (s)", 
+        "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
         "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
         "#GPU", "Parallel Config", "Metadata"
     ]

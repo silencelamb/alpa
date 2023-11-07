@@ -1,36 +1,18 @@
 import numpy as np
-from collections import deque
-import statistics
 import gymnasium as gym
 from gymnasium import spaces
-import sys
-sys.path.insert(0, "/code/alpa/benchmark/alpa/")
-from benchmark_one_case import benchmark_one_case
-from benchmark_parallel_utils import BenchmarkCase
-from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
-from suite_manual_gpt import gpt_specs
-from alpa import ManualStageOption, WSCManualStageOption
-from suite_auto_gpt import get_config_cases_idx, max_global_batch_size
-from alpa.util import to_str_round, GB
-from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
+from collections import deque
+import statistics
 
-class WSCMappingEnv(gym.Env):
+class MappingSimpleActionMaskNormalizeEnv(gym.Env):
     
     def __init__(self, render_mode='human', use_image=False):
-        super(WSCMappingEnv, self).__init__()
+        super(MappingSimpleActionMaskNormalizeEnv, self).__init__()
         
-        # set global env
-        global_env_new = get_global_config()
-        global_env_new.hardware = 'wsc'
-        global_env_new.only_mapping = True
-        global_env_new.use_analytical_perf_model = True
-        get_collective_cost_dict()
-
-        set_global_config(global_env_new)
-        global_env = get_global_config()
-        
+        # total compute in a microbatch
+        self.compute_of_a_microbatch= 100
         self.num_microbatch = 1024
-        self.rows, self.cols = (5, 4)
+        self.rows, self.cols = (5, 5)
         self.grid = np.zeros((self.rows, self.cols), int)
         self.render_mode = render_mode
         
@@ -46,6 +28,8 @@ class WSCMappingEnv(gym.Env):
                                                   ])
         # latest position of the rectangle, [left, top, right, bottom]
         self.latest_position = []
+        
+        self.constant = self.compute_of_a_microbatch * self.num_microbatch
         
         self.current_step = 0
         self.max_steps = 100
@@ -64,78 +48,29 @@ class WSCMappingEnv(gym.Env):
         
     def reward(self):
         """Reward function
-        """
-        model_type = "gpt"
-        total_compute = sum(self.compute_list)
-        normalized_compute_list = [compute / total_compute for compute in self.compute_list]
-        partition_index = []
-        cur_sum = 0.0
-        for x in normalized_compute_list:
-            partition_index.append(cur_sum)
-            cur_sum = cur_sum + x
-        global max_global_batch_size
-        max_global_batch_size = 1000
-        suite = get_config_cases_idx(gpt_specs["350M"], [100],
-                        # partition_index="uniform",
-                        partition_index=partition_index,
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[x] for x in range(len(self.rect_list)) ],
-                                                          submeshes=self.rect_list,
-                                                          submesh_physical_shapes=None,
-                                                          submesh_logical_shapes=None,
-                                                          submesh_autosharding_option_dicts=[{} for x in range(len(self.rect_list))])
-                )
-
-        # Run all cases
-        for benchmark_case in suite:
-            benchmark_case: BenchmarkCase
-            print(benchmark_case.batch_size)
-            print(self.grid)
-            model_config = benchmark_case.model_config
-            num_micro_batches = benchmark_case.num_micro_batches
-            try:
-                auto_layers = benchmark_case.parallel_args.num_auto_layers
-            except AttributeError:
-                auto_layers = 'auto'
-
-            parallel_args = benchmark_case.parallel_args
-
-            # Run one case
-            print("Working on case: {}".format(str(benchmark_case)))
-            result = benchmark_one_case(model_type,
-                                    benchmark_case,
-                                    niter=3,
-                                    num_hosts=self.rows,
-                                    num_devices_per_host=self.cols,
-                                    shard_only=False,
-                                    local=False,
-                                    profile_driver_time=False,
-                                    disable_tqdm=True,
-                                    use_separate_process=False)
-            (parameter_count, peak_mem, latencies, tflops, metadata) = result  
-            heads = [
-                "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "Actual TFLOPs(Per Device)",
-                "Peak Mem (GB)", "Metadata"
-            ]
-            if isinstance(parallel_args, ConfigParallelArgs):
-                parallel_args = parallel_args._replace(input_placement_specs=[])
-                
-            values = [
-                model_type, model_config, num_micro_batches, f"{self.rows}x{self.cols}",
-                parallel_args, f"{np.mean(latencies):.3f}",
-                f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
-                f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
-                to_str_round(metadata, 6)
-            ]
-            values = [str(x) for x in values]
-            result_dict = dict(zip(heads, values)) 
-            print('One result: ' + str(result_dict))
-            total_latency = metadata['estimated_total_time']
+        """       
+        compute_sum = sum(self.compute_list)
+        compute_ratio_list = [x/compute_sum for x in self.compute_list]
+        self.compute_list = [x * self.compute_of_a_microbatch for x in compute_ratio_list]
+        stage_latency_list = []
+        for compute, submesh in zip(self.compute_list, self.rect_list):
+            left, top, right, bottom = submesh
+            die_num = (right - left + 1) * (bottom - top + 1)
+            
+            communication_ratio = die_num/25
+            compute_time = compute / die_num
+            stage_time = compute_time * (1+communication_ratio)  # condider communication ratio
+            
+            stage_latency_list.append(stage_time)
+        max_stage_lantecy = max(stage_latency_list)
+        # reshard_comm = 
+        total_latency = sum(stage_latency_list) + max_stage_lantecy*(self.num_microbatch-1)
         return -total_latency
 
     def reset(self, seed=None, options=None):
         self.grid = np.zeros((self.rows, self.cols), int)
         self.current_step = 0
+        self.left_compute = self.compute_of_a_microbatch
         self.rect_list = []
         self.rect_id = 0
         self.latest_position = []
@@ -154,9 +89,11 @@ class WSCMappingEnv(gym.Env):
         cur_compute += 1
         col_start, row_start, col_end, row_end  = self.decode_action(rect_action)
         
+        
         # Check for valid rectangle
         is_valid = self._is_valid_rectangle(col_start, row_start, col_end, row_end)
         
+        reward = -self.constant
         truncted = False
         done = False
         if is_valid:
@@ -165,9 +102,11 @@ class WSCMappingEnv(gym.Env):
             self.rect_list.append([col_start, row_start, col_end, row_end])
             self.latest_position = [col_start, row_start, col_end, row_end]
             self.compute_list.append(cur_compute)
-                
+            
             # Check if grid is full, if true then compute is the compute left
             if np.sum(self.grid == 0) == 0:
+                
+                self.left_compute = 0
                 reward = self.reward()
                 done = True
             else:
@@ -183,7 +122,6 @@ class WSCMappingEnv(gym.Env):
             reward = self.reward()
             reward = reward * (1+penalty)
             done = True
-
             
             # # option 2: continue the game, and the reward is negative
             # reward = -self.constant/10
@@ -200,6 +138,7 @@ class WSCMappingEnv(gym.Env):
             self.average_reward = statistics.mean(self.reward_record)
             self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
             print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
+            print(self.grid)
             
         if self.use_image:
             return self.grid[np.newaxis, :], reward, done, truncted, {}
@@ -355,11 +294,11 @@ class WSCMappingEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    env = WSCMappingEnv()
+    env = MappingSimpleActionMaskNormalizeEnv()
     
     best_reward = -1000
     reward_list = []
-    while len(reward_list) < 1:
+    while len(reward_list) < 10:
         obs = env.reset()
         done = False
         while not done:

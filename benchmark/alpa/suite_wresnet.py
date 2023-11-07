@@ -1,8 +1,6 @@
 """Suites for wresnet benchmarking."""
 from collections import namedtuple
-from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
-                                      LoadSolutionParallelArgs,
-                                      ShardParallelArgs)
+from benchmark_parallel_utils import *
 
 # B = batch_size, I = image_size,
 # L = num_layers, C = num_base_channels, W = width_factor,
@@ -21,7 +19,15 @@ wresnet_specs = {
     # Wide ResNet101-2: 127M params, 23B FLops
     # 250M/69M = 3.6 -- sqrt(3.6)=1.9 -- 160/1.9=84
     #                      I,   L,   C,   W,  dtype,
-    # 250M = 41.47B Flops, 500M = 82.95B, 165.89B, 331.78B, 663.56B
+
+    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp32"),  # resnet50
+    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp32"), # resnet101
+    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp32"), # resnet152
+
+    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp32"), # wresnet50-2
+    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp32"), # wresnet101-2
+
+
     "250M": WResNetModelConfig(224, 50, 160, 2, "fp32"),
     "500M": WResNetModelConfig(224, 50, 224, 2, "fp32"),
     "1B": WResNetModelConfig(224, 50, 320, 2, "fp32"),
@@ -32,8 +38,41 @@ wresnet_specs = {
 }
 
 
-wresnet_params = {
+wresnet_wsc_specs = {
+    # NOTE: k^2 == #params, num_channels^2 == #params, #params proportion to Flops
+    # WResNet50-2 = ResNet50 + width_factor=2,: 69M params, 11B FLops -- 11427/68.88=165.89
+    # Wide ResNet101-2: 127M params, 23B FLops
+    # 250M/69M = 3.6 -- sqrt(3.6)=1.9 -- 160/1.9=84
+    #                      I,   L,   C,   W,  dtype,
+
+    "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp32"),  # resnet50
+    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp32"), # resnet101
+    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp32"), # resnet152
+
+    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp32"), # wresnet50-2
+    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp32"), # wresnet101-2
+
+
+
+    # "250M": WResNetModelConfig(224, 50, 160, 2, "fp32"),
+    # "500M": WResNetModelConfig(224, 50, 224, 2, "fp32"),
+    # "1B": WResNetModelConfig(224, 50, 320, 2, "fp32"),
+    # "2B": WResNetModelConfig(224, 50, 448, 2, "fp32"),
+    # "4B": WResNetModelConfig(224, 50, 640, 2, "fp32"),
+    # "6.8B": WResNetModelConfig(224, 50, 320, 16, "fp32"),
+    # "13B": WResNetModelConfig(224, 101, 320, 16, "fp32"),
+}
+
+wresnet_params = { 
     # NOTE: get params (Billion) & Flops (Trillion) by config
+    tuple(WResNetModelConfig(224, 50, 64, 1, "fp32")): [0.0256*1e9, 0.0041],
+    tuple(WResNetModelConfig(224, 101, 64, 1, "fp32")): [0.04455*1e9, 0.0078],
+    tuple(WResNetModelConfig(224, 152, 64, 1, "fp32")): [0.06019*1e9, 0.0116],
+
+    tuple(WResNetModelConfig(224, 50, 64, 2, "fp32")): [0.06888*1e9, 0.0114],
+    tuple(WResNetModelConfig(224, 101, 64, 2, "fp32")): [0.12688*1e9, 0.0228],
+
+    # old part
     tuple(WResNetModelConfig(224, 50, 160, 2, "fp32")): [0.25*1e9, 0.0415],
     tuple(WResNetModelConfig(224, 50, 224, 2, "fp32")): [0.5*1e9, 0.0829],
     tuple(WResNetModelConfig(224, 50, 320, 2, "fp32")): [1*1e9, 0.1659],
@@ -94,8 +133,119 @@ def get_solution_case(model_name, max_global_batch_size, num_micro_batches,
                                      submesh_autosharding_option_dicts))
     ]
 
+# NOTE: normal is 1024
+max_global_batch_size = 1024
+
+def get_config_cases_idx(model_specs, num_micro_batches_list, partition_index, stage_option):
+    stage_num = len(stage_option.forward_stage_layer_ids)
+    return [
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches, "config",
+            ConfigParallelArgs(stage_num, None, partition_index,'1f1b', stage_option, use_remat))
+        for num_micro_batches in num_micro_batches_list
+        for model_spec in model_specs
+    ]
+
 
 force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
+
+
+
+# NOTE: research how to construct different suite
+wsc_config_test_suite = { 
+
+    # tx8
+    20: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
+                        partition_index="uniform",
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+                                                          submeshes=[[0, 0, 4, 3]],
+                                                          submesh_physical_shapes=None,
+                                                          submesh_logical_shapes=None,
+                                                          submesh_autosharding_option_dicts=[{}]),
+
+    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
+    #                     # partition_index="uniform",
+    #                     partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
+    #                                                       submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
+    #     submesh_physical_shapes=None,
+    #     submesh_logical_shapes=None,
+    #     submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+    # ),
+    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [128],
+    #                     partition_index="uniform",
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+    #                                                       submeshes=[[0, 0, 4, 4]],
+    #                                                       submesh_physical_shapes=None,
+    #                                                       submesh_logical_shapes=None,
+    #                                                       submesh_autosharding_option_dicts=[{}])
+    # ),
+
+    # 2: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     # partition_index="uniform",
+    #                     # partition_index=[0, 1210, 2419],
+    #                     # partition_index=[0, 1210],
+    #                     partition_index = [1210],
+    #                     # partition_index = [800],
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]],
+    #                                                       submeshes=[
+    #                         [0, 0, 0, 0],
+    #                         [0, 1, 0, 1]
+    #                     ],
+    #     submesh_physical_shapes=None,
+    #     submesh_logical_shapes=None,
+    #     submesh_autosharding_option_dicts=[{}, {}])
+    # ),   
+    # 4: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     partition_index=[0.0, 0.7142857142857143],
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1]], 
+    #                                                       submeshes=[[0, 0, 0, 2], [0, 3, 0, 3]],
+    #                                                     submesh_physical_shapes=None,
+    #                                                     submesh_logical_shapes=None,
+    #                                                     submesh_autosharding_option_dicts=[{}, {}])
+    # ),  
+    # 8: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     # partition_index="uniform",
+    #                     partition_index=[0, 1000, 2000, 3203],
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2]],
+    #                                                       submeshes=[
+    #                         [0, 0, 0, 1],
+    #                         [1, 0, 1, 1],
+    #                         [2, 0, 3, 1],
+    #                     ],
+    #     submesh_physical_shapes=None,
+    #     submesh_logical_shapes=None,
+    #     submesh_autosharding_option_dicts=[{}, {}, {}])
+    # ),
+    # 16: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     partition_index="uniform",
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+    #                                                       submeshes=[[0, 0, 3, 3]],
+    #                                                       submesh_physical_shapes=None,
+    #                                                       submesh_logical_shapes=None,
+    #                                                       submesh_autosharding_option_dicts=[{}])
+    # ),
+    # 25: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     # partition_index="uniform",
+    #                     partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
+    #                                                       submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
+    #     submesh_physical_shapes=None,
+    #     submesh_logical_shapes=None,
+    #     submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+    # ),
+    # 25: get_config_cases_idx(wresnet_specs.values(), [128],
+    #                     partition_index="uniform",
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+    #                                                       submeshes=[[0, 0, 4, 4]],
+    #                                                       submesh_physical_shapes=None,
+    #                                                       submesh_logical_shapes=None,
+    #                                                       submesh_autosharding_option_dicts=[{}])
+    # ),
+
+    )
+}
+
 
 # Performance test with shard parallel
 tmp_suite = {}

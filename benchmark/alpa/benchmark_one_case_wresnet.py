@@ -318,9 +318,13 @@ def benchmark_wresnet_3d_internal(model_type,
     # tflops = executable.flop_count / num_gpus / np.mean(latencies) / 1e12
     # parameter_count = compute_param_number(state.params)
 
-    # NOTE: below is wrong
-    tflops, parameter_count, total_tflops = compute_wresnet_statistics(benchmark_case, latencies, num_gpus)
-
+    # # NOTE: below is wrong
+    # tflops, parameter_count, total_tflops = compute_wresnet_statistics(benchmark_case, latencies, num_gpus)
+    import suite_wresnet
+    model_config = benchmark_case.model_config
+    params_list = suite_wresnet.wresnet_params[tuple(model_config)]
+    parameter_count, total_tflops = params_list
+    tflops = total_tflops / latencies / num_gpus 
 
     (compute_cost_file_name, forward_stage_layer_ids, submesh_shapes,
      logical_mesh_shapes, autosharding_option_dicts, dp_cost) = get_last_dp_result()
@@ -343,11 +347,10 @@ def benchmark_wresnet_3d_internal(model_type,
         "estimated_time": estimated_time,
         "max_stage_cost": max_stage_cost,
         "estimated_total_time": estimated_total_time,
-        # NOTE: no compute WResNet Total_TFlops
         "total_tflops": total_tflops,
     }
     # NOTE: We need return total_tflops, instead of TFlops -- otherwise for #gpu=1, TFlops=1531.8073(too huge)
-    return parameter_count, max_mem_allocated, latencies, total_tflops, metadata
+    return parameter_count, max_mem_allocated, latencies, tflops, metadata
 
 
 def benchmark_wresnet_2d_internal(physical_mesh,

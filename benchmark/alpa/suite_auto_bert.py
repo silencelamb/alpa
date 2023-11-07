@@ -2,7 +2,7 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__))) # add to sys.path.
 
-from suite_manual_bert import bert_specs, mlp_specs
+from suite_manual_bert import *
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
                                       LoadSolutionParallelArgs, ConfigParallelArgs)
 from alpa import ManualStageOption, WSCManualStageOption
@@ -48,13 +48,14 @@ def get_config_cases(model_spec, num_micro_batches_list, input_placement_specs_p
         for num_micro_batches in num_micro_batches_list
     ]
 
-def get_config_cases_idx(model_spec, num_micro_batches_list, partition_index, stage_option):
+def get_config_cases_idx(model_specs, num_micro_batches_list, partition_index, stage_option):
     stage_num = len(stage_option.forward_stage_layer_ids)
     return [
         BenchmarkCase(
             max_global_batch_size, model_spec, num_micro_batches, "config",
             ConfigParallelArgs(stage_num, None, partition_index,'1f1b', stage_option, use_remat))
         for num_micro_batches in num_micro_batches_list
+        for model_spec in model_specs
     ]
 
 
@@ -218,6 +219,32 @@ config_test_suite = {
 }
 
 wsc_config_test_suite = { 
+        # tx8
+    20: get_config_cases_idx(bert_wsc_specs.values(), [128],
+                        partition_index="uniform",
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+                                                          submeshes=[[0, 0, 4, 3]],
+                                                          submesh_physical_shapes=None,
+                                                          submesh_logical_shapes=None,
+                                                          submesh_autosharding_option_dicts=[{}])),
+    25: get_config_cases_idx(bert_wsc_specs.values(), [128],
+                        # partition_index="uniform",
+                        partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
+                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+    ),
+    # 25: get_config_cases_idx(bert_wsc_specs.values(), [128],
+    #                     partition_index="uniform",
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+    #                                                       submeshes=[[0, 0, 4, 4]],
+    #                                                       submesh_physical_shapes=None,
+    #                                                       submesh_logical_shapes=None,
+    #                                                       submesh_autosharding_option_dicts=[{}])
+    # ),
+
     2: get_config_cases_idx(bert_specs["Mini"], [128],
                         # partition_index="uniform",
                         # partition_index=[0, 1210, 2419],
@@ -262,33 +289,6 @@ wsc_config_test_suite = {
                                                           submesh_logical_shapes=None,
                                                           submesh_autosharding_option_dicts=[{}])
     ),
-    # tx8
-    20: get_config_cases_idx(bert_specs["Base"], [128],
-                        partition_index="uniform",
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-                                                          submeshes=[[0, 0, 4, 3]],
-                                                          submesh_physical_shapes=None,
-                                                          submesh_logical_shapes=None,
-                                                          submesh_autosharding_option_dicts=[{}]),
-    # 25: get_config_cases_idx(bert_specs["1.3B"], [128],
-    #                     # partition_index="uniform",
-    #                     partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
-    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
-    #                                                       submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
-    #     submesh_physical_shapes=None,
-    #     submesh_logical_shapes=None,
-    #     submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
-    # ),
-    # 25: get_config_cases_idx(bert_specs["1.3B"], [128],
-    #                     partition_index="uniform",
-    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-    #                                                       submeshes=[[0, 0, 4, 4]],
-    #                                                       submesh_physical_shapes=None,
-    #                                                       submesh_logical_shapes=None,
-    #                                                       submesh_autosharding_option_dicts=[{}])
-    # ),
-
-    )
 }
 
 # 'tmp_wsc_perf_15GB_fp16/bert.grid_search_auto-8X1-perf@gpu-2023-03-07-09-02-58/Batchsize_1024-num_b_128-auto_layers_8/input_placement_specs.pkl'

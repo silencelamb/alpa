@@ -452,7 +452,7 @@ def benchmark_suite(suite_name,
 
             heads = [
                 "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "TFLOPs",
+                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "Actual TFLOPs(Per Device)",
                 "Peak Mem (GB)", "Metadata"
             ]
             if isinstance(parallel_args, ConfigParallelArgs):

@@ -87,3 +87,5 @@ benchmark/alpa/zhc_test
 benchmark/alpa/zhc.sh
 benchmark/alpa/kong_test*
 benchmark/alpa/wandb
+benchmark/alpa/index.html
+third_party/tensorflow-alpa.diff
