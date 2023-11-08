@@ -25,7 +25,7 @@ import suite_inference_gpt
 import suite_auto_mlp
 from suite_manual_gpt import gpt_specs
 from alpa import ManualStageOption, WSCManualStageOption
-from suite_auto_gpt import get_config_cases_idx
+from suite_auto_gpt import get_one_config_case_idx
 
 
 from pymoo.factory import get_sampling, get_crossover, get_mutation
@@ -307,16 +307,16 @@ class GA_problem_alpa(Problem):
 
 def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log = None):
         
-    # try:
-    log.logger.info('paras_list: ' + str(paras_list))
-    result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
-                    args_.niter, args_.shard_only, args_.local,
-                    args_.profile_driver_time, args.disable_tqdm,
-                                args_.use_separate_process, parameters_list=paras_list,log =log)     
-    # except Exception as e:
-    #     log.logger.warning(f"Wrong !!!!!!!!!!!!!!!!!!!!!")
-    #     print(e)
-    #     result_ = 10e10
+    try:
+        log.logger.info('paras_list: ' + str(paras_list))
+        result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
+                        args_.niter, args_.shard_only, args_.local,
+                        args_.profile_driver_time, args.disable_tqdm,
+                                    args_.use_separate_process, parameters_list=paras_list,log =log)     
+    except Exception as e:
+        log.logger.warning(f"Wrong !!!!===========================================================")
+        print(e)
+        result_ = 10e10
     print("result_ : "+str(result_))
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
     log.logger.info('One Mid Result : ' + str(result_))
@@ -410,7 +410,7 @@ def benchmark_suite(suite_name,
         
     # import pdb; pdb.set_trace()   
     # 350M  1.3B
-    suite = get_config_cases_idx(gpt_specs["350M"], [100],
+    suite = get_one_config_case_idx(gpt_specs["350M"], [100],
                          partition_index=partition_index,                         
                          stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
                                                            submeshes=submeshes,
