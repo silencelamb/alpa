@@ -140,7 +140,8 @@ def benchmark_gpt_inference_internal(model_type,
                                      niter,
                                      num_hosts,
                                      num_devices_per_host,
-                                     profile_driver_time=False):
+                                     profile_driver_time=False,
+                                     offload = False):
     # Connect to the cluster
     virtual_mesh = get_global_cluster().get_virtual_physical_mesh(
         host_ids=list(range(num_hosts)),

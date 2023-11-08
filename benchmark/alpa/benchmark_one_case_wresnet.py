@@ -210,7 +210,8 @@ def benchmark_wresnet_3d_internal(model_type,
                                   niter,
                                   num_hosts,
                                   num_devices_per_host,
-                                  profile_driver_time=False):
+                                  profile_driver_time=False,
+                                  offload=False,):
 
     # global config
     global_config = get_global_config()
@@ -291,7 +292,8 @@ def benchmark_wresnet_3d_internal(model_type,
          niter,
          train_step,
          state, (batch, ),
-         profile_driver_time=profile_driver_time)
+         profile_driver_time=profile_driver_time,
+         offload=offload)
     # (latencies, max_mem_allocated, compilation_times,
     #  executable) = compile_and_benchmark_pipeshard_training_executable(
     #      benchmark_case.parallel_mode,
@@ -355,7 +357,8 @@ def benchmark_wresnet_3d_internal(model_type,
 def benchmark_wresnet_2d_internal(physical_mesh,
                                   benchmark_case,
                                   niter,
-                                  profile_driver_time=False):
+                                  profile_driver_time=False,
+                                  offload=False,):
     # Model configs
     method, grad_func = get_shard_parallel_method(benchmark_case, physical_mesh)
 

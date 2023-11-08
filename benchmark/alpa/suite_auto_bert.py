@@ -218,6 +218,49 @@ config_test_suite = {
                         )
 }
 
+def get_solution_cases(model_specs, num_micro_batches, num_auto_layers,
+                      forward_stage_layer_ids, submesh_physical_shapes,
+                      submesh_logical_shapes,
+                      submesh_autosharding_option_dicts):
+    return[
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches,
+            "load_solution",
+            LoadSolutionParallelArgs(prefer_reduce_scatter, use_remat,
+                                     num_auto_layers, forward_stage_layer_ids,
+                                     submesh_physical_shapes,
+                                     submesh_logical_shapes,
+                                     submesh_autosharding_option_dicts))
+            for model_spec in model_specs
+    ]
+
+
+wsc_perf_suite0 = {
+
+    25: get_solution_cases(bert_wsc_specs.values(),  100, 8,
+                          [[0, 1, 2, 3], [4, 5, 6, 7]], [(1, 8)] * 2,
+                          [(2, 4)] * 2, [force_dp_dict] * 2),
+}
+
+wsc_perf_suite1 = {
+
+    25: get_solution_cases(
+            bert_wsc_specs.values(),  100, 16,
+            [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
+            [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
+}
+
+
+wsc_perf_suite2 = {
+
+    25: get_solution_cases(
+            bert_wsc_specs.values(),  100,
+                          16, [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],
+                               [10], [11], [12], [13], [14], [15]],
+                          [(1, 4)] * 16, [(1, 4)] * 16, [force_dp_dict] * 16),
+}
+
+
 wsc_config_test_suite = { 
         # tx8
     20: get_config_cases_idx(bert_wsc_specs.values(), [10],

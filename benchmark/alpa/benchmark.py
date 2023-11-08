@@ -9,6 +9,7 @@ import json
 import numpy as np
 
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
+from alpa.global_env import PrimitiveType
 from alpa.util import (write_tsv, to_str_round, GB)
 from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
@@ -41,6 +42,9 @@ benchmark_suites = {
     "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
     "gpt.config_test": suite_auto_gpt.config_test_suite,
     "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
+    "gpt.wsc_perf": suite_auto_gpt.wsc_perf_suite,
+
+
 
     "bert.tmp": suite_manual_bert.tmp_suite,
     "bert.tmp_auto": suite_auto_bert.tmp_suite,
@@ -55,6 +59,9 @@ benchmark_suites = {
     "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
     "bert.config_test": suite_auto_bert.config_test_suite,
     "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite, 
+    "bert.wsc_perf0": suite_auto_bert.wsc_perf_suite0,
+    "bert.wsc_perf1": suite_auto_bert.wsc_perf_suite1,
+    "bert.wsc_perf2": suite_auto_bert.wsc_perf_suite2,
 
 
     "mlp.perf_test_manual": suite_manual_mlp.mlp_perf_test_suite,
@@ -70,6 +77,11 @@ benchmark_suites = {
     "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
     "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
     "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
+
+    "wresnet.wsc_perf0": suite_wresnet.wsc_perf_suite0,
+    "wresnet.wsc_perf1": suite_wresnet.wsc_perf_suite1,
+    "wresnet.wsc_perf2": suite_wresnet.wsc_perf_suite2,
+
 }
 
 
@@ -82,12 +94,9 @@ def benchmark_suite(suite_name,
                     local=False,
                     profile_driver_time=False,
                     disable_tqdm=False,
-                    use_separate_process=True):
-    heads = [
-        "Type", "#Params (Billion)", "TFLOPs", "Utilization (% A100 FP32)", "Mean Time (s)", 
-        "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
-        "#GPU", "Parallel Config", "Metadata"
-    ]
+                    use_separate_process=True, 
+                    heads=None, table=None,
+                    offload = False):
 
     num_gpus = num_hosts * num_devices_per_host
     if local:
@@ -144,7 +153,8 @@ def benchmark_suite(suite_name,
                                     local=local,
                                     profile_driver_time=profile_driver_time,
                                     disable_tqdm=disable_tqdm,
-                                    use_separate_process=use_separate_process)
+                                    use_separate_process=use_separate_process,
+                                    offload = offload)
 
         (parameter_count, peak_mem, latencies, tflops, metadata) = result
         # # NOTE: only WResNet is static tuple, GPT&BERT computed by func
@@ -157,13 +167,17 @@ def benchmark_suite(suite_name,
 
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
-        A100_FP32 = 256
+
+        Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+        Peak_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value]
+        DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
+        
         values = [
             model_type, f"{parameter_count/1e9:.3f}B",
-            f"{tflops:.4f}", f"{tflops/A100_FP32*100}",
-            f"{np.mean(latencies):.5f}",
-            f"{np.std(latencies):.5f}", f"{peak_mem/GB:.5f}",
-            str(model_config), str(num_micro_batches), num_gpus,
+            f"{tflops:.4f}", f"{tflops/Peak_FP16*100}",
+            f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
+            f"{peak_mem/GB > DDR_MEM/GB}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
+            str(num_micro_batches), num_gpus, str(model_config),
             parallel_args, to_str_round(metadata, 6)
         ]
 
@@ -179,6 +193,7 @@ def benchmark_suite(suite_name,
         time.sleep(0.1)  # for ctrl+c to work
 
         res[cc] = values
+        table.add_data(*values)
         cc+=1
     return res
 
@@ -264,12 +279,13 @@ if __name__ == "__main__":
     parser.add_argument("--hardware", type=str_list, default="wsc")
     parser.add_argument("--force_use_fp16", action="store_true")
     parser.add_argument("--use-greedy-collective-cost", action="store_true")
+    parser.add_argument("--offload", action="store_true")
     args = parser.parse_args()
 
     heads = [
         "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
-        "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
-        "#GPU", "Parallel Config", "Metadata"
+        "Std Time (s)", "Out of DDR", "Peak Mem (GB)", "DDR Mem (GB)", "#Microbatch", 
+        "#GPU", "Model Config", "Parallel Config", "Metadata"
     ]
     import wandb
     import pandas as pd
@@ -279,6 +295,7 @@ if __name__ == "__main__":
 
     # 创建一个空的表格
     table = wandb.Table(columns=heads)
+
     for i in range(len(args.suite)):
 
         num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args, i)
@@ -320,7 +337,7 @@ if __name__ == "__main__":
         elif args.hardware[i] == "wsgpu":
             global_config.wsc_config = global_config.wsgpu_config
             global_config.hardware = "wsc"
-            # print(f"Set SW-GPU config = {global_config.wsc_config}")
+            print(f"Set SW-GPU config = {global_config.wsc_config}")
         else:
             # NOTE: origin support for GPU & TX8 WSC
             global_config.hardware = args.hardware[i]
@@ -332,12 +349,11 @@ if __name__ == "__main__":
         print(global_config.use_analytical_perf_model)
 
 
-        res = benchmark_suite(args.suite[i], num_hosts, num_devices_per_host, args.exp_name,
+        benchmark_suite(args.suite[i], num_hosts, num_devices_per_host, args.exp_name,
                         args.niter, args.shard_only, args.local,
                         args.profile_driver_time, args.disable_tqdm,
-                        args.use_separate_process)
-        for key, val in res.items():
-            table.add_data(*val)
+                        args.use_separate_process, heads, table, args.offload)
+
 
     # 将表格保存到W&B
     wandb.log({"Wafer": table})  

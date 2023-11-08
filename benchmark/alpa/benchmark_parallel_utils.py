@@ -98,9 +98,11 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
             pipeline_schedule=pipeline_schedule,
             layer_option=AutoLayerOption(layer_num=num_auto_layers,
                                          remat_layer=use_remat),
+            # NOTE: diff from following method: AutoStage()
             stage_option=AutoStageOption(**auto_stage_option))
     elif parallel_mode == "load_solution":
         assert isinstance(parallel_args, LoadSolutionParallelArgs)
+        # logical_mesh_shape = (dp, op)
         (prefer_reduce_scatter, use_remat, num_auto_layers,
          forward_stage_layer_ids, submesh_physical_shapes,
          submesh_logical_shapes,
@@ -110,6 +112,8 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
         add_manual_remat = None
         if use_fine_grained_remat:
             use_remat = False
+
+
         method = PipeshardParallel(
             num_micro_batches=num_micro_batches,
             default_auto_sharding_option=AutoShardingOption(
@@ -117,16 +121,18 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
                 allow_mixed_mesh_shape=allow_mixed_mesh_shape,
             ),
             pipeline_schedule=pipeline_schedule,
-            layer_option=AutoLayerOption(layer_num=num_auto_layers,
+            # related to gpt_specs["15B"]
+            layer_option=AutoLayerOption(layer_num=num_auto_layers, # 16
                                          remat_layer=use_remat),
-            stage_option=ManualStageOption(forward_stage_layer_ids,
-                                           submesh_physical_shapes,
-                                           submesh_logical_shapes,
+            stage_option=ManualStageOption(forward_stage_layer_ids, # [[0, 1, 2, 3], [4, 5, ..]..]
+                                           submesh_physical_shapes, # [(1, 8)] * 4
+                                           submesh_logical_shapes, # [(2, 4)] * 4
                                            submesh_autosharding_option_dicts))
     elif parallel_mode == "uniform":
         assert isinstance(parallel_args, UniformParallelArgs)
         (prefer_reduce_scatter, use_remat, dp, op, pp,
          force_batch_dim_mapping) = parallel_args
+        
         as_option = AutoShardingOption(
             prefer_reduce_scatter=prefer_reduce_scatter,
             allow_mixed_mesh_shape=allow_mixed_mesh_shape,
@@ -135,10 +141,11 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
             as_option.force_batch_dim_to_mesh_dim = 0
         add_manual_layer_marker = True
         add_manual_remat = use_remat
-
+        # NOTE: get logical shape
         logical_mesh_shape = (dp, op)
         num_manual_pipeline_stages = pp
         num_mesh_devices = np.prod(logical_mesh_shape)
+        # split logical total mesh into (m, #dev) - m<=#host
         assert num_devices_per_host is not None
         if num_mesh_devices <= num_devices_per_host:
             physical_mesh_shape = (1, num_mesh_devices)
@@ -153,10 +160,11 @@ def get_pipeshard_parallel_method(benchmark_case: BenchmarkCase,
             pipeline_schedule=pipeline_schedule,
             layer_option="manual",
             stage_option=ManualStageOption(
-                forward_stage_layer_ids=[[i] for i in range(pp)],
-                submesh_physical_shapes=[physical_mesh_shape] * pp,
-                submesh_logical_shapes=[logical_mesh_shape] * pp,
-                submesh_autosharding_option_dicts=[{}] * pp))
+            
+                forward_stage_layer_ids=[[i] for i in range(pp)], # [[0], [1], [2], [3]]
+                submesh_physical_shapes=[physical_mesh_shape] * pp, # [(1, 8)] * 4
+                submesh_logical_shapes=[logical_mesh_shape] * pp, # [(2, 4)]*4
+                submesh_autosharding_option_dicts=[{}] * pp)) # [{}] * 4
     elif parallel_mode == "config":
         assert isinstance(parallel_args, ConfigParallelArgs)
         stage_num, input_placement_specs, partition_index, pipeline_schedule, stage_option, _ = parallel_args
@@ -488,7 +496,8 @@ def compile_and_benchmark_pipeshard_training_executable(
         train_step,
         state,
         other_train_step_inputs,
-        profile_driver_time=False):
+        profile_driver_time=False,
+        offload = False):
     executable, compilation_times = compile_pipeshard_executable(
         parallel_mode, train_step, state, other_train_step_inputs)
    
@@ -497,7 +506,7 @@ def compile_and_benchmark_pipeshard_training_executable(
     if global_config.full_on_hlo_analysis:
         executable: HloAnalysisSimulator
         executable.hlo_module_cost_analysis()   # for debug, compre with estimate_cost_on_hlo_analysis
-        estimated_time_sum, estimated_max_mem, stage_times = executable.estimate_cost_on_hlo_analysis()
+        estimated_time_sum, estimated_max_mem, stage_times = executable.estimate_cost_on_hlo_analysis(offload)
         max_stage_time = max(stage_times)
         latencies = estimated_time = estimated_time_sum
         global last_dp_cost 

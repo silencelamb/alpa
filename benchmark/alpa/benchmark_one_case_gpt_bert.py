@@ -343,7 +343,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
                                    num_hosts,
                                    num_devices_per_host,
                                    aval_train_state=True,
-                                   profile_driver_time=False):
+                                   profile_driver_time=False,
+                                   offload=False,):
     # global config
     global_config = get_global_config()
     set_global_option_model_type(model_type)       
@@ -415,7 +416,8 @@ def benchmark_gpt_bert_3d_internal(model_type,
          niter,
          train_step,
          state, (batch, rngkey),
-         profile_driver_time=profile_driver_time)
+         profile_driver_time=profile_driver_time,
+         offload = offload)
 
     
     tflops, parameter_count, total_tflops = compute_gpt_bert_statistics(benchmark_case, latencies, virtual_mesh.num_devices)
@@ -455,7 +457,8 @@ def benchmark_gpt_bert_2d_internal(physical_mesh,
                                    model_type,
                                    benchmark_case,
                                    niter,
-                                   profile_driver_time=False):
+                                   profile_driver_time=False,
+                                   offload=False,):
     method, grad_func = get_shard_parallel_method(benchmark_case, physical_mesh)
 
     state, batch, rngkey = prepare_gpt_bert_input_and_model(

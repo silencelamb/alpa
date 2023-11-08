@@ -4,7 +4,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__))) # add to sys.path.
 
 from suite_manual_gpt import *
 from benchmark_parallel_utils import (BenchmarkCase, SearchParallelArgs,
-                                      LoadSolutionParallelArgs, ConfigParallelArgs)
+                                      LoadSolutionParallelArgs, ConfigParallelArgs,
+                                      UniformParallelArgs)
 from alpa import ManualStageOption, WSCManualStageOption
 
 # NOTE: match for wsc 5 size, micro batch = 100, global bactch = 1000
@@ -58,6 +59,35 @@ def get_config_cases_idx(model_specs, num_micro_batches_list, partition_index, s
         for model_spec in model_specs
     ]
 
+# BenchmarkCase(16, gpt_specs["1.3B"], 4, "uniform",
+#               UniformParallelArgs(True, True, 2, 2, 1, True))
+
+def get_uniform_cases(model_specs, num_micro_batches, parallel_config3Ds):
+    return[
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches,
+            "uniform",
+            UniformParallelArgs(True, True, 
+            parallel_config3D[0], parallel_config3D[1], parallel_config3D[2], True))
+            for model_spec in model_specs
+            for parallel_config3D in parallel_config3Ds
+    ]
+
+def get_solution_cases(model_specs, num_micro_batches, num_auto_layers,
+                      forward_stage_layer_ids, submesh_physical_shapes,
+                      submesh_logical_shapes,
+                      submesh_autosharding_option_dicts):
+    return[
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches,
+            "load_solution",
+            LoadSolutionParallelArgs(prefer_reduce_scatter, use_remat,
+                                     num_auto_layers, forward_stage_layer_ids,
+                                     submesh_physical_shapes,
+                                     submesh_logical_shapes,
+                                     submesh_autosharding_option_dicts))
+            for model_spec in model_specs
+    ]
 
 def get_solution_case(model_spec, num_micro_batches, num_auto_layers,
                       forward_stage_layer_ids, submesh_physical_shapes,
@@ -76,36 +106,100 @@ def get_solution_case(model_spec, num_micro_batches, num_auto_layers,
 
 
 force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
+logical_shape = {
+    24: [[(24, 1)] * 1, [(1, 24)] * 1, [(1, 1)] * 24,
+        # [(4, 6)] * 1, [(1, 4)] * 6, [(4, 1)] * 6,
+        # [(3, 8)] * 1, [(1, 3)] * 8, [(3, 1)] * 8,
+        # [(2, 12)] * 1, [(1, 2)] * 12, [(2, 1)] * 12,
 
+        # [(4, 2)] * 3, [(4, 3)] * 2, [(3, 4)] * 2,
+        # [(3, 2)] * 4, [(2, 4)] * 3, [(2, 3)] * 4,
+    ],
+    25: [[(1, 5)] * 5]
+
+}
+
+def flatten_list(nested_list):
+    return [item for sublist in nested_list for item in sublist]
+
+wsc_perf_suite = {
+#             [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14]],
+    25: get_solution_cases(
+            gpt_wsc_specs.values(),  10, 10,
+            [[0, 1], [2, 3], [4, 5], [6, 7], [8,9]],
+            [(1, 5)] * 5, [(1, 5)] * 5, [force_dp_dict] * 5),
+
+    24: flatten_list([
+        # get_solution_cases(
+        #     # auto_layers max value = 16, otherwise != num_layers
+        #     gpt_wsc_specs.values(),  10, 24,
+        #     [[i] for i in range(24)],
+        #     [(1, 4)] * 6, [(1, 1)] * 24, [force_dp_dict] * 24),
+            get_solution_cases(
+            # auto_layers max value = 16, otherwise != num_layers
+            gpt_wsc_specs.values(),  10, 24,
+            [[i for i in range(24)]],
+            [(6, 4)], [(6, 4)], [{}] * 1),
+# 12, [[0, 1], [2, 3]..[10, 11]]
+# 18, [[0,1, 2], [3, 4, 5]..[16, 17]] -- 
+
+            # [(6, 4)], [(1, 24)], [{}] * 1),
+            get_solution_cases(
+            # auto_layers max value = 16, otherwise != num_layers
+            gpt_wsc_specs.values(),  10, 24,
+            [[i for i in range(24)]],
+            [(1, 4)] * 6, [(1, 24)] * 1, [force_dp_dict] * 1),
+            # get_solution_cases(
+            # # auto_layers max value = 16, otherwise != num_layers
+            # gpt_wsc_specs.values(),  10, 24,
+            # [[i for i in range(24)]],
+            # [(1, 4)] * 6, [(1, 24)] * 1, [force_dp_dict] * 1),
+
+            # get_solution_cases(
+            # # auto_layers max value = 16, otherwise != num_layers
+            # gpt_wsc_specs.values(),  10, 24,
+            # [[i for i in range(24)]],
+            # [(1, 4)] * 6, [(1, 24)] * 1, [force_dp_dict] * 1),
+            # get_solution_cases(
+            # # auto_layers max value = 16, otherwise != num_layers
+            # gpt_wsc_specs.values(),  10, 24,
+            # [[i for i in range(24)]],
+            # [(1, 4)] * 6, [(1, 24)] * 1, [force_dp_dict] * 1),
+            # get_solution_cases(
+            # # auto_layers max value = 16, otherwise != num_layers
+            # gpt_wsc_specs.values(),  10, 24,
+            # [[i for i in range(24)]],
+            # [(1, 4)] * 6, [(1, 24)] * 1, [force_dp_dict] * 1),
+            ]),
+}
 
 # NOTE: research how to construct different suite
 wsc_config_test_suite = { 
-        # tx8
+    #     # tx8
     20: get_config_cases_idx(gpt_wsc_specs.values(), [10],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-                                                          submeshes=[[0, 0, 4, 3]],
+                                                          submeshes=[[0, 0, 3, 4]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
                                                           submesh_autosharding_option_dicts=[{}])),
+    # 25: get_uniform_cases(gpt_wsc_specs.values(), 10, [[1, 1, 1]])
     25: get_config_cases_idx(gpt_wsc_specs.values(), [10],
-                        # partition_index="uniform",
-                        partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
-                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
-        submesh_physical_shapes=None,
-        submesh_logical_shapes=None,
-        submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
-    ),
-
-    40: get_config_cases_idx(gpt_wsc_specs.values(), [10],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-                                                          submeshes=[[0, 0, 4, 4]],
+                                                          submeshes=[[0, 0, 3, 4]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
-                                                          submesh_autosharding_option_dicts=[{}])
-    ),
+                                                          submesh_autosharding_option_dicts=[{}])),
+
+    # 40: get_config_cases_idx(gpt_wsc_specs.values(), [10],
+    #                     partition_index="uniform",
+    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+    #                                                       submeshes=[[0, 0, 4, 4]],
+    #                                                       submesh_physical_shapes=None,
+    #                                                       submesh_logical_shapes=None,
+    #                                                       submesh_autosharding_option_dicts=[{}])
+    # ),
 
     # 2: get_config_cases_idx(gpt_specs.values(), [128],
     #                     # partition_index="uniform",
@@ -192,32 +286,39 @@ model_type_size_dict = {
 # Performance test with search solutions found for p3.16xlarge
 perf_test_suite = {
     1:
-        get_solution_case(gpt_specs["350M"], 512, 1, [[0]], [(1, 1)], [(1, 1)],
+        get_solution_case(gpt_specs["350M"], 10, 1, [[0]], [(1, 1)], [(1, 1)],
                           [{}]),
     2:
-        get_solution_case(gpt_specs["760M"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(gpt_specs["760M"], 10, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 1)] * 2, [(1, 1)] * 2, [force_dp_dict] * 2),
     4:
-        get_solution_case(gpt_specs["1.3B"], 128, 6, [[0, 1, 2], [3, 4, 5]],
+        get_solution_case(gpt_specs["1.3B"], 10, 6, [[0, 1, 2], [3, 4, 5]],
                           [(1, 2)] * 2, [(2, 1)] * 2, [force_dp_dict] * 2),
     8:
-        get_solution_case(gpt_specs["2.6B"], 128,
+        # NOTE: stage_layer_ids[[0, 1], [2, 3], [4, 5, 6, 7]] related to logical shape[(2, 1),(2, 1),(4, 1)]
+        # auto_layers = # layer_ids 8 = [0,..7]
+        # TODO: physical how to related to logical ? P = L^Transpose
+        get_solution_case(gpt_specs["2.6B"], 10,
                           8, [[0, 1], [2, 3], [4, 5, 6, 7]], [(1, 2), (1, 2),
                                                               (1, 4)], [(2, 1),
                                                                         (2, 1),
                                                                         (4, 1)],
                           [force_dp_dict, {}, {}]),
     16:
-        get_solution_case(gpt_specs["6.7B"], 64, 8,
+        get_solution_case(gpt_specs["6.7B"], 10, 8,
                           [[0, 1, 2, 3], [4, 5, 6, 7]], [(1, 8)] * 2,
                           [(2, 4)] * 2, [force_dp_dict] * 2),
-    32:
+    32: # NOTE: logical_mesh_shape = (dp, op) = (2, 4) -- pp = 4 (# host)
+    # physical shape is fixed (5, 5) or (6, 4), we can change logical shape == [(dp, op)]*pp
         get_solution_case(
-            gpt_specs["15B"], 128, 16,
+            gpt_specs["15B"], 10, 16,
             [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15]],
             [(1, 8)] * 4, [(2, 4)] * 4, [force_dp_dict] * 4),
+            # NOTE: physical_shape=(1, 8), #host=4, logical_shape=(2, 4), #host=4
+            # change logical_shape to modify (dp, op, pp)
     64:
-        get_solution_case(gpt_specs["39B"], 1024,
+        # P = L ?
+        get_solution_case(gpt_specs["39B"], 10,
                           16, [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9],
                                [10], [11], [12], [13], [14], [15]],
                           [(1, 4)] * 16, [(1, 4)] * 16, [force_dp_dict] * 16),
@@ -251,7 +352,7 @@ grid_search_suite = {
 
 # Small test cases for correctness test
 correctness_test_suite = {
-    8: get_search_cases(gpt_specs["2.6B"], [128], [8]),
+    8: get_search_cases(gpt_specs["2.6B"], [10], [8]),
 }
 
 config_test_suite = {
@@ -262,7 +363,7 @@ config_test_suite = {
     #                                                    submesh_logical_shapes=[[1, 1], [1, 1]], 
     #                                                    submesh_autosharding_option_dicts=[{}, {}])
     #                     ),
-    2: get_config_cases_idx(gpt_specs["760M"], [128], 
+    2: get_config_cases_idx(gpt_specs["760M"], [10], 
                         # partition_index="uniform", 
                         # partition_index=[0, 1210, 2419],
                         partition_index=[0, 1210],
@@ -279,7 +380,7 @@ config_test_suite = {
     #                                                    submesh_logical_shapes=[[2, 1], [2, 1], [4, 1]], 
     #                                                    submesh_autosharding_option_dicts=[{}, {}, {}])
     #                     ),
-    8: get_config_cases_idx(gpt_specs["2.6B"], [128], 
+    8: get_config_cases_idx(gpt_specs["2.6B"], [10], 
                         # partition_index="uniform",
                         partition_index=[0, 1000, 2000, 3203],
                         stage_option=ManualStageOption(forward_stage_layer_ids=[[0], [1], [2]], 

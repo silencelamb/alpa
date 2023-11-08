@@ -27,7 +27,8 @@ def benchmark_one_case_internal(model,
                                 profile_driver_time=False,
                                 shard_only=False,
                                 local=False,
-                                disable_tqdm=False):
+                                disable_tqdm=False, 
+                                offload = False,):
     if disable_tqdm:
         disable_tqdm_globally()
 
@@ -52,7 +53,8 @@ def benchmark_one_case_internal(model,
                 model,
                 case,
                 niter,
-                profile_driver_time=profile_driver_time)
+                profile_driver_time=profile_driver_time,
+                offload = offload)
         elif model == "moe":
             result = benchmark_moe_2d_internal(
                 physical_mesh,
@@ -68,7 +70,8 @@ def benchmark_one_case_internal(model,
                 physical_mesh,
                 case,
                 niter,
-                profile_driver_time=profile_driver_time)
+                profile_driver_time=profile_driver_time,
+                offload = offload)
         else:
             raise ValueError(f"Invalid model: {model}")
 
@@ -84,7 +87,8 @@ def benchmark_one_case_internal(model,
                 niter,
                 num_hosts,
                 num_devices_per_host,
-                profile_driver_time=profile_driver_time)
+                profile_driver_time=profile_driver_time,
+                offload = offload)
         elif model == "moe":
             result = benchmark_moe_3d_internal(
                 case,
@@ -103,7 +107,8 @@ def benchmark_one_case_internal(model,
                 niter,
                 num_hosts,
                 num_devices_per_host,
-                profile_driver_time=profile_driver_time)
+                profile_driver_time=profile_driver_time,
+                offload = offload)
         elif model in ["gpt_inference", "gpt_no_embedding_inference"]:
             result = benchmark_gpt_inference_internal(
                 model,
@@ -111,7 +116,8 @@ def benchmark_one_case_internal(model,
                 niter,
                 num_hosts,
                 num_devices_per_host,
-                profile_driver_time=profile_driver_time)
+                profile_driver_time=profile_driver_time,
+                offload = offload)
         else:
             raise ValueError(f"Invalid model: {model}")
 
@@ -123,9 +129,9 @@ def benchmark_and_write_to_namespace(result_namespace, *args, **kwargs):
     result_namespace.result = result
 
 
-def benchmark_one_case(*args, use_separate_process=False, **kwargs):
+def benchmark_one_case(*args, use_separate_process=False, offload = False, **kwargs):
     if not use_separate_process:
-        return benchmark_one_case_internal(*args, **kwargs)
+        return benchmark_one_case_internal(*args, **kwargs, offload = offload)
     ctx = mp.get_context("spawn")
     manager = ctx.Manager()
     result_namespace = manager.Namespace()

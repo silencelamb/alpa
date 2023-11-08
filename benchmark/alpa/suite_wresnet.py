@@ -46,11 +46,11 @@ wresnet_wsc_specs = {
     #                      I,   L,   C,   W,  dtype,
 
     "25.56M": WResNetModelConfig(224, 50, 64, 1, "fp16"),  # resnet50
-    # "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp16"), # resnet101
-    # "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp16"), # resnet152
+    "44.55M": WResNetModelConfig(224, 101, 64, 1, "fp16"), # resnet101
+    "60.19M": WResNetModelConfig(224, 152, 64, 1, "fp16"), # resnet152
 
-    # "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp16"), # wresnet50-2
-    # "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp16"), # wresnet101-2
+    "68.88M": WResNetModelConfig(224, 50, 64, 2, "fp16"), # wresnet50-2
+    "126.88M": WResNetModelConfig(224, 101, 64, 2, "fp16"), # wresnet101-2
 
 
 
@@ -132,6 +132,21 @@ def get_solution_case(model_name, max_global_batch_size, num_micro_batches,
                                      submesh_logical_shapes,
                                      submesh_autosharding_option_dicts))
     ]
+def get_solution_cases(model_specs, num_micro_batches, num_auto_layers,
+                      forward_stage_layer_ids, submesh_physical_shapes,
+                      submesh_logical_shapes,
+                      submesh_autosharding_option_dicts):
+    return[
+        BenchmarkCase(
+            max_global_batch_size, model_spec, num_micro_batches,
+            "load_solution",
+            LoadSolutionParallelArgs(prefer_reduce_scatter, use_remat,
+                                     num_auto_layers, forward_stage_layer_ids,
+                                     submesh_physical_shapes,
+                                     submesh_logical_shapes,
+                                     submesh_autosharding_option_dicts))
+            for model_spec in model_specs
+    ]
 
 # NOTE: normal is 1024
 max_global_batch_size = 1000
@@ -151,35 +166,60 @@ force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
 
 
 
+wsc_perf_suite0 = {
+
+    25: get_solution_cases(wresnet_wsc_specs.values(),  100, 32,
+                    [[0, 1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12, 13, 14, 15]],
+                    [(1, 4), (1, 4),
+                    (1, 8)], [(4, 1), (4, 1),
+                       (8, 1)], [force_dp_dict, force_dp_dict, {}]),
+}
+
+wsc_perf_suite1 = {
+
+    25: get_solution_cases(
+            wresnet_wsc_specs.values(),  100,
+            32, [[0, 1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15]],
+            [(1, 8), (1, 8), (1, 8),
+             (1, 8)], [(8, 1), (8, 1), (8, 1),
+                       (8, 1)], [force_dp_dict, {}, {}, {}]),
+}
+
+
+wsc_perf_suite2 = {
+
+    25: get_solution_cases(
+            wresnet_wsc_specs.values(),  100,
+                          38,
+                          [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9, 10, 11], [12, 13, 14, 15],
+             [16, 17, 18, 19], [20, 21, 22, 23], [24, 25, 26, 27, 28],
+             [29, 30, 31, 32]], [(1, 8), (1, 8), (1, 8), (1, 8), (1, 8), (1, 8),
+                                 (1, 8), (1, 8)],
+            [(8, 1), (1, 8), (8, 1), (1, 8), (8, 1), (8, 1), (1, 8),
+             (8, 1)],
+            [{}, force_dp_dict, {}, force_dp_dict, {}, {}, force_dp_dict, {}]),
+}
+
 # NOTE: research how to construct different suite
 wsc_config_test_suite = { 
 
     # tx8
-    20: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
+    20: get_config_cases_idx(wresnet_wsc_specs.values(), [100],
                         partition_index="uniform",
                         stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-                                                          submeshes=[[0, 0, 4, 3]],
+                                                          submeshes=[[0, 0, 3, 4]],
                                                           submesh_physical_shapes=None,
                                                           submesh_logical_shapes=None,
                                                           submesh_autosharding_option_dicts=[{}])),
 
-    25: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
-                        # partition_index="uniform",
-                        partition_index=[0.013333333333333334, 0.08, 0.10666666666666667, 0.2, 0.32, 0.41333333333333333, 0.52, 0.5733333333333334, 0.6933333333333334, 0.76, 0.88, 0.9733333333333334],
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0], [1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11], [12]],
-                                                          submeshes=[[0, 0, 0, 2], [0, 3, 0, 5], [0, 6, 0, 7], [0, 8, 0, 10], [0, 11, 0, 11], [0, 12, 0, 13], [0, 14, 0, 14], [0, 15, 0, 15], [0, 16, 0, 16], [0, 17, 0, 17], [0, 18, 0, 19], [0, 20, 0, 21], [0, 22, 0, 24]],
-        submesh_physical_shapes=None,
-        submesh_logical_shapes=None,
-        submesh_autosharding_option_dicts=[{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}])
+    25: get_config_cases_idx(wresnet_wsc_specs.values(), [100],
+                        partition_index="uniform",
+                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
+                                                          submeshes=[[0, 0, 3, 4]],
+                                                          submesh_physical_shapes=None,
+                                                          submesh_logical_shapes=None,
+                                                          submesh_autosharding_option_dicts=[{}])
     ),
-    # 25: get_config_cases_idx(wresnet_wsc_specs.values(), [10],
-    #                     partition_index="uniform",
-    #                     stage_option=WSCManualStageOption(forward_stage_layer_ids=[[0]],
-    #                                                       submeshes=[[0, 0, 4, 4]],
-    #                                                       submesh_physical_shapes=None,
-    #                                                       submesh_logical_shapes=None,
-    #                                                       submesh_autosharding_option_dicts=[{}])
-    # ),
 
     # 2: get_config_cases_idx(wresnet_specs.values(), [128],
     #                     # partition_index="uniform",
