@@ -77,7 +77,7 @@ def benchmark_one_case_internal(model,
 
     else:
         global_config.pipeline_sync_for_timer = True
-        init(cluster="ray")
+        # init(cluster="ray")
 
         # Run benchmark
         if model in ["gpt", "bert","mlp"]:
