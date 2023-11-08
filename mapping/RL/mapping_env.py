@@ -1,5 +1,6 @@
 import numpy as np
 from collections import deque
+import random
 import statistics
 from collections import namedtuple
 import gymnasium as gym
@@ -58,13 +59,10 @@ class WSCMappingEnv(gym.Env):
         self.rect_id = 0
         self.action_mask = None
         
-        # load graph data, temporarily use mock data
-        node_features, edge_index = self.gen_mock_graph_data()
-        # 创建图数据
-        data = Data(x=node_features, edge_index=edge_index)
-        self.GraphDataSet = [
-            GraphData("gpt", "2.6B", data)
-        ]
+        # 构建GraphDataSet
+        self.GraphDataSet = self.construct_graph_dataset()
+        self.model_type = None
+        self.model_size = None
         
         # for reward statistics
         self.total_reward = 0
@@ -75,10 +73,36 @@ class WSCMappingEnv(gym.Env):
         self.mae_param = 0.9
         self.max_ave_episode = 0
         
+    def construct_graph_dataset(self):
+        # load graph data, temporarily use mock data
+        node_features, edge_index = self.gen_mock_graph_data()
+        # 创建图数据
+        data = Data(x=node_features, edge_index=edge_index)
+        GraphDataSet = [
+            GraphData("gpt", "350M", data),
+            GraphData("gpt", "760M", data),
+            GraphData("gpt", "1.3B", data),
+            GraphData("gpt", "2.6B", data),
+            GraphData("gpt", "6.7B", data),
+            GraphData("gpt", "15B", data),
+            GraphData("bert", "Tiny", data),
+            GraphData("bert", "Small", data),
+            GraphData("bert", "Medium", data),
+            GraphData("bert", "Base", data),
+            GraphData("bert", "Large", data),
+            GraphData("wresnet", "25.56M", data),
+            GraphData("wresnet", "44.55M", data),
+            GraphData("wresnet", "60.19M", data),
+            GraphData("wresnet", "68.88M", data),
+            GraphData("wresnet", "126.88M", data)
+        ]
+        return GraphDataSet
+    
     def reward(self):
         """Reward function
         """
-        model_type = "gpt"
+        # return -np.random.randint(1, 1000)*1.0     # mock reward, for fast debug
+        # common code
         total_compute = sum(self.compute_list)
         normalized_compute_list = [compute / total_compute for compute in self.compute_list]
         partition_index = []
@@ -86,17 +110,27 @@ class WSCMappingEnv(gym.Env):
         for x in normalized_compute_list:
             partition_index.append(cur_sum)
             cur_sum = cur_sum + x
-        global max_global_batch_size
-        max_global_batch_size = 1000
-        suite = get_one_config_case_idx(gpt_specs["350M"], [100],
-                        # partition_index="uniform",
-                        partition_index=partition_index,
-                        stage_option=WSCManualStageOption(forward_stage_layer_ids=[[x] for x in range(len(self.rect_list)) ],
-                                                          submeshes=self.rect_list,
-                                                          submesh_physical_shapes=None,
-                                                          submesh_logical_shapes=None,
-                                                          submesh_autosharding_option_dicts=[{} for x in range(len(self.rect_list))])
-                )
+        stage_option = WSCManualStageOption(
+            forward_stage_layer_ids=[[x] for x in range(len(self.rect_list)) ],
+            submeshes=self.rect_list,
+            submesh_physical_shapes=None,
+            submesh_logical_shapes=None,
+            submesh_autosharding_option_dicts=[{} for x in range(len(self.rect_list))]
+        )
+        model_type = self.model_type
+        if model_type == 'gpt':
+            suite = get_one_config_case_idx(
+                gpt_specs[self.model_size], 
+                [100],
+                partition_index=partition_index,
+                stage_option=stage_option       
+            )
+        elif model_type == "bert":
+            # TODO: add bert specs
+            pass
+        elif model_type == "wresnet":
+            # TODO: add wresnet specs
+            pass
 
         # Run all cases
         for benchmark_case in suite:
@@ -354,11 +388,29 @@ class WSCMappingEnv(gym.Env):
         self.action_mask = action_mask
         return action_mask        
 
-    def get_graph_data(self):
-        return self.GraphDataSet[0].graph_data
+    @property
+    def num_graphs(self):
+        return len(self.GraphDataSet)
+
+    def get_graph_data_by_index(self, index=0):
+        return self.GraphDataSet[index].graph_data
+    
+    def get_graph_data_by_type_size(self, model_type, model_size):
+        for graph_data in self.GraphDataSet:
+            if graph_data.model_type == model_type and graph_data.model_size == model_size:
+                return graph_data.graph_data
+    
+    def set_model_type_size(self, model_type, model_size):
+        self.model_type = model_type
+        self.model_size = model_size
     
     def get_graph_feature_dim(self):
         return self.GraphDataSet[0].graph_data.x.shape[1]
+    
+    def shuffle_graphs(self, seed=None):
+        if seed is not None:
+            random.seed(seed)
+        random.shuffle(self.GraphDataSet)
            
     def gen_mock_graph_data(self):
         # 假设我们有5个节点，每个节点有3个特征
