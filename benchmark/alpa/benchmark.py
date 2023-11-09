@@ -105,7 +105,7 @@ def benchmark_suite(suite_name,
             model_type  = "gpt"
         elif model_type[0] == "B":
             model_type = "bert"
-        elif model_type[0] == "W":
+        elif model_type[0] in ("W", "R") :
             model_type = "wresnet"
 
         date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -136,6 +136,7 @@ def benchmark_suite(suite_name,
 
         # Run one case
         print("Working on case: {}".format(str(benchmark_case)))
+        print(f"***************model_type = {model_type}")
         result = benchmark_one_case(model_type,
                                     benchmark_case,
                                     niter,
