@@ -22,6 +22,8 @@ import suite_manual_gpt
 import suite_wresnet
 import suite_auto_mlp
 from suite_manual_gpt import gpt_specs
+from suite_manual_bert import bert_specs
+from suite_wresnet import wresnet_specs
 from alpa import ManualStageOption, WSCManualStageOption
 from suite_auto_gpt import get_one_config_case_idx
 
@@ -396,17 +398,30 @@ def benchmark_suite(suite_name,
         
     if model_type == "gpt":
         suite = get_one_config_case_idx(
+            1000,    # global_batch_size
             gpt_specs[model_size], 
-            [100],
+            [100],   # num_micro_batches
             partition_index=partition_index,
             stage_option=stage_option
         )
     elif model_type == "bert":
-        # add corresponding bert suite
-        pass
+        # TODO: exprement to verfy it is ok
+        suite = get_one_config_case_idx(
+            1000,    # global_batch_size
+            bert_specs[model_size], 
+            [100],   # num_micro_batches
+            partition_index=partition_index,
+            stage_option=stage_option
+        )
     elif model_type == "wresnet":
-        # add corresponding wresnet suite
-        pass                        
+        # TODO: exprement to verfy it is ok
+        suite = get_one_config_case_idx(
+            1000,    # global_batch_size
+            wresnet_specs[model_size], 
+            [100],   # num_micro_batches
+            partition_index=partition_index,
+            stage_option=stage_option
+        )                        
                             
     log.logger.info('one pop: ' + str(parameters_list) +
                     'suite: ' + str(suite))

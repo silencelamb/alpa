@@ -60,11 +60,11 @@ def get_config_cases_idx(model_specs, num_micro_batches_list, partition_index, s
         for model_spec in model_specs
     ]
 
-def get_one_config_case_idx(model_spec, num_micro_batches_list, partition_index, stage_option):
+def get_one_config_case_idx(global_batch_size, model_spec, num_micro_batches_list, partition_index, stage_option):
     stage_num = len(stage_option.forward_stage_layer_ids)
     return [
         BenchmarkCase(
-            max_global_batch_size, model_spec, num_micro_batches_list[0], "config",
+            global_batch_size, model_spec, num_micro_batches_list[0], "config",
             ConfigParallelArgs(stage_num, None, partition_index,'1f1b', stage_option, use_remat))
         ]
 # BenchmarkCase(16, gpt_specs["1.3B"], 4, "uniform",
