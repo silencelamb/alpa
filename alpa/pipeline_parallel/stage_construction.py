@@ -835,6 +835,7 @@ def cluster_layers_and_slice_mesh(
             for layer_id in stage_layer_ids:
                 assert layer_id == last_layer_id
                 last_layer_id += 1
+        print(f"last_layer_id = {last_layer_id}, num_layers = {num_layers}")
         assert last_layer_id == num_layers
         submesh_shapes = stage_option.submesh_physical_shapes
         logical_mesh_shapes = (stage_option.submesh_logical_shapes or
@@ -933,6 +934,11 @@ def cluster_layers_and_slice_mesh(
     stages = merged_stages
 
     # Check the validity of logical mesh shapes
+    if (len(logical_mesh_shapes) != len(sliced_meshes)):
+        print(f"len of logical = {len(logical_mesh_shapes)}")
+        print(f"len of sliced = {len(sliced_meshes)}")
+        print(f"logical = {logical_mesh_shapes}")
+        print(f"sliced = {sliced_meshes}")
     assert len(logical_mesh_shapes) == len(sliced_meshes)
     for logical_mesh_shape, submesh in zip(logical_mesh_shapes, sliced_meshes):
         assert np.prod(logical_mesh_shape) == submesh.num_devices

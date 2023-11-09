@@ -521,6 +521,7 @@ def layer_level_jaxpr_transformation(fn: Callable,
                                                    eps,
                                                    costs,
                                                    cost_criteria=cost_criteria)
+            # import pdb; pdb.set_trace() # layer_num = 12, 24, 12, 24, 
             if global_config.print_auto_layer_stats:
                 log_layer_slicing_stats(jaxpr, sliced_eqns)
         else:
