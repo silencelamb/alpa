@@ -12,6 +12,7 @@ import numpy as np
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
                        GB)
+from alpa.global_env import PrimitiveType
 from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
@@ -55,9 +56,14 @@ from jax.interpreters.pxla import ShardingSpec, NoSharding, Replicated, Chunked,
 import logging
 from logging import handlers
 
-# 5x5 die 最多切分成 25 个stage
-device_num = 5 * 5
+#外部传入 num_host (1) x num_devices_per_host
+device_num = None   # for dojo  = 25； for wafer-scale GPU = 24;
+
+# 最多切分device_num个stage
 max_stage_num = device_num
+
+model_type = None   # "gpt", "bert", "wresnet"
+model_size = None   # e.g. for gpt: "350M"; for bert: "Tiny", "Large"; for wresnet: "M"
 
 class Logger(object):
     level_relations = {
@@ -309,10 +315,21 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
         
     try:
         log.logger.info('paras_list: ' + str(paras_list))
-        result_ = benchmark_suite(args_.suite, num_hosts, num_devices_per_host, args_.exp_name,
-                        args_.niter, args_.shard_only, args_.local,
-                        args_.profile_driver_time, args.disable_tqdm,
-                                    args_.use_separate_process, parameters_list=paras_list,log =log)     
+        result_ = benchmark_suite(args_.suite, 
+                                  num_hosts, 
+                                  num_devices_per_host, 
+                                  args_.exp_name,
+                                  args_.niter, 
+                                  args_.shard_only, 
+                                  args_.local,
+                                  args_.profile_driver_time, 
+                                  args_.disable_tqdm,
+                                  args_.use_separate_process, 
+                                  parameters_list=paras_list,
+                                  use_offload=args_.use_offload,
+                                  constrain_mem=args_.constrain_mem,
+                                  log =log
+                                  )     
     except Exception as e:
         log.logger.warning(f"Wrong !!!!===========================================================")
         print(e)
@@ -321,32 +338,6 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
     log.logger.info('One Mid Result : ' + str(result_))
     return result_ 
-
-    
-benchmark_suites = {
-    "gpt.tmp": suite_manual_gpt.tmp_suite,
-    "gpt.tmp_auto": suite_auto_gpt.tmp_suite,
-    "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
-    "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
-    "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
-    "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
-    "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
-    "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
-    "gpt_inference.profile": suite_inference_gpt.profile_suite,
-    "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
-    "gpt.config_test": suite_auto_gpt.config_test_suite,
-    "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite,
-    "mlp.wsc_config_test": suite_auto_mlp.wsc_config_test_suite_mlp,
-    "moe.tmp": suite_manual_moe.tmp_suite,
-    "moe.tmp_auto": suite_auto_moe.tmp_suite,
-    "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,
-    "moe.perf_test_auto": suite_auto_moe.perf_test_suite,
-    "moe.grid_search_auto": suite_auto_moe.grid_search_suite,
-    "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
-    "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
-    "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
-}
-
 
 def benchmark_suite(suite_name,
                     num_hosts,
@@ -359,22 +350,15 @@ def benchmark_suite(suite_name,
                     disable_tqdm=False,
                     use_separate_process=True,
                     parameters_list = None,
+                    use_offload = False,
+                    constrain_mem = False,
                     log = None):
     
     num_gpus = num_hosts * num_devices_per_host
 
-    if local:
-        assert shard_only, ("Only shard-only mode is supported for execution "
-                            "on local GPUs.")
-
-    # assert num_gpus in benchmark_suites[suite_name], (
-    #     f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
-    # # suite = benchmark_suites[suite_name][num_gpus]
-    
     # get stage num and device_num of per stage
     device_cur_stage = []
     device_per_stage = []
-    
     for i in range(max_stage_num-1):
         device_cur_stage.append(i)
         # 1 for split
@@ -388,11 +372,10 @@ def benchmark_suite(suite_name,
         
     stage_num = len(device_per_stage)
     
+    # construct stage_option
     forward_stage_layer_ids = []
     submesh_autosharding_option_dicts =[]
     submeshes = []
-    
-    
     device_start = 0
     for i in range(stage_num):
         forward_stage_layer_ids.append([i])
@@ -400,7 +383,13 @@ def benchmark_suite(suite_name,
         device_end = device_start + len(device_per_stage[i]) -1   
         submeshes.append([device_start, 0, device_end, 0])
         device_start = device_end + 1
-
+    stage_option=WSCManualStageOption(
+        forward_stage_layer_ids=forward_stage_layer_ids,
+        submeshes=submeshes,
+        submesh_physical_shapes=None,
+        submesh_logical_shapes=None,
+        submesh_autosharding_option_dicts=submesh_autosharding_option_dicts
+    )
 
     # graph partition by ratio
     partition_index = parameters_list[max_stage_num-1: max_stage_num-1+stage_num]
@@ -408,20 +397,23 @@ def benchmark_suite(suite_name,
     # convert to ratio
     partition_index = [sum(partition_index[:i])/partition_index_sum for i in range(len(partition_index))]
         
-    # import pdb; pdb.set_trace()   
-    # 350M  1.3B
-    suite = get_one_config_case_idx(gpt_specs["350M"], [100],
-                         partition_index=partition_index,                         
-                         stage_option=WSCManualStageOption(forward_stage_layer_ids=forward_stage_layer_ids,
-                                                           submeshes=submeshes,
-        submesh_physical_shapes=None,
-        submesh_logical_shapes=None,
-        submesh_autosharding_option_dicts=submesh_autosharding_option_dicts)
-    )
+    if model_type == "gpt":
+        suite = get_one_config_case_idx(
+            gpt_specs[model_size], 
+            [100],
+            partition_index=partition_index,
+            stage_option=stage_option
+        )
+    elif model_type == "bert":
+        # add corresponding bert suite
+        pass
+    elif model_type == "wresnet":
+        # add corresponding wresnet suite
+        pass                        
+                            
     log.logger.info('one pop: ' + str(parameters_list) +
                     'suite: ' + str(suite))
-    model_type = suite_name.split(".")[0]
-    result_latency = 5e10
+    result_latency = 10e10
     
     # Run all cases
     for benchmark_case in suite:
@@ -447,47 +439,54 @@ def benchmark_suite(suite_name,
                                         local=local,
                                         profile_driver_time=profile_driver_time,
                                         disable_tqdm=disable_tqdm,
-                                        use_separate_process=use_separate_process)
+                                        use_separate_process=use_separate_process,
+                                        offload = use_offload
+                                        )
             (parameter_count, peak_mem, latencies, tflops, metadata) = result
 
             heads = [
-                "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "Actual TFLOPs(Per Device)",
-                "Peak Mem (GB)", "Metadata"
+                "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
+                "Std Time (s)", "Out of DDR", "Peak Mem (GB)", "DDR Mem (GB)", "#Microbatch", 
+                "#GPU", "Model Config", "Parallel Config", "Metadata"
             ]
             if isinstance(parallel_args, ConfigParallelArgs):
                 parallel_args = parallel_args._replace(input_placement_specs=[])
                 
+            Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+            Peak_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value]
+            DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
+            out_of_mem = peak_mem/GB > DDR_MEM/GB
             values = [
-                model_type, model_config, num_micro_batches, num_gpus,
-                parallel_args, f"{np.mean(latencies):.3f}",
-                f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
-                f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
-                to_str_round(metadata, 6)
+                model_type, f"{parameter_count/1e9:.3f}B",
+                f"{tflops:.4f}", f"{tflops/Peak_FP16*100}",
+                f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
+                f"{out_of_mem}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
+                str(num_micro_batches), num_gpus, str(model_config),
+                parallel_args, to_str_round(metadata, 6)
             ]
             values = [str(x) for x in values]
             result_dict = dict(zip(heads, values)) 
             log.logger.info('One result: ' + str(result_dict))
+            if out_of_mem and constrain_mem:
+                result_latency = 10e10
+            else:
+                result_latency = metadata['estimated_total_time'] 
         except RuntimeError:
             log.logger.error("alpa runtime error !!!")
-
-
-        # result_latency = latencies
-        result_latency = metadata['estimated_total_time']
-    # import pdb; pdb.set_trace()    
+            result_latency = 10e10
+            
+        
+        
     return result_latency
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite",
-                        choices=list(benchmark_suites.keys()),
-                        type=str,
-                        required=True)
     parser.add_argument("--niter",
                         type=int,
                         default=3,
                         help="The number of benchmark iterations")
+    parser.add_argument("--suite", type=str, default="GAmapping")
     parser.add_argument("--num-hosts", type=int, default=None)
     parser.add_argument("--num-devices-per-host", type=int, default=None)
     parser.add_argument("--shard-only",
@@ -514,11 +513,26 @@ if __name__ == "__main__":
     parser.add_argument("--use-analytical-perf-model",
                         action="store_true", dest="use_analytical_perf_model")
     parser.add_argument("--rst_folder", type=str, default="")
-    parser.add_argument("--hardware", type=str, default="gpu")
+    parser.add_argument("--hardware", type=str, choices=['gpu', 'wsc', 'dojo', 'wsgpu'], 
+                        default="gpu")
     parser.add_argument("--force_use_fp16", action="store_true")
     parser.add_argument("--use-greedy-collective-cost", action="store_true")
+    parser.add_argument("--model-type", type=str, choices=['gpt', 'bert', 'wresnet'],
+                        help="set model type, only support gpt, bert, wresnet")
+    parser.add_argument("--model-size", type=str, default=None,
+                        help="set model size")
+    parser.add_argument("--constrain-mem", action="store_true",
+                        help="if the peak mem exceeds the device mem, it is invalid, then set the latency to 10e10")
+    parser.add_argument("--use-offload", action="store_true",
+                        help="use offload strategy (zero offoad -like)")
+    
     args = parser.parse_args()
+    # when use use offload strategy, the memory contraint is off
+    if args.use_offload:
+        args.constrain_mem = False
     num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args)
+    model_type = args.model_type
+    model_size = args.model_size
 
     # set global_config, only_mapping
     global_config = get_global_config()
@@ -534,18 +548,30 @@ if __name__ == "__main__":
     date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     if args.only_mapping:
         if global_config.use_analytical_perf_model:
-            actual_or_virtual = f"perf@{global_config.hardware}"
+            actual_or_virtual = f"perf@{args.hardware}"
         else:
             actual_or_virtual = "costmodel"
     else:
         actual_or_virtual = "actualA100"
-    
+
+    if args.hardware == "dojo":
+        global_config.wsc_config = global_config.dojo_config
+        global_config.hardware = "wsc"
+        print(f"Set DOJO config = {global_config.wsc_config}")
+    elif args.hardware == "wsgpu":
+        global_config.wsc_config = global_config.wsgpu_config
+        global_config.hardware = "wsc"
+        print(f"Set SW-GPU config = {global_config.wsc_config}")
+    else:
+        # NOTE: origin support for GPU & TX8 WSC
+        global_config.hardware = args.hardware
+        
     # set device num
     assert num_hosts == 1, ("Only support 1 host now.")
     device_num = num_devices_per_host *num_hosts
     max_stage_num = device_num
     
-    args.rst_folder = f"{args.rst_folder}/{args.suite}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
+    args.rst_folder = f"{args.rst_folder}/{args.suite}-{actual_or_virtual}-{num_devices_per_host}X{num_hosts}-{model_type}-{model_size}-{date_str}"
     print(args.rst_folder)
     os.makedirs(args.rst_folder, exist_ok=True)
 
@@ -560,48 +586,9 @@ if __name__ == "__main__":
     set_global_config(global_config)
     global_config = get_global_config()
     print(global_config.use_analytical_perf_model)
-    import sys
-    
     save_path = args.rst_folder
     log_format = '%(asctime)s %(filename)s %(levelname)s %(message)s'
-    # os.makedirs(save_path, exist_ok=True)
-    # logging.basicConfig(level=logging.INFO,
-    #                     format=log_format, datefmt='%a %d %b %Y %H:%M:%S', filename=os.path.join(save_path, 'log.txt'), filemode='w')
-    
-    # logging.basicConfig(level=logging.INFO,
-    #                     format=log_format, datefmt='%a %d %b %Y %H:%M:%S', filename='/zhanghaichao/lab2/alpa/benchmark/alpa/data/log.txt', filemode='w')
-    
-    # logger.setLevel(logging.INFO)    
-    # fh = logging.FileHandler(os.path.join(save_path, 'log.txt'),mode='w')
-    # fh.setFormatter(logging.Formatter(log_format))
-    # sh = logging.StreamHandler()
-    # sh.setFormatter(logging.Formatter(log_format))
-    # # logging.getLogger().addHandler(fh)
-    # logger.addHandler(fh)
-    # logger.addHandler(sh)
-    # logger = logging.getLogger(__file__)
-    # # h1 = logging.FileHandler(os.path.join(save_path, 'log.txt'))  # 打印到文件
-    # h1 = logging.FileHandler('t2.log')  # 打印到文件
-    # sm = logging.StreamHandler()  # 打印到终端
-    
-    # formmater1 = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -%(module)s:  %(message)s',
-    #                                datefmt='%Y-%m-%d %H:%M:%S %p',)
-    # h1.setFormatter(formmater1)
-    # sm.setFormatter(formmater1)
-    
-    # logger.addHandler(h1)
-    # # logger.addHandler(h2)
-    # logger.addHandler(sm)
-        
     log = Logger(os.path.join(save_path, 'log.log'), level='info')
-    log.logger.debug('debug')
     log.logger.info('begin search by GA')
-    
-    # import pdb; pdb.set_trace()
-    
+        
     run_in_GA(args, num_hosts, num_devices_per_host, log)
-
-    # benchmark_suite(args.suite, num_hosts, num_devices_per_host, args.exp_name,
-    #                 args.niter, args.shard_only, args.local,
-    #                 args.profile_driver_time, args.disable_tqdm,
-    #                 args.use_separate_process)
