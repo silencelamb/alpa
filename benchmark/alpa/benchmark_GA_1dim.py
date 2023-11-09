@@ -18,11 +18,8 @@ from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 from benchmark_one_case import benchmark_one_case
 import suite_auto_gpt
-import suite_auto_moe
 import suite_manual_gpt
-import suite_manual_moe
 import suite_wresnet
-import suite_inference_gpt
 import suite_auto_mlp
 from suite_manual_gpt import gpt_specs
 from alpa import ManualStageOption, WSCManualStageOption
