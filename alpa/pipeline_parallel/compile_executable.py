@@ -158,9 +158,10 @@ def compile_pipeshard_executable_internal(
     # Slice the jaxpr into layers
     acc_grad_invars = acc_grad_jaxpr.jaxpr.invars
     acc_grad_outvars = acc_grad_jaxpr.jaxpr.outvars
-
+    # len() = 36
     jax_pipeline_layers = slice_closed_jaxpr_by_full_pipeline_marks(
         acc_grad_jaxpr)
+    # import pdb; pdb.set_trace()
     if not inference_mode:
         jax_pipeline_layers = (
             mark_missing_vars_in_backward_computation_pipeline_marks(

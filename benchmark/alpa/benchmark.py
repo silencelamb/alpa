@@ -16,71 +16,58 @@ from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 from benchmark_one_case import benchmark_one_case
 import suite_auto_gpt
-import suite_auto_moe
 import suite_auto_bert
 import suite_manual_gpt
 import suite_manual_bert
-import suite_manual_moe
 import suite_wresnet
 import suite_inference_gpt
 import suite_inference_bert
-import suite_auto_mlp
-import suite_manual_mlp
+
 from suite_auto_gpt import model_type_size_dict
 
+from suite_all import wsc_perf_suite, all_models
+
 benchmark_suites = {
-    "gpt.tmp": suite_manual_gpt.tmp_suite,
-    "gpt.tmp_auto": suite_auto_gpt.tmp_suite,
-    "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
-    "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
-    "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
+    "wsc_perf": wsc_perf_suite
+    # "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
+    # "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
+    # "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
 
-    "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
+    # "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
 
-    "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
-    "gpt_inference.profile": suite_inference_gpt.profile_suite,
-    "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
-    "gpt.config_test": suite_auto_gpt.config_test_suite,
-    "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
-    "gpt.wsc_perf": suite_auto_gpt.wsc_perf_suite,
-
+    # "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
+    # "gpt_inference.profile": suite_inference_gpt.profile_suite,
+    # "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
+    # "gpt.config_test": suite_auto_gpt.config_test_suite,
+    # "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
+    # "gpt.wsc_perf": suite_auto_gpt.wsc_perf_suite,
 
 
-    "bert.tmp": suite_manual_bert.tmp_suite,
-    "bert.tmp_auto": suite_auto_bert.tmp_suite,
-    "bert.perf_test_fast_2d": suite_manual_bert.perf_test_fast_2d_suite,
-    "bert.perf_test_manual": suite_manual_bert.perf_test_suite,
-    "bert.perf_test_auto": suite_auto_bert.perf_test_suite,
+    # "bert.tmp": suite_manual_bert.tmp_suite,
+    # "bert.tmp_auto": suite_auto_bert.tmp_suite,
+    # "bert.perf_test_fast_2d": suite_manual_bert.perf_test_fast_2d_suite,
+    # "bert.perf_test_manual": suite_manual_bert.perf_test_suite,
+    # "bert.perf_test_auto": suite_auto_bert.perf_test_suite,
     
-    "bert.grid_search_auto": suite_auto_bert.grid_search_suite,
+    # "bert.grid_search_auto": suite_auto_bert.grid_search_suite,
 
-    "bert.correctness_test_auto": suite_auto_bert.correctness_test_suite,
-    "bert_inference.profile": suite_inference_bert.profile_suite,
-    "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
-    "bert.config_test": suite_auto_bert.config_test_suite,
-    "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite, 
-    "bert.wsc_perf0": suite_auto_bert.wsc_perf_suite0,
-    "bert.wsc_perf1": suite_auto_bert.wsc_perf_suite1,
-    "bert.wsc_perf2": suite_auto_bert.wsc_perf_suite2,
+    # "bert.correctness_test_auto": suite_auto_bert.correctness_test_suite,
+    # "bert_inference.profile": suite_inference_bert.profile_suite,
+    # "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
+    # "bert.config_test": suite_auto_bert.config_test_suite,
+    # "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite, 
+    # "bert.wsc_perf0": suite_auto_bert.wsc_perf_suite0,
+    # "bert.wsc_perf1": suite_auto_bert.wsc_perf_suite1,
+    # "bert.wsc_perf2": suite_auto_bert.wsc_perf_suite2,
 
+    # # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
+    # "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
+    # "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
+    # "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
 
-    "mlp.perf_test_manual": suite_manual_mlp.mlp_perf_test_suite,
-    "mlp.grid_search_auto": suite_auto_mlp.grid_search_suite_mlp,
-    "mlp.wsc_config_test": suite_auto_mlp.wsc_config_test_suite_mlp,
-    "moe.tmp": suite_manual_moe.tmp_suite,
-    "moe.tmp_auto": suite_auto_moe.tmp_suite,
-    "moe.perf_test_fast_2d": suite_manual_moe.perf_test_fast_2d_suite,
-    "moe.perf_test_auto": suite_auto_moe.perf_test_suite,
-    "moe.grid_search_auto": suite_auto_moe.grid_search_suite,
-
-    # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
-    "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
-    "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
-    "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
-
-    "wresnet.wsc_perf0": suite_wresnet.wsc_perf_suite0,
-    "wresnet.wsc_perf1": suite_wresnet.wsc_perf_suite1,
-    "wresnet.wsc_perf2": suite_wresnet.wsc_perf_suite2,
+    # "wresnet.wsc_perf0": suite_wresnet.wsc_perf_suite0,
+    # "wresnet.wsc_perf1": suite_wresnet.wsc_perf_suite1,
+    # "wresnet.wsc_perf2": suite_wresnet.wsc_perf_suite2,
 
 }
 
@@ -108,18 +95,23 @@ def benchmark_suite(suite_name,
     # NOTE: First select suite_name, then select num_gpus
     suite = benchmark_suites[suite_name][num_gpus]
 
+    for i in range(len(suite)):
+        benchmark_case = suite[i]
+        os.makedirs("tmp", exist_ok=True)
 
-    os.makedirs("tmp", exist_ok=True)
+        # model_type = suite_name.split(".")[0]
+        model_type = list(all_models.keys())[i]
+        if model_type[0] == "G":
+            model_type  = "gpt"
+        elif model_type[0] == "B":
+            model_type = "bert"
+        elif model_type[0] in ("W", "R") :
+            model_type = "wresnet"
 
-    model_type = suite_name.split(".")[0]
-    
-    date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    global_config = get_global_config()
-    output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
-    cc = 0
-    res = {}
-    # Run all cases
-    for benchmark_case in suite:
+        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        global_config = get_global_config()
+        output_name = f"{global_config.rst_folder}/{model_type}_alpa_{exp_name}_{date_str}.tsv"
+        # Run all cases
 
         benchmark_case: BenchmarkCase
         totol_batch_size = benchmark_case.batch_size
@@ -144,6 +136,7 @@ def benchmark_suite(suite_name,
 
         # Run one case
         print("Working on case: {}".format(str(benchmark_case)))
+        print(f"***************model_type = {model_type}")
         result = benchmark_one_case(model_type,
                                     benchmark_case,
                                     niter,
@@ -192,10 +185,9 @@ def benchmark_suite(suite_name,
             gen_mapping_vis_result(global_config.maping_rst_dir)
         time.sleep(0.1)  # for ctrl+c to work
 
-        res[cc] = values
+
         table.add_data(*values)
-        cc+=1
-    return res
+
 
 # 自定义类型转换函数，将逗号分隔的字符串转换为列表
 def str_list(string):
