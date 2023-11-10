@@ -219,6 +219,13 @@ def benchmark_wresnet_3d_internal(model_type,
     # Connect to the cluster
     if global_config.only_mapping:    
         from alpa import  WSCManualStageOption    
+        head_ip = '172.17.0.22'
+        host_info = {'NodeID': '899b9f51a902d447d560fa6f3c940181972bc889dbb26f8bc59f5049', 'Alive': True, 
+                    'NodeManagerAddress': '172.17.0.22', 'NodeManagerHostname': '664cd5e15488', 'NodeManagerPort': 40174, 
+                    'ObjectManagerPort': 42504, 'ObjectStoreSocketName': '/tmp/ray/session_2023-11-08_06-57-19_556367_95670/sockets/plasma_store', 
+                    'RayletSocketName': '/tmp/ray/session_2023-11-08_06-57-19_556367_95670/sockets/raylet', 'MetricsExportPort': 48582, 'NodeName': '172.17.0.22', 
+                    'alive': True, 'Resources': {'node:172.17.0.22': 1.0, 'accelerator_type:A100': 1.0, 'GPU': 8.0, 'CPU': 112.0, 
+                    'object_store_memory': 10000000000.0, 'memory': 1052636116992.0}} 
         # g_vir_phy_mesh = get_global_virtual_physical_mesh()
         
         if benchmark_case[3] == "config" and isinstance(benchmark_case[4].stage_option, WSCManualStageOption):
@@ -234,9 +241,9 @@ def benchmark_wresnet_3d_internal(model_type,
             host_ids_ = int(host_ids_ + 1)
             num_devices_per_host_ = int(num_devices_per_host_ + 1)
             virtual_mesh = VirtualPhysicalMesh(host_ids=np.arange(host_ids_),
-                                            host_info=[g_vir_phy_mesh.host_info[0]]*host_ids_,
+                                            host_info=[host_info]*host_ids_,
                                             num_devices_per_host=num_devices_per_host_,
-                                            head_ip=g_vir_phy_mesh.head_ip)                 
+                                            head_ip=head_ip)                 
             virtual_mesh.submeshes = benchmark_case[4].stage_option.submeshes
             set_global_virtual_physical_mesh(virtual_mesh)
             

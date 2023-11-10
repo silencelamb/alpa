@@ -13,8 +13,10 @@ from benchmark_one_case import benchmark_one_case
 from benchmark_parallel_utils import BenchmarkCase
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from suite_manual_gpt import gpt_specs
+from suite_manual_bert import bert_specs
+from suite_wresnet import wresnet_specs
 from alpa import ManualStageOption, WSCManualStageOption
-from suite_auto_gpt import get_one_config_case_idx, max_global_batch_size
+from suite_auto_gpt import get_one_config_case_idx
 from alpa.util import to_str_round, GB
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
@@ -120,17 +122,30 @@ class WSCMappingEnv(gym.Env):
         model_type = self.model_type
         if model_type == 'gpt':
             suite = get_one_config_case_idx(
+                1000,    # global_batch_size
                 gpt_specs[self.model_size], 
-                [100],
+                [100],   # num_micro_batches
                 partition_index=partition_index,
                 stage_option=stage_option       
             )
         elif model_type == "bert":
-            # TODO: add bert specs
-            pass
+            # TODO: exprement to verfy it is ok
+            suite = get_one_config_case_idx(
+                1000,    # global_batch_size
+                bert_specs[self.model_size], 
+                [100],   # num_micro_batches
+                partition_index=partition_index,
+                stage_option=stage_option       
+            )
         elif model_type == "wresnet":
-            # TODO: add wresnet specs
-            pass
+            # TODO: exprement to verfy it is ok
+            suite = get_one_config_case_idx(
+                1000,    # global_batch_size
+                wresnet_specs[self.model_size], 
+                [100],   # num_micro_batches
+                partition_index=partition_index,
+                stage_option=stage_option       
+            )
 
         # Run all cases
         for benchmark_case in suite:
