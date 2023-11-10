@@ -169,9 +169,13 @@ def benchmark_suite(suite_name,
 
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
-
-        Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value] / TOPS
-        Peak_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value] / TOPS
+        tile_r_num = global_config.wsc_config["analytical_perf_wsc::tile_r_num"]
+        tile_c_num = global_config.wsc_config["analytical_perf_wsc::tile_c_num"]
+        tile_num = tile_c_num * tile_r_num
+        tile_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+        tile_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value]
+        Peak_FP16 = tile_FP16 * tile_num / TOPS
+        Peak_FP32 = tile_FP32 * tile_num / TOPS
         DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
 
         values = [
