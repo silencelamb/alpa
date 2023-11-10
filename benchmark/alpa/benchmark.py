@@ -10,7 +10,7 @@ import numpy as np
 
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from alpa.global_env import PrimitiveType
-from alpa.util import (write_tsv, to_str_round, GB)
+from alpa.util import (write_tsv, to_str_round, GB, TOPS)
 from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
@@ -27,47 +27,53 @@ from suite_auto_gpt import model_type_size_dict
 
 from suite_all import wsc_perf_suite, all_models
 
+import suite_gpt
+import suite_bert
+import suite_wresnet0
 benchmark_suites = {
-    "wsc_perf": wsc_perf_suite
-    # "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
-    # "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
-    # "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
+    "wsc_perf": wsc_perf_suite,
+    "gpt.perf_test_fast_2d": suite_manual_gpt.perf_test_fast_2d_suite,
+    "gpt.perf_test_manual": suite_manual_gpt.perf_test_suite,
+    "gpt.perf_test_auto": suite_auto_gpt.perf_test_suite,
 
-    # "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
+    "gpt.grid_search_auto": suite_auto_gpt.grid_search_suite,
 
-    # "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
-    # "gpt_inference.profile": suite_inference_gpt.profile_suite,
-    # "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
-    # "gpt.config_test": suite_auto_gpt.config_test_suite,
-    # "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite, 
-    # "gpt.wsc_perf": suite_auto_gpt.wsc_perf_suite,
+    "gpt.correctness_test_auto": suite_auto_gpt.correctness_test_suite,
+    "gpt_inference.profile": suite_inference_gpt.profile_suite,
+    "gpt_no_embedding_inference.profile": suite_inference_gpt.profile_suite,
+    "gpt.config_test": suite_auto_gpt.config_test_suite,
+    "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite,
+    "gpt.wsc_perf": suite_gpt.wsc_perf_suite,
 
 
-    # "bert.tmp": suite_manual_bert.tmp_suite,
-    # "bert.tmp_auto": suite_auto_bert.tmp_suite,
-    # "bert.perf_test_fast_2d": suite_manual_bert.perf_test_fast_2d_suite,
-    # "bert.perf_test_manual": suite_manual_bert.perf_test_suite,
-    # "bert.perf_test_auto": suite_auto_bert.perf_test_suite,
-    
-    # "bert.grid_search_auto": suite_auto_bert.grid_search_suite,
+    "bert.tmp": suite_manual_bert.tmp_suite,
+    "bert.tmp_auto": suite_auto_bert.tmp_suite,
+    "bert.perf_test_fast_2d": suite_manual_bert.perf_test_fast_2d_suite,
+    "bert.perf_test_manual": suite_manual_bert.perf_test_suite,
+    "bert.perf_test_auto": suite_auto_bert.perf_test_suite,
 
-    # "bert.correctness_test_auto": suite_auto_bert.correctness_test_suite,
-    # "bert_inference.profile": suite_inference_bert.profile_suite,
-    # "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
-    # "bert.config_test": suite_auto_bert.config_test_suite,
-    # "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite, 
-    # "bert.wsc_perf0": suite_auto_bert.wsc_perf_suite0,
-    # "bert.wsc_perf1": suite_auto_bert.wsc_perf_suite1,
-    # "bert.wsc_perf2": suite_auto_bert.wsc_perf_suite2,
+    "bert.grid_search_auto": suite_auto_bert.grid_search_suite,
 
-    # # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
-    # "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
-    # "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
-    # "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
+    "bert.correctness_test_auto": suite_auto_bert.correctness_test_suite,
+    "bert_inference.profile": suite_inference_bert.profile_suite,
+    "bert_no_embedding_inference.profile": suite_inference_bert.profile_suite,
+    "bert.config_test": suite_auto_bert.config_test_suite,
+    "bert.wsc_config_test": suite_auto_bert.wsc_config_test_suite,
 
-    # "wresnet.wsc_perf0": suite_wresnet.wsc_perf_suite0,
-    # "wresnet.wsc_perf1": suite_wresnet.wsc_perf_suite1,
-    # "wresnet.wsc_perf2": suite_wresnet.wsc_perf_suite2,
+    "bert.wsc_perf": suite_bert.wsc_perf_suite,
+    "bert.wsc_perf0": suite_auto_bert.wsc_perf_suite0,
+    "bert.wsc_perf1": suite_auto_bert.wsc_perf_suite1,
+    "bert.wsc_perf2": suite_auto_bert.wsc_perf_suite2,
+
+    # "wresnet.perf_test_2d": suite_wresnet.perf_test_2d_suite,
+    "wresnet.perf_test_auto": suite_wresnet.perf_test_auto_suite,
+    "wresnet.grid_search_auto": suite_wresnet.grid_search_auto_suite,
+    "wresnet.wsc_config_test": suite_wresnet.wsc_config_test_suite,
+
+    "wresnet.wsc_perf": suite_wresnet0.wsc_perf_suite,
+    "wresnet.wsc_perf0": suite_wresnet.wsc_perf_suite0,
+    "wresnet.wsc_perf1": suite_wresnet.wsc_perf_suite1,
+    "wresnet.wsc_perf2": suite_wresnet.wsc_perf_suite2,
 
 }
 
@@ -81,9 +87,9 @@ def benchmark_suite(suite_name,
                     local=False,
                     profile_driver_time=False,
                     disable_tqdm=False,
-                    use_separate_process=True, 
+                    use_separate_process=True,
                     heads=None, table=None,
-                    offload = False):
+                    offload=False):
 
     num_gpus = num_hosts * num_devices_per_host
     if local:
@@ -99,14 +105,14 @@ def benchmark_suite(suite_name,
         benchmark_case = suite[i]
         os.makedirs("tmp", exist_ok=True)
 
-        # model_type = suite_name.split(".")[0]
-        model_type = list(all_models.keys())[i]
-        if model_type[0] == "G":
-            model_type  = "gpt"
-        elif model_type[0] == "B":
-            model_type = "bert"
-        elif model_type[0] in ("W", "R") :
-            model_type = "wresnet"
+        model_type = suite_name.split(".")[0]
+        # model_type = list(all_models.keys())[i]
+        # if model_type[0] == "G":
+        #     model_type = "gpt"
+        # elif model_type[0] == "B":
+        #     model_type = "bert"
+        # elif model_type[0] in ("W", "R"):
+        #     model_type = "wresnet"
 
         date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         global_config = get_global_config()
@@ -129,14 +135,18 @@ def benchmark_suite(suite_name,
             micro_batch_size = totol_batch_size // num_micro_batches
             model_size = model_type_size_dict[model_type][num_gpus]
             use_remat = benchmark_case.parallel_args.use_remat
-            global_config.save_jaxpr_json_file = os.path.join(global_config.save_jaxpr_dir, \
-                    f"{model_type}{model_size}_bsize{micro_batch_size}_useremat_{use_remat}.json")
+            global_config.save_jaxpr_json_file = os.path.join(global_config.save_jaxpr_dir,
+                                                              f"{model_type}{model_size}_bsize{micro_batch_size}_useremat_{use_remat}.json")
         set_global_config(global_config)
         parallel_args = benchmark_case.parallel_args
 
+        logical_shape = parallel_args.submesh_logical_shapes
+        parallel = (logical_shape[0][0],
+                    logical_shape[0][1], len(logical_shape))
         # Run one case
         print("Working on case: {}".format(str(benchmark_case)))
-        print(f"***************model_type = {model_type}")
+        print(f"***************3D Parallel = {parallel}")
+
         result = benchmark_one_case(model_type,
                                     benchmark_case,
                                     niter,
@@ -147,7 +157,7 @@ def benchmark_suite(suite_name,
                                     profile_driver_time=profile_driver_time,
                                     disable_tqdm=disable_tqdm,
                                     use_separate_process=use_separate_process,
-                                    offload = offload)
+                                    offload=offload)
 
         (parameter_count, peak_mem, latencies, tflops, metadata) = result
         # # NOTE: only WResNet is static tuple, GPT&BERT computed by func
@@ -157,23 +167,22 @@ def benchmark_suite(suite_name,
         # elif model_type == "gpt":
         #     params_list = suite_manual_gpt.gpt_params[tuple(model_config)]
 
-
         if isinstance(parallel_args, ConfigParallelArgs):
             parallel_args = parallel_args._replace(input_placement_specs=[])
 
-        Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
-        Peak_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value]
+        Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value] / TOPS
+        Peak_FP32 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F32.value] / TOPS
         DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
-        
+
         values = [
             model_type, f"{parameter_count/1e9:.3f}B",
-            f"{tflops:.4f}", f"{tflops/Peak_FP16*100}",
-            f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
+            f"{tflops}", f"{tflops/Peak_FP16*100}",
+            f"{np.mean(latencies)}", f"{np.std(latencies)}",
             f"{peak_mem/GB > DDR_MEM/GB}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
-            str(num_micro_batches), num_gpus, str(model_config),
+            str(num_micro_batches), str(
+                parallel), offload, num_gpus, str(model_config),
             parallel_args, to_str_round(metadata, 6)
         ]
-
 
         write_tsv(heads, values, output_name)
         values = [str(x) for x in values]
@@ -185,7 +194,6 @@ def benchmark_suite(suite_name,
             gen_mapping_vis_result(global_config.maping_rst_dir)
         time.sleep(0.1)  # for ctrl+c to work
 
-
         table.add_data(*values)
 
 
@@ -195,16 +203,19 @@ def str_list(string):
         return string.split(',')
     else:
         return [string]
-    
+
+
 def int_list(string):
     if ',' in string:
         return [int(s) for s in string.split(',')]
     else:
         return [int(string)]
-    
+
+
 def get_num_hosts_and_num_devices(args, i):
     import ray
     import subprocess
+
     def list_gpu_info():
         """List all gpu information by calling nvidia-sim."""
         ret = subprocess.getoutput("nvidia-smi -L")
@@ -232,6 +243,7 @@ def get_num_hosts_and_num_devices(args, i):
             num_devices_per_host = int(
                 ray.cluster_resources()["GPU"]) // num_hosts
     return num_hosts, num_devices_per_host
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -265,8 +277,10 @@ if __name__ == "__main__":
                         default=False)
     parser.add_argument("--exp_name", type=str, default="default")
     parser.add_argument("--disable-tqdm", action="store_true")
-    parser.add_argument("--only-mapping", action="store_true", dest="only_mapping", default=True)
-    parser.add_argument("--use-analytical-perf-model", action="store_true", dest="use_analytical_perf_model", default=True)
+    parser.add_argument("--only-mapping", action="store_true",
+                        dest="only_mapping", default=True)
+    parser.add_argument("--use-analytical-perf-model", action="store_true",
+                        dest="use_analytical_perf_model", default=True)
     parser.add_argument("--rst_folder", type=str, default="")
     parser.add_argument("--hardware", type=str_list, default="wsc")
     parser.add_argument("--force_use_fp16", action="store_true")
@@ -275,10 +289,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     heads = [
-        "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
-        "Std Time (s)", "Out of DDR", "Peak Mem (GB)", "DDR Mem (GB)", "#Microbatch", 
-        "#GPU", "Model Config", "Parallel Config", "Metadata"
+        "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)", "Mean Time (s)",
+        "Std Time (s)", "Out of DDR", "Peak Mem (GB)", "DDR Mem (GB)", "#Microbatch", "3D Parallel(DP, TP, PP)",
+        "Offload", "#GPU", "Model Config", "Parallel Config", "Metadata"
     ]
+
     import wandb
     import pandas as pd
 
@@ -290,7 +305,8 @@ if __name__ == "__main__":
 
     for i in range(len(args.suite)):
 
-        num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(args, i)
+        num_hosts, num_devices_per_host = get_num_hosts_and_num_devices(
+            args, i)
 
         # set global_config, only_mapping
         global_config = get_global_config()
@@ -306,7 +322,7 @@ if __name__ == "__main__":
         # set mapping result save dir
         if args.rst_folder == "":
             args.rst_folder = "tmp"
-        
+
         date_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         if args.only_mapping:
             if global_config.use_analytical_perf_model:
@@ -314,7 +330,7 @@ if __name__ == "__main__":
             else:
                 actual_or_virtual = "costmodel"
         else:
-            actual_or_virtual =  "actualA100"
+            actual_or_virtual = "actualA100"
         args.rst_folder = f"{args.rst_folder}/{args.suite[i]}-{num_devices_per_host}X{num_hosts}-{actual_or_virtual}-{date_str}"
         print(args.rst_folder)
         os.makedirs(args.rst_folder, exist_ok=True)
@@ -340,12 +356,10 @@ if __name__ == "__main__":
         global_config = get_global_config()
         print(global_config.use_analytical_perf_model)
 
-
         benchmark_suite(args.suite[i], num_hosts, num_devices_per_host, args.exp_name,
                         args.niter, args.shard_only, args.local,
                         args.profile_driver_time, args.disable_tqdm,
                         args.use_separate_process, heads, table, args.offload)
 
-
     # 将表格保存到W&B
-    wandb.log({"Wafer": table})  
+    wandb.log({"Wafer": table})

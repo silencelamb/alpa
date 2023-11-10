@@ -80,7 +80,8 @@ class WSCManualStageOption:
 
 UniformStageOption = namedtuple("UniformStageOption", [])
 
-StageOption = Union[AutoStageOption, ManualStageOption, WSCManualStageOption, UniformStageOption]
+StageOption = Union[AutoStageOption, ManualStageOption,
+                    WSCManualStageOption, UniformStageOption]
 
 # Get results for debugging
 last_compute_cost_file_name = None
@@ -322,12 +323,12 @@ def dp(num_layers, num_devices, num_microbatches, submesh_choices,
     last_max_stage_cost = 0.0
     from alpa.device_mesh import get_global_option_model_type
     # FIXME(zhuohan): Set this gap as a tunable parameter in global config
-    model_type = get_global_option_model_type()    
+    model_type = get_global_option_model_type()
     if model_type == "mlp":
         gap = 1e-9
     else:
-        gap = 1e-6    
-    assert len(all_possible_stage_costs), "no solution in auto stage construction."    
+        gap = 1e-6
+    assert len(all_possible_stage_costs), "no solution in auto stage construction."
     for max_stage_cost in all_possible_stage_costs:
         if max_stage_cost * num_microbatches >= best_cost:
             break
@@ -409,8 +410,9 @@ def get_one_submesh_autosharding_config_choices(
                     results.append((virtual_submesh.get_logical_mesh(
                         (dp_size, mp_size)), {
                             "force_batch_dim_to_mesh_dim": 0
-                        }))
-        results.append((virtual_submesh.get_logical_mesh((num_devices, 1)), {}))
+                    }))
+        results.append(
+            (virtual_submesh.get_logical_mesh((num_devices, 1)), {}))
     elif space == "same_as_physical":
         results.append((virtual_submesh.get_logical_mesh(), {}))
     elif space == "data_parallel_only":
@@ -527,7 +529,7 @@ def distributed_profile_on_mesh(meshes: Sequence[VirtualPhysicalMesh], layers,
                                 num_autosharding_configs, num_micro_batches,
                                 auto_stage_option, mesh_cached_result)
     timers("stage-construction-profiling").suspend()
-    
+
     return compute_cost, max_n_succ_stages, is_profiled
 
 
@@ -684,7 +686,8 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
                 (tuple(range(num_devices_per_host)),) * required_num_hosts)
             current_host_id += required_num_hosts
         else:
-            assert required_num_hosts == 1
+            # NOTE: comment to support dp=6, tp=1, pp=4
+            # assert required_num_hosts == 1
             assert required_num_devices < num_devices_per_host
             assert (current_device_id + required_num_devices <=
                     num_devices_per_host), (
@@ -698,25 +701,30 @@ def get_sliced_virtual_submeshes(virtual_mesh, submesh_shapes):
             if current_device_id == num_devices_per_host:
                 current_host_id += 1
                 current_device_id = 0
-    assert current_host_id == num_hosts
-    assert current_device_id == 0
+    # print(f"current_host_id = {current_host_id}, num_hosts = {num_hosts}")
+    # assert current_host_id == num_hosts
+    # assert current_device_id == 0
     return virtual_submeshes
+
+# virtual_mesh = (6, 4), submesh = [(6, 2), (6, 2)]
+
 
 def get_sliced_virtual_submeshes_wsc(virtual_mesh, submesh_shapes):
     """Slice the origin mesh into submeshes given submesh shapes."""
     virtual_mesh: VirtualPhysicalMesh
     submesh_sizes = [np.prod(submesh) for submesh in submesh_shapes]
-    virtual_submeshes = [None] * len(submesh_shapes)    
+    virtual_submeshes = [None] * len(submesh_shapes)
 
-    sorted_submesh_indices = np.argsort(submesh_sizes)  
-    for i in reversed(sorted_submesh_indices):        
+    sorted_submesh_indices = np.argsort(submesh_sizes)
+    for i in reversed(sorted_submesh_indices):
         required_num_hosts, required_num_devices = submesh_shapes[i]
         virtual_submeshes[i] = VirtualPhysicalMesh(host_ids=virtual_mesh.host_ids[:required_num_hosts],
-                                host_info=[virtual_mesh.host_info[0]]*required_num_hosts,
-                                head_ip=virtual_mesh.head_ip,
-                                num_devices_per_host=required_num_devices,
-                                parent=virtual_mesh,
-                                devices= (tuple(range(required_num_devices)),) * required_num_hosts)
+                                                   host_info=[
+                                                       virtual_mesh.host_info[0]]*required_num_hosts,
+                                                   head_ip=virtual_mesh.head_ip,
+                                                   num_devices_per_host=required_num_devices,
+                                                   parent=virtual_mesh,
+                                                   devices=(tuple(range(required_num_devices)),) * required_num_hosts)
 
     return virtual_submeshes
 
@@ -789,9 +797,9 @@ def cluster_layers_and_slice_mesh(
             apply_grad_global_info, num_micro_batches, default_as_option,
             stage_option)
         dp_cost, solution = dp(num_layers, virtual_mesh.num_devices,
-                         num_micro_batches, submesh_choices,
-                         num_autosharding_configs, compute_cost,
-                         max_n_succ_stages)
+                               num_micro_batches, submesh_choices,
+                               num_autosharding_configs, compute_cost,
+                               max_n_succ_stages)
 
         assert solution is not None, "no solution in auto stage construction."
 
@@ -852,8 +860,10 @@ def cluster_layers_and_slice_mesh(
                 last_layer_id += 1
         assert last_layer_id == num_layers
         submesh_shapes = stage_option.submesh_physical_shapes
-        logical_mesh_shapes = (stage_option.submesh_logical_shapes or submesh_shapes)
-        autosharding_option_dicts = (stage_option.submesh_autosharding_option_dicts)
+        logical_mesh_shapes = (
+            stage_option.submesh_logical_shapes or submesh_shapes)
+        autosharding_option_dicts = (
+            stage_option.submesh_autosharding_option_dicts)
     elif isinstance(stage_option, UniformStageOption):
         if given_mesh:
             num_stages = num_layers
@@ -895,10 +905,11 @@ def cluster_layers_and_slice_mesh(
     else:
         if isinstance(stage_option, WSCManualStageOption):
             sliced_meshes = get_sliced_virtual_submeshes_wsc(virtual_mesh,
-                                                     submesh_shapes)
+                                                             submesh_shapes)
         else:
-            sliced_meshes = get_sliced_virtual_submeshes(virtual_mesh,
-                                                     submesh_shapes)
+            # NOTE: get_solution() is not WSCManual, but must use wsc submesh
+            sliced_meshes = get_sliced_virtual_submeshes_wsc(virtual_mesh,
+                                                             submesh_shapes)
 
     num_forward_stages = len(forward_stage_layer_ids)
 
@@ -935,11 +946,13 @@ def cluster_layers_and_slice_mesh(
 
     # Check the validity of logical mesh shapes
     if (len(logical_mesh_shapes) != len(sliced_meshes)):
-        print(f"len of logical = {len(logical_mesh_shapes)}")
-        print(f"len of sliced = {len(sliced_meshes)}")
         print(f"logical = {logical_mesh_shapes}")
         print(f"sliced = {sliced_meshes}")
     assert len(logical_mesh_shapes) == len(sliced_meshes)
+
+    print(
+        f"logical = {logical_mesh_shapes}, submesh = {sliced_meshes}")
+
     for logical_mesh_shape, submesh in zip(logical_mesh_shapes, sliced_meshes):
         assert np.prod(logical_mesh_shape) == submesh.num_devices
 
