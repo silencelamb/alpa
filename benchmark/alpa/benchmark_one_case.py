@@ -32,6 +32,8 @@ def benchmark_one_case_internal(model,
     if disable_tqdm:
         disable_tqdm_globally()
 
+    if global_config.only_mapping:
+        os.environ['XLA_PYTHON_CLIENT_PREALLOCATE'] = False
     # local mode does not support dummy value
     global_config.use_dummy_value_for_benchmarking = not local
 
