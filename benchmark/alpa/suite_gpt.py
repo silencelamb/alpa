@@ -115,59 +115,59 @@ wsc_perf_suite = {
         ],
 
 
-        # # dp=1, tp=25, pp=1
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
-        #     for dp, tp, pp in zip([1], [25], [1])
-        # ],
+        # dp=1, tp=25, pp=1
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
+            for dp, tp, pp in zip([1], [25], [1])
+        ],
 
 
-        # # dp=5, tp=5, pp=1
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
-        #     for dp, tp, pp in zip([5], [5], [1])
-        # ],
+        # dp=5, tp=5, pp=1
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
+            for dp, tp, pp in zip([5], [5], [1])
+        ],
 
-        # # dp=5, tp=1, pp=5
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
-        #     for dp, tp, pp in zip([5], [1], [5])
-        # ],
+        # dp=5, tp=1, pp=5
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
+            for dp, tp, pp in zip([5], [1], [5])
+        ],
 
 
-        # # dp=1, tp=5, pp=5
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
-        #     for dp, tp, pp in zip([1], [5], [5])
-        # ],
+        # dp=1, tp=5, pp=5
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(gpt_dojo_models.values(), gpt_dojo_params.values())
+            for dp, tp, pp in zip([1], [5], [5])
+        ],
 
     ]),
 

@@ -43,12 +43,10 @@ wresnet_dojo_params = {
     tuple(WResNetModelConfig(1024, 768, 12, 12, 51200)): (10, 40),
     tuple(WResNetModelConfig(1024, 1024, 24, 16, 51200)): (10, 40),  # (4, 64)
     tuple(WResNetModelConfig(1024, 1536, 24, 16, 51200)): (10, 40),
-    tuple(WResNetModelConfig(1024, 2048, 24, 32, 51200)): (20, 40),
-    tuple(WResNetModelConfig(1024, 2560, 32, 32, 51200)): (20, 40),
-    tuple(WResNetModelConfig(1024, 4096, 32, 32, 51200)): (20, 40),
-    tuple(WResNetModelConfig(1024, 5120, 48, 40, 51200)): (20, 40),
-    tuple(WResNetModelConfig(1024, 8192, 48, 64, 51200)): (20, 40),
-    tuple(WResNetModelConfig(1024, 10240, 60, 80, 51200)): (20, 40),
+
+    tuple(WResNetModelConfig(1024, 2048, 24, 32, 51200)): (10, 40),
+    tuple(WResNetModelConfig(1024, 2560, 32, 32, 51200)): (10, 40),
+
 }
 
 prefer_reduce_scatter = True
@@ -105,59 +103,59 @@ wsc_perf_suite = {
         ],
 
 
-        # # dp=1, tp=25, pp=1
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
-        #     for dp, tp, pp in zip([1], [25], [1])
-        # ],
+        # dp=1, tp=25, pp=1
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
+            for dp, tp, pp in zip([1], [25], [1])
+        ],
 
 
-        # # dp=5, tp=5, pp=1
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
-        #     for dp, tp, pp in zip([5], [5], [1])
-        # ],
+        # dp=5, tp=5, pp=1
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
+            for dp, tp, pp in zip([5], [5], [1])
+        ],
 
-        # # dp=5, tp=1, pp=5
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
-        #     for dp, tp, pp in zip([5], [1], [5])
-        # ],
+        # dp=5, tp=1, pp=5
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
+            for dp, tp, pp in zip([5], [1], [5])
+        ],
 
 
-        # # dp=1, tp=5, pp=5
-        # [
-        #     # NOTE: fit for small models with layer=12
-        #     get_solution_cases(batch_size=1000,
-        #                        model_spec=mod, num_micro_batches=params[1],
-        #                        num_auto_layers=params[0], forward_stage_layer_ids=get_list(
-        #                            int(params[0]), int(params[0]/pp)),
-        #                        submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
-        #     for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
-        #     for dp, tp, pp in zip([1], [5], [5])
-        # ],
+        # dp=1, tp=5, pp=5
+        [
+            # NOTE: fit for small models with layer=12
+            get_solution_cases(batch_size=1000,
+                               model_spec=mod, num_micro_batches=params[1],
+                               num_auto_layers=params[0], forward_stage_layer_ids=get_list(
+                                   int(params[0]), int(params[0]/pp)),
+                               submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
+                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+            for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
+            for dp, tp, pp in zip([1], [5], [5])
+        ],
 
     ]),
 

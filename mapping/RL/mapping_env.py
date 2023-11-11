@@ -11,20 +11,21 @@ import sys
 sys.path.insert(0, "/code/alpa/benchmark/alpa/")
 from benchmark_one_case import benchmark_one_case
 from benchmark_parallel_utils import BenchmarkCase
+from alpa.global_env import PrimitiveType
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from suite_manual_gpt import gpt_specs
 from suite_manual_bert import bert_specs
 from suite_wresnet import wresnet_specs
 from alpa import ManualStageOption, WSCManualStageOption
 from suite_auto_gpt import get_one_config_case_idx
-from alpa.util import to_str_round, GB
+from alpa.util import to_str_round, GB, TOPS
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 GraphData = namedtuple('GraphData', ['model_type', 'model_size', 'graph_data'])
 
 class WSCMappingEnv(gym.Env):
     
-    def __init__(self, render_mode='human', use_image=False):
+    def __init__(self, render_mode='human', use_image=False, offload=False):
         super(WSCMappingEnv, self).__init__()
         
         # set global env
@@ -42,6 +43,7 @@ class WSCMappingEnv(gym.Env):
         self.render_mode = render_mode
         
         self.use_image = use_image
+        self.offload = offload
         # Observation space
         if self.use_image:
             self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(1, self.rows, self.cols), dtype=np.int8)
@@ -172,23 +174,29 @@ class WSCMappingEnv(gym.Env):
                                     local=False,
                                     profile_driver_time=False,
                                     disable_tqdm=True,
-                                    use_separate_process=False)
+                                    use_separate_process=False,
+                                    offload = self.offload)
             (parameter_count, peak_mem, latencies, tflops, metadata) = result  
             heads = [
-                "Type", "Model Config", "#Microbatch", "#GPU", "Parallel Config",
-                "Mean Time (s)", "Std Time (s)", "#Params (Billion)", "Actual TFLOPs(Per Device)",
-                "Peak Mem (GB)", "Metadata"
-            ]
+                "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
+                "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
+                "#GPU", "Parallel Config", "Metadata"
+                ]
             if isinstance(parallel_args, ConfigParallelArgs):
                 parallel_args = parallel_args._replace(input_placement_specs=[])
-                
+            global_config = get_global_config()
+            Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+            DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
+
             values = [
-                model_type, model_config, num_micro_batches, f"{self.rows}x{self.cols}",
-                parallel_args, f"{np.mean(latencies):.3f}",
-                f"{np.std(latencies):.3f}", f"{parameter_count/1e9:.3f}B",
-                f"{tflops:.2f}", f"{peak_mem/GB:.3f}",
-                to_str_round(metadata, 6)
+                model_type, f"{parameter_count/1e9:.3f}B",
+                f"{tflops:.4f}", f"{tflops*TOPS/Peak_FP16*100}",
+                f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
+                f"{peak_mem/GB > DDR_MEM/GB}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
+                str(num_micro_batches), f"{self.rows}x{self.cols}", str(model_config),
+                parallel_args, to_str_round(metadata, 6)
             ]
+            
             values = [str(x) for x in values]
             result_dict = dict(zip(heads, values)) 
             print('One result: ' + str(result_dict))
