@@ -18,11 +18,11 @@ wresnet_models = {
 
 wresnet_params = {
     # # GPT models
-    tuple(WResNetModelConfig(224, 50, 64, 1, "fp16")): (12, 64),
-    tuple(WResNetModelConfig(224, 101, 64, 1, "fp16")): (12, 64),  # (4, 64)
-    tuple(WResNetModelConfig(224, 152, 64, 1, "fp16")): (12, 64),
-    tuple(WResNetModelConfig(224, 50, 64, 2, "fp16")): (12, 64),
-    tuple(WResNetModelConfig(224, 101, 64, 2, "fp16")): (12, 64),
+    tuple(WResNetModelConfig(224, 50, 64, 1, "fp16")): (12, 16),
+    tuple(WResNetModelConfig(224, 101, 64, 1, "fp16")): (12, 16),  # (4, 64)
+    tuple(WResNetModelConfig(224, 152, 64, 1, "fp16")): (12, 16),
+    tuple(WResNetModelConfig(224, 50, 64, 2, "fp16")): (12, 16),
+    tuple(WResNetModelConfig(224, 101, 64, 2, "fp16")): (12, 16),
 
 }
 
@@ -40,12 +40,12 @@ wresnet_dojo_models = {
 
 wresnet_dojo_params = {
     # GPT models
-    tuple(WResNetModelConfig(1024, 768, 12, 12, 51200)): (10, 40),
-    tuple(WResNetModelConfig(1024, 1024, 24, 16, 51200)): (10, 40),  # (4, 64)
-    tuple(WResNetModelConfig(1024, 1536, 24, 16, 51200)): (10, 40),
+    tuple(WResNetModelConfig(1024, 768, 12, 12, 51200)): (10, 10),
+    tuple(WResNetModelConfig(1024, 1024, 24, 16, 51200)): (10, 10),  # (4, 64)
+    tuple(WResNetModelConfig(1024, 1536, 24, 16, 51200)): (10, 10),
 
-    tuple(WResNetModelConfig(1024, 2048, 24, 32, 51200)): (10, 40),
-    tuple(WResNetModelConfig(1024, 2560, 32, 32, 51200)): (10, 40),
+    tuple(WResNetModelConfig(1024, 2048, 24, 32, 51200)): (10, 10),
+    tuple(WResNetModelConfig(1024, 2560, 32, 32, 51200)): (10, 10),
 
 }
 

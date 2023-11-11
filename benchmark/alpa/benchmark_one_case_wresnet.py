@@ -338,7 +338,9 @@ def benchmark_wresnet_3d_internal(model_type,
     model_config = benchmark_case.model_config
     params_list = suite_wresnet.wresnet_params[tuple(model_config)]
     parameter_count, total_tflops = params_list
-    total_tflops *= benchmark_case.batch_size
+    # NOTE: add x3 -- consider backward
+    total_tflops *= benchmark_case.batch_size * 3
+    
     tflops = total_tflops / np.mean(latencies) / num_gpus 
 
     (compute_cost_file_name, forward_stage_layer_ids, submesh_shapes,
