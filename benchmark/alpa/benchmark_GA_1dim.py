@@ -11,7 +11,7 @@ import numpy as np
 
 from alpa.global_env import get_global_config, set_global_config, get_collective_cost_dict
 from alpa.util import (write_tsv, get_num_hosts_and_num_devices, to_str_round,
-                       GB)
+                       GB, TOPS)
 from alpa.global_env import PrimitiveType
 from gen_mapping_vis_result import gen_mapping_vis_result
 from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
@@ -63,6 +63,8 @@ max_stage_num = device_num
 
 model_type = None   # "gpt", "bert", "wresnet"
 model_size = None   # e.g. for gpt: "350M"; for bert: "Tiny", "Large"; for wresnet: "M"
+
+global_latency_2_res = {}
 
 class Logger(object):
     level_relations = {
@@ -287,6 +289,8 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None, log = None)
     
     log.logger.info('GA result : F' + str(res.F))
     log.logger.info('GA result : X' + str(res.X))
+    key = res.F[0] if isinstance(res.F, (list, np.ndarray)) else res.F
+    log.logger.info('Result dict: ' + str(global_latency_2_res[key]))
 
 
 class GA_problem_alpa(Problem):
@@ -395,30 +399,45 @@ def benchmark_suite(suite_name,
     partition_index_sum = sum(partition_index)
     # convert to ratio
     partition_index = [sum(partition_index[:i])/partition_index_sum for i in range(len(partition_index))]
+
+    global_bs = 1536
+    num_micro_batches = 64
+    if global_config.hardware == "wsgpu":
+        global_bs = 1536
+        num_micro_batches = 64
+        if model_type == "wresnet":
+            global_bs = 1536
+            num_micro_batches = 16
+    elif global_config.hardware == "dojo":
+        global_bs = 1000
+        num_micro_batches = 40
+        if model_type == "wresnet":
+            global_bs = 1000
+            num_micro_batches = 10
         
     if model_type == "gpt":
         suite = get_one_config_case_idx(
-            1000,    # global_batch_size
+            global_bs,    # global_batch_size
             gpt_specs[model_size], 
-            [100],   # num_micro_batches
+            [num_micro_batches],   # num_micro_batches
             partition_index=partition_index,
             stage_option=stage_option
         )
     elif model_type == "bert":
         # TODO: exprement to verfy it is ok
         suite = get_one_config_case_idx(
-            1000,    # global_batch_size
+            global_bs,    # global_batch_size
             bert_specs[model_size], 
-            [100],   # num_micro_batches
+            [num_micro_batches],   # num_micro_batches
             partition_index=partition_index,
             stage_option=stage_option
         )
     elif model_type == "wresnet":
         # TODO: exprement to verfy it is ok
         suite = get_one_config_case_idx(
-            1000,    # global_batch_size
+            global_bs,    # global_batch_size
             wresnet_specs[model_size], 
-            [100],   # num_micro_batches
+            [num_micro_batches],   # num_micro_batches
             partition_index=partition_index,
             stage_option=stage_option
         )                        
@@ -470,7 +489,7 @@ def benchmark_suite(suite_name,
             out_of_mem = peak_mem/GB > DDR_MEM/GB
             values = [
                 model_type, f"{parameter_count/1e9:.3f}B",
-                f"{tflops:.4f}", f"{tflops/Peak_FP16*100}",
+                f"{tflops:.4f}", f"{tflops*TOPS/Peak_FP16*100}",
                 f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
                 f"{out_of_mem}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
                 str(num_micro_batches), num_gpus, str(model_config),
@@ -483,6 +502,7 @@ def benchmark_suite(suite_name,
                 result_latency = 10e10
             else:
                 result_latency = metadata['estimated_total_time'] 
+            global_latency_2_res[result_latency] = result_dict
         except RuntimeError:
             log.logger.error("alpa runtime error !!!")
             result_latency = 10e10
