@@ -507,6 +507,7 @@ class HloAnalysisSimulator:
         self.stage_latency = []
         self.peak_memory = self.total_latency = 0
         global_config = get_global_config()
+        
         for stage_idx, spmd_module in enumerate(self.spmd_module_list):
             mesh_idx = list(self.schedule.stage_mesh_mapping[stage_idx])[0]
             mesh_shape = self.mesh_group[mesh_idx].shape
@@ -517,8 +518,13 @@ class HloAnalysisSimulator:
             if True:
                 grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
             latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids, mesh_shape)
-            print('stage_idx: ', stage_idx, 'latency: ', latency)
+            print('stage_idx: ', stage_idx, 'latency: ', latency, 'peak_memory:', peak_memory/GB, 'mesh_shape:', mesh_shape)
             self.stage_latency.append(latency)
+            if global_config.debug_mode:
+                with open(f"{global_config.maping_rst_dir}/stage_{stage_idx:02}_spmd_partitioned.hlo", "w") as f:
+                    f.write(spmd_module.to_string())
+                with open(f"{global_config.maping_rst_dir}/stage_{stage_idx:02}_sharding_annnoted.hlo", "w") as f:
+                    f.write(self.sharding_annotated_hlo_texts[stage_idx])
         
         if offload_analysis:
             # estimate memory offload cost

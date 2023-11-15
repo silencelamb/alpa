@@ -928,7 +928,6 @@ def estimate_hlo_module_cost(hlo_module,
                 "gpu_cost_model::verbose": 0,
         }):
             cost =  xe.estimate_hlo_module_cost(hlo_module)
-    print(f"Analytical Cost: {cost}")
     return cost
 
 

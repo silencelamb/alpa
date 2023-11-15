@@ -216,7 +216,11 @@ def run_auto_sharding_pass(
     """
     # pylint: disable=unused-argument
     # Set compile options
-    if memory_budget_per_device is None:
+    if global_config.use_memory_budget:
+        if memory_budget_per_device is None:
+            memory_budget_per_device = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
+        print("use memory_budget_per_device: ", memory_budget_per_device)
+    else:
         memory_budget_per_device = -1
 
     multiple_stages = return_mode in ["stages", "stages_and_hook"]
@@ -280,7 +284,7 @@ def run_auto_sharding_pass(
 
     # Temporarily disable this.
     grad_acc_num_micro_batches = None
-
+    print("as_option.force_simple_heuristic:", as_option.force_simple_heuristic)
     with XlaPassContext({
             # Auto-sharding solver options
             "auto_sharding::enable":

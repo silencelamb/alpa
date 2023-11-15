@@ -63,7 +63,9 @@ max_stage_num = device_num
 
 model_type = None   # "gpt", "bert", "wresnet"
 model_size = None   # e.g. for gpt: "350M"; for bert: "Tiny", "Large"; for wresnet: "M"
-
+global_bs = None    # global batch size
+num_micro_batches = None
+    
 global_latency_2_res = {}
 
 class Logger(object):
@@ -319,20 +321,21 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
     try:
         log.logger.info('paras_list: ' + str(paras_list))
         result_ = benchmark_suite(args_.suite, 
-                                  num_hosts, 
-                                  num_devices_per_host, 
-                                  args_.exp_name,
-                                  args_.niter, 
-                                  args_.shard_only, 
-                                  args_.local,
-                                  args_.profile_driver_time, 
-                                  args_.disable_tqdm,
-                                  args_.use_separate_process, 
-                                  parameters_list=paras_list,
-                                  use_offload=args_.use_offload,
-                                  constrain_mem=args_.constrain_mem,
-                                  log =log
-                                  )     
+                                    num_hosts, 
+                                    num_devices_per_host, 
+                                    args_.hardware,
+                                    args_.exp_name,
+                                    args_.niter, 
+                                    args_.shard_only, 
+                                    args_.local,
+                                    args_.profile_driver_time, 
+                                    args_.disable_tqdm,
+                                    args_.use_separate_process, 
+                                    parameters_list=paras_list,
+                                    use_offload=args_.use_offload,
+                                    constrain_mem=args_.constrain_mem,
+                                    log =log
+                                    )     
     except Exception as e:
         log.logger.warning(f"Wrong !!!!===========================================================")
         log.logger.info(e)
@@ -345,6 +348,7 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
 def benchmark_suite(suite_name,
                     num_hosts,
                     num_devices_per_host,
+                    hardware,
                     exp_name="default",
                     niter=3,
                     shard_only=False,
@@ -356,7 +360,6 @@ def benchmark_suite(suite_name,
                     use_offload = False,
                     constrain_mem = False,
                     log = None):
-    
     num_gpus = num_hosts * num_devices_per_host
 
     # get stage num and device_num of per stage
@@ -399,22 +402,18 @@ def benchmark_suite(suite_name,
     partition_index_sum = sum(partition_index)
     # convert to ratio
     partition_index = [sum(partition_index[:i])/partition_index_sum for i in range(len(partition_index))]
-
-    global_bs = 1536
-    num_micro_batches = 64
-    if global_config.hardware == "wsgpu":
+    if hardware == "wsgpu":
         global_bs = 1536
-        num_micro_batches = 64
+        num_micro_batches = int(global_bs/6)
         if model_type == "wresnet":
             global_bs = 1536
             num_micro_batches = 16
-    elif global_config.hardware == "dojo":
+    elif hardware == "dojo":
         global_bs = 1000
         num_micro_batches = 40
         if model_type == "wresnet":
             global_bs = 1000
             num_micro_batches = 10
-        
     if model_type == "gpt":
         suite = get_one_config_case_idx(
             global_bs,    # global_batch_size
@@ -506,9 +505,6 @@ def benchmark_suite(suite_name,
             log.logger.error("alpa runtime error !!!")
             result_latency = 10e10
             global_latency_2_res[result_latency] = {}
-            
-        
-        
     return result_latency
 
 
@@ -597,13 +593,26 @@ if __name__ == "__main__":
     else:
         # NOTE: origin support for GPU & TX8 WSC
         global_config.hardware = args.hardware
-        
+
+    if args.hardware == "wsgpu":
+        global_bs = 1536
+        num_micro_batches = int(global_bs/6)
+        if model_type == "wresnet":
+            global_bs = 1536
+            num_micro_batches = 16
+    elif args.hardware == "dojo":
+        global_bs = 1000
+        num_micro_batches = 40
+        if model_type == "wresnet":
+            global_bs = 1000
+            num_micro_batches = 10
+            
     # set device num
     assert num_hosts == 1, ("Only support 1 host now.")
     device_num = num_devices_per_host *num_hosts
     max_stage_num = device_num
-    
-    args.rst_folder = f"{args.rst_folder}/{args.suite}-{actual_or_virtual}-{num_devices_per_host}X{num_hosts}-{model_type}-{model_size}-{date_str}"
+    micro_batchsize = global_bs/num_micro_batches
+    args.rst_folder = f"{args.rst_folder}/{args.suite}-{actual_or_virtual}-{num_devices_per_host}X{num_hosts}-{model_type}-{model_size}-{micro_batchsize}-{date_str}"
     print(args.rst_folder)
     os.makedirs(args.rst_folder, exist_ok=True)
 
