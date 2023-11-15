@@ -229,8 +229,8 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None, log = None)
     lb = []
     mask = []
     
-    n_gen = 20 
-    pop_size = 25
+    n_gen = 10 
+    pop_size = 30 #25
     
     '''
     total encoding:
@@ -280,7 +280,7 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None, log = None)
 
     res = minimize(problem_GA,
                    method,
-                   termination=('n_gen', 5),
+                   termination=('n_gen', n_gen),
                    seed=1,
                    verbose=False)
     
@@ -335,7 +335,7 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
                                   )     
     except Exception as e:
         log.logger.warning(f"Wrong !!!!===========================================================")
-        print(e)
+        log.logger.info(e)
         result_ = 10e10
     print("result_ : "+str(result_))
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
@@ -498,14 +498,14 @@ def benchmark_suite(suite_name,
             values = [str(x) for x in values]
             result_dict = dict(zip(heads, values)) 
             log.logger.info('One result: ' + str(result_dict))
+            result_latency = metadata['estimated_total_time']
             if out_of_mem and constrain_mem:
-                result_latency = 10e10
-            else:
-                result_latency = metadata['estimated_total_time'] 
+                result_latency = 10e10 * peak_mem/GB
             global_latency_2_res[result_latency] = result_dict
         except RuntimeError:
             log.logger.error("alpa runtime error !!!")
             result_latency = 10e10
+            global_latency_2_res[result_latency] = {}
             
         
         
