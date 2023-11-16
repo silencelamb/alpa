@@ -120,6 +120,130 @@ logical_shape = {
 def flatten_list(nested_list):
     return [item for sublist in nested_list for item in sublist]
 
+wsc_perf_debug_suite = {
+    7: flatten_list([
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=gpt_wsc_specs.values(),num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [force_dp_dict] * 1),
+        get_solution_cases(batch_size = 1024,
+            model_specs=[gpt_wsc_specs["350M"]], num_micro_batches=1024,
+            num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+            submesh_physical_shapes=
+            [(1, 7)],submesh_logical_shapes= [(1, 7)],
+                submesh_autosharding_option_dicts= [{}] * 1),
+    ]),
+    8: flatten_list([
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [{"force_simple_heuristic":"shard-largest"}] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [{"force_simple_heuristic":"shard-first"}] * 1),
+        get_solution_cases(batch_size = 1024,
+            model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=128,
+            num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+            submesh_physical_shapes=
+            [(1, 8)],submesh_logical_shapes= [(1, 8)],
+                submesh_autosharding_option_dicts= [{"force_simple_heuristic":"shard-last"}] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [force_dp_dict] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]], num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)], submesh_logical_shapes= [(8, 1)],
+        #         submesh_autosharding_option_dicts= [{"force_zero_stage_3": True}] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["2.6B"]], num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)], submesh_logical_shapes= [(8, 1)],
+        #         submesh_autosharding_option_dicts= [force_dp_dict] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=gpt_wsc_specs.values(),num_micro_batches=128,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(4, 2)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=gpt_wsc_specs.values(), num_micro_batches=1024,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [force_dp_dict] * 1),
+        # get_solution_cases(batch_size = 1024,
+        #     model_specs=[gpt_wsc_specs["6.7B"]], num_micro_batches=1024,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 8)],submesh_logical_shapes= [(1, 8)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+    ]),
+
+    24: flatten_list([
+        get_solution_cases(batch_size = 1536,
+            model_specs=gpt_wsc_specs.values(),num_micro_batches=64,
+            num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+            submesh_physical_shapes=
+            [(6, 4)],submesh_logical_shapes= [(1, 24)],
+                submesh_autosharding_option_dicts= [{}] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=64,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 24)],submesh_logical_shapes= [(1, 24)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=gpt_wsc_specs.values(),num_micro_batches=64,
+        #     num_auto_layers = 1, forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(6, 4)],submesh_logical_shapes= [(24, 1)],
+        #         submesh_autosharding_option_dicts= [{"force_zero_stage_3": True}] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=gpt_wsc_specs.values(),num_micro_batches=int(1536/6),
+        #     num_auto_layers = 1,forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 24)],submesh_logical_shapes= [(1, 24)],
+        #         submesh_autosharding_option_dicts= [force_dp_dict] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=gpt_wsc_specs.values(),num_micro_batches=int(1536/6),
+        #     num_auto_layers = 1,forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 24)],submesh_logical_shapes= [(1, 24)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=[gpt_wsc_specs["6.7B"]],num_micro_batches=1536,
+        #     num_auto_layers = 1,forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 24)],submesh_logical_shapes= [(1, 24)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+        # get_solution_cases(batch_size = 1536,
+        #     model_specs=[gpt_wsc_specs["2.6B"]],num_micro_batches=1536,
+        #     num_auto_layers = 1,forward_stage_layer_ids=[[i for i in range(1)]],
+        #     submesh_physical_shapes=
+        #     [(1, 24)],submesh_logical_shapes= [(1, 24)],
+        #         submesh_autosharding_option_dicts= [{}] * 1),
+    ])
+}
+
 wsc_perf_suite = {
 #             [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14]],
     25: get_solution_cases(batch_size=1000,

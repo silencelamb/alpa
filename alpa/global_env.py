@@ -115,7 +115,7 @@ class GlobalConfig:
 
         ########## Options of logging ##########
         self.print_compilation_time = False
-        self.print_auto_layer_stats = True
+        self.print_auto_layer_stats = False
 
         ########## Options of save jaxpr ##########
         self.save_jaxpr_json = False
@@ -246,6 +246,8 @@ class GlobalConfig:
 
         self.use_greedy_collective_cost = False
         self.collective_cost_dict = None
+        self.debug_mode = False
+        self.use_memory_budget = False
 
 
 global_config = GlobalConfig()

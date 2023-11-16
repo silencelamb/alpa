@@ -23,27 +23,86 @@ from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 GraphData = namedtuple('GraphData', ['model_type', 'model_size', 'graph_data'])
 
+model_config_dict = {
+    "wsgpu":
+        {
+            "gpt":
+                {
+                    "global_batch_size":1536,
+                    "num_microbatches":64
+                },
+            "bert":
+                {
+                    "global_batch_size":1536,
+                    "num_microbatches":64
+                },
+            "wresnet":
+                {
+                    "global_batch_size":1536,
+                    "num_microbatches":16
+                }
+        },
+    "dojo":
+        {
+            "gpt":
+                {
+                    "global_batch_size":1000,
+                    "num_microbatches":40
+                },
+            "bert":
+                {
+                    "global_batch_size":1000,
+                    "num_microbatches":40
+                },
+            "wresnet":
+                {
+                    "global_batch_size":1000,
+                    "num_microbatches":10
+                }
+        },
+}
+
 class WSCMappingEnv(gym.Env):
     
-    def __init__(self, render_mode='human', use_image=False, offload=False):
+    def __init__(self, 
+                 use_image=False, 
+                 hardware='wsc',
+                 offload=False,
+                 constrain_mem=False,
+                 render_mode='human'):
         super(WSCMappingEnv, self).__init__()
         
         # set global env
         global_env_new = get_global_config()
-        global_env_new.hardware = 'wsc'
+        self.hardware = hardware
+        if hardware == "dojo":
+            global_env_new.wsc_config = global_env_new.dojo_config
+            global_env_new.hardware = "wsc"
+            print(f"Set DOJO config = {global_env_new.wsc_config}")
+        elif hardware == "wsgpu":
+            global_env_new.wsc_config = global_env_new.wsgpu_config
+            global_env_new.hardware = "wsc"
+            print(f"Set SW-GPU config = {global_env_new.wsc_config}")
+        else:
+            # NOTE: origin support for GPU & TX8 WSC
+            global_env_new.hardware = hardware
+            
         global_env_new.only_mapping = True
         global_env_new.use_analytical_perf_model = True
+        global_env_new.use_greedy_collective_cost = True
+        global_env_new.wsc_config["analytical_perf::use_greedy_coll_cost"] = True
         get_collective_cost_dict()
 
         set_global_config(global_env_new)
         global_env = get_global_config()
         
-        self.rows, self.cols = (5, 4)
+        self.rows = global_env_new.wsc_config["analytical_perf_wsc::die_r_num"]
+        self.cols = global_env_new.wsc_config["analytical_perf_wsc::die_c_num"]
         self.grid = np.zeros((self.rows, self.cols), int)
         self.render_mode = render_mode
-        
         self.use_image = use_image
         self.offload = offload
+        self.constrain_mem = constrain_mem
         # Observation space
         if self.use_image:
             self.observation_space = spaces.Box(low=0, high=self.rows * self.cols, shape=(1, self.rows, self.cols), dtype=np.int8)
@@ -67,6 +126,8 @@ class WSCMappingEnv(gym.Env):
         self.GraphDataSet = self.construct_graph_dataset()
         self.model_type = None
         self.model_size = None
+        self.global_batch_size = None
+        self.num_microbatches = None
         
         # for reward statistics
         self.total_reward = 0
@@ -124,27 +185,27 @@ class WSCMappingEnv(gym.Env):
         model_type = self.model_type
         if model_type == 'gpt':
             suite = get_one_config_case_idx(
-                1000,    # global_batch_size
+                self.global_batch_size,    # global_batch_size
                 gpt_specs[self.model_size], 
-                [100],   # num_micro_batches
+                [self.num_microbatches],   # num_micro_batches
                 partition_index=partition_index,
                 stage_option=stage_option       
             )
         elif model_type == "bert":
             # TODO: exprement to verfy it is ok
             suite = get_one_config_case_idx(
-                1000,    # global_batch_size
+                self.global_batch_size,    # global_batch_size
                 bert_specs[self.model_size], 
-                [100],   # num_micro_batches
+                [self.num_microbatches],   # num_micro_batches
                 partition_index=partition_index,
                 stage_option=stage_option       
             )
         elif model_type == "wresnet":
             # TODO: exprement to verfy it is ok
             suite = get_one_config_case_idx(
-                1000,    # global_batch_size
+                self.global_batch_size,    # global_batch_size
                 wresnet_specs[self.model_size], 
-                [100],   # num_micro_batches
+                [self.num_microbatches],   # num_micro_batches
                 partition_index=partition_index,
                 stage_option=stage_option       
             )
@@ -178,22 +239,26 @@ class WSCMappingEnv(gym.Env):
                                     offload = self.offload)
             (parameter_count, peak_mem, latencies, tflops, metadata) = result  
             heads = [
-                "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)","Mean Time (s)", 
-                "Std Time (s)", "Peak Mem (GB)", "Model Config", "#Microbatch", 
-                "#GPU", "Parallel Config", "Metadata"
-                ]
+                "Type", "#Params (Billion)", "Actual TFLOPs(Per Device)", "Utilization (%)", "Mean Time (s)",
+                "Std Time (s)", "Out of DDR", "Peak Mem (GB)", "DDR Mem (GB)", "#Microbatch",
+                "Offload", "#Die", "Model Config", "parallel_args", "Metadata"
+            ]
             if isinstance(parallel_args, ConfigParallelArgs):
                 parallel_args = parallel_args._replace(input_placement_specs=[])
             global_config = get_global_config()
-            Peak_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+            tile_r_num = global_config.wsc_config["analytical_perf_wsc::tile_r_num"]
+            tile_c_num = global_config.wsc_config["analytical_perf_wsc::tile_c_num"]
+            tile_num = tile_c_num * tile_r_num
+            tile_FP16 = global_config.wsc_config["analytical_perf::compute_dict"][PrimitiveType.F16.value]
+            Peak_FP16 = tile_FP16 * tile_num / TOPS
             DDR_MEM = global_config.wsc_config["analytical_perf_wsc::ddr_mem"]
 
             values = [
                 model_type, f"{parameter_count/1e9:.3f}B",
-                f"{tflops:.4f}", f"{tflops*TOPS/Peak_FP16*100}",
-                f"{np.mean(latencies):.5f}", f"{np.std(latencies):.5f}",
+                f"{tflops}", f"{tflops/Peak_FP16*100}",
+                f"{np.mean(latencies)}", f"{np.std(latencies)}",
                 f"{peak_mem/GB > DDR_MEM/GB}", f"{peak_mem/GB:.5f}", f"{DDR_MEM/GB}",
-                str(num_micro_batches), f"{self.rows}x{self.cols}", str(model_config),
+                str(num_micro_batches), self.offload, f"{self.cols}x{self.rows}", str(model_config),
                 parallel_args, to_str_round(metadata, 6)
             ]
             
@@ -201,6 +266,9 @@ class WSCMappingEnv(gym.Env):
             result_dict = dict(zip(heads, values)) 
             print('One result: ' + str(result_dict))
             total_latency = metadata['estimated_total_time']
+            print(f'total_latency is : {total_latency}')
+            if self.constrain_mem and peak_mem > DDR_MEM:
+                total_latency = total_latency +  (peak_mem/DDR_MEM-1) * total_latency * 100
         return -total_latency
 
     def reset(self, seed=None, options=None):
@@ -426,6 +494,8 @@ class WSCMappingEnv(gym.Env):
     def set_model_type_size(self, model_type, model_size):
         self.model_type = model_type
         self.model_size = model_size
+        self.global_batch_size = model_config_dict[self.hardware][model_type]["global_batch_size"]
+        self.num_microbatches = model_config_dict[self.hardware][model_type]["num_microbatches"]
     
     def get_graph_feature_dim(self):
         return self.GraphDataSet[0].graph_data.x.shape[1]

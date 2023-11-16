@@ -44,6 +44,7 @@ benchmark_suites = {
     "gpt.config_test": suite_auto_gpt.config_test_suite,
     "gpt.wsc_config_test": suite_auto_gpt.wsc_config_test_suite,
     "gpt.wsc_perf": suite_gpt.wsc_perf_suite,
+    "gpt.wsc_perf_debug": suite_auto_gpt.wsc_perf_debug_suite,
 
 
     "bert.tmp": suite_manual_bert.tmp_suite,
@@ -332,11 +333,6 @@ if __name__ == "__main__":
 
         # set whether use analytical model
         global_config.use_analytical_perf_model = args.use_analytical_perf_model
-        # set whether use the greedy-collective cost in analytical model
-        global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
-        if args.use_greedy_collective_cost:
-            get_collective_cost_dict()
-
         # set mapping result save dir
         if args.rst_folder == "":
             args.rst_folder = "tmp"
@@ -356,6 +352,11 @@ if __name__ == "__main__":
         global_config.rst_folder = args.rst_folder
 
 
+        # set whether use the greedy-collective cost in analytical model
+        global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
+        if args.use_greedy_collective_cost:
+            get_collective_cost_dict()
+            
         global_config.force_use_fp16 = args.force_use_fp16
 
         set_global_config(global_config)
