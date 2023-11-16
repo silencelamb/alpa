@@ -208,7 +208,7 @@ class CompileWorker:
                            f"for stage {stage_id} : {e}")
             return stage_id, None
 
-        # [REMOVE ME]: Previous memory model dev code        
+        # [REMOVE ME]: Previous memory model dev code
         # Get whole annotated sharded graph (fw/bw + apply)
         # Run spmd on annotated single hlo graph
         # single_graph_proto = None
@@ -222,10 +222,10 @@ class CompileWorker:
         #     except IndexError as e:
         #         logger.warning(f"Compilation error on whole graph (spmd pass) "
         #                        f"for stage {stage_id} : {e}")
-        #         return stage_id, None   
+        #         return stage_id, None
 
         # with open(f"./whole_spmd_hlo_module_{stage_id}.hlo", "w") as f:
-        #         f.write(sharded_hlo_module.to_string())     
+        #         f.write(sharded_hlo_module.to_string())
         # with open(f"./comp_spmd_hlo_module_{stage_id}.hlo", "w") as f:
         #         f.write(hlo_module.to_string())
         # with open(f"./apply_grad_spmd_hlo_module_{stage_id}.hlo", "w") as f:
@@ -315,7 +315,8 @@ class ProfileWorker:
         if input_shardings is not None:
             hlo_module.set_spmd_parameters_shardings(
                 [xe.HloSharding(x) for x in input_shardings])
-            hlo_module.set_spmd_output_sharding(xe.HloSharding(output_sharding))
+            hlo_module.set_spmd_output_sharding(
+                xe.HloSharding(output_sharding))
         executable = PartialGradAccMeshDriverExecutable(
             self.mesh, hlo_module, compiled_output.stage_plan, avals, out_avals,
             donated_invars, output_acc_grad_indices)
@@ -429,7 +430,7 @@ class HloCostModelProfileWorker:
                                         )
         del compiled
 
-        #with open(f"/home/ubuntu/efs/alpa/benchmark/alpa/tmp/"
+        # with open(f"/home/ubuntu/efs/alpa/benchmark/alpa/tmp/"
         #          f"profile_stage_{stage_id}.hlo", "w") as fout:
         #    fout.write(hlo_module.to_string())
 
@@ -492,21 +493,23 @@ class HloAnalysisSimulator:
         self.peak_memory = None
         self.stage_peak_memory = None
         self.stage_latency = None
-        self.spmd_module_list = [stage.get_spmd_partitioned() for stage in stages] 
+        self.spmd_module_list = [stage.get_spmd_partitioned()
+                                 for stage in stages]
         self.stage_id_dict = stage_id_dict
 
-        
     def estimate_cost_on_hlo_analysis(self, offload_analysis=False):
         """Estimate the cost of a schedule using HLO analysis.
         """
         if self.total_latency is not None and self.peak_memory is not None \
-            and self.stage_latency is not None:
+                and self.stage_latency is not None:
             return self.total_latency, self.peak_memory, self.stage_latency
-        
+
         self.stage_peak_memory = []
         self.stage_latency = []
         self.peak_memory = self.total_latency = 0
         global_config = get_global_config()
+        print(f"self.stage_id_dict = {self.stage_id_dict}")
+
         for stage_idx, spmd_module in enumerate(self.spmd_module_list):
             mesh_idx = list(self.schedule.stage_mesh_mapping[stage_idx])[0]
             mesh_shape = self.mesh_group[mesh_idx].shape
@@ -516,10 +519,11 @@ class HloAnalysisSimulator:
             grad_sync_channel_ids = ""
             if True:
                 grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
-            latency = estimate_hlo_module_cost(spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids, mesh_shape)
+            latency = estimate_hlo_module_cost(
+                spmd_module, global_config, None, self.num_batch,  grad_sync_channel_ids, mesh_shape)
             print('stage_idx: ', stage_idx, 'latency: ', latency)
             self.stage_latency.append(latency)
-        
+
         if offload_analysis:
             # estimate memory offload cost
             if global_config.hardware == "gpu":
@@ -532,43 +536,48 @@ class HloAnalysisSimulator:
                 "analytical_perf::force_use_fp16": global_config.force_use_fp16,
                 "analytical_perf::verbose": 0,
             }
-            for merge_stage_id in self.stage_id_dict: 
+            for merge_stage_id in self.stage_id_dict:
                 fw_bw_apply = []
                 for stage_id in merge_stage_id:
                     fw_bw_apply.append(self.spmd_module_list[stage_id])
                 # get fw, bw, apply_grad state mem offload cost
                 with XlaPassContext(hardware_config | common_text):
-                    cost = xe.analytical_memory_cost_of_hlo_module(fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
+                    cost = xe.analytical_memory_cost_of_hlo_module(
+                        fw_bw_apply[0], fw_bw_apply[1], fw_bw_apply[2])
                 # add back to each stage
                 for i, stage_id in enumerate(merge_stage_id):
                     self.stage_latency[stage_id] += cost[i]
-                                        
+
         # use schedule to estimate the total latency
-        for clock_idx, batch_stage_pair_list in  enumerate(self.schedule.schedules):
+        for clock_idx, batch_stage_pair_list in enumerate(self.schedule.schedules):
             cur_clock_max_latency = 0
             for batch_stage_pair in batch_stage_pair_list:
                 if batch_stage_pair is None:
                     continue
                 batch_idx, stage_idx = batch_stage_pair
-                cur_clock_max_latency = max(cur_clock_max_latency, self.stage_latency[stage_idx])
+                cur_clock_max_latency = max(
+                    cur_clock_max_latency, self.stage_latency[stage_idx])
             self.total_latency += cur_clock_max_latency
         return self.total_latency, self.peak_memory, self.stage_latency
 
     def hlo_module_cost_analysis(self):
-            """for debug, detail analysis of hlo module
-            """
-            global_config = get_global_config()
-            for stage_idx, spmd_module in enumerate(self.spmd_module_list):
-                grad_sync_channel_ids = ""
-                if True:
-                    grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
-                analysis_result = hlo_module_cost_analysis(spmd_module, self.num_batch,  grad_sync_channel_ids)    
-                df = pd.DataFrame.from_dict(analysis_result)
-                estimated_time_sum = df['estimated_time'].sum()
-                print(f"stage {stage_idx} estimated_time_sum: {estimated_time_sum}")
-                df.iloc[-1, -1] = estimated_time_sum
-                df.to_excel(f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{stage_idx}_peak_memory.xlsx")
-        
+        """for debug, detail analysis of hlo module
+        """
+        global_config = get_global_config()
+        for stage_idx, spmd_module in enumerate(self.spmd_module_list):
+            grad_sync_channel_ids = ""
+            if True:
+                grad_sync_channel_ids = get_grad_sync_channel_ids(spmd_module)
+            analysis_result = hlo_module_cost_analysis(
+                spmd_module, self.num_batch,  grad_sync_channel_ids)
+            df = pd.DataFrame.from_dict(analysis_result)
+            estimated_time_sum = df['estimated_time'].sum()
+            print(
+                f"stage {stage_idx} estimated_time_sum: {estimated_time_sum}")
+            df.iloc[-1, -1] = estimated_time_sum
+            df.to_excel(
+                f"{global_config.maping_rst_dir}/compute_network_anaysis_stage_{stage_idx}_peak_memory.xlsx")
+
 
 def compile_all(stages, num_micro_batches, default_as_option):
     """
@@ -750,7 +759,8 @@ def split_sharding_specs(layers: Sequence[JaxPipelineComputation],
     but they are not across meshes so this does not matter.
     """
     in_sharding_dict = dict(zip(mixed_jaxpr.jaxpr.invars, in_sharding_specs))
-    out_sharding_dict = dict(zip(mixed_jaxpr.jaxpr.outvars, out_sharding_specs))
+    out_sharding_dict = dict(
+        zip(mixed_jaxpr.jaxpr.outvars, out_sharding_specs))
     layer_in_sharding_specs = []
     layer_out_sharding_specs = []
     for layer in layers:
@@ -1000,4 +1010,3 @@ def compute_apply_grad_invar_size(input_sharding_protos,
                 selected_sharding_specs.append(spec)
     return _compute_vars_size(selected_sharding_specs, ordered_selected_vars,
                               logical_mesh_shape)
-    

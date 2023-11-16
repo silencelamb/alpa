@@ -314,6 +314,20 @@ if __name__ == "__main__":
 
         # set global_config, only_mapping
         global_config = get_global_config()
+        # global_config.hardware = args.hardware
+        # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
+        if args.hardware[i] == "dojo":
+            global_config.wsc_config = global_config.dojo_config
+            global_config.hardware = "wsc"
+            print(f"Set DOJO config = {global_config.wsc_config}")
+        elif args.hardware[i] == "wsgpu":
+            global_config.wsc_config = global_config.wsgpu_config
+            global_config.hardware = "wsc"
+            print(f"Set SW-GPU config = {global_config.wsc_config}")
+        else:
+            # NOTE: origin support for GPU & TX8 WSC
+            global_config.hardware = args.hardware[i]
+            
         global_config.only_mapping = args.only_mapping
 
         # set whether use analytical model
@@ -340,19 +354,7 @@ if __name__ == "__main__":
         os.makedirs(args.rst_folder, exist_ok=True)
 
         global_config.rst_folder = args.rst_folder
-        # global_config.hardware = args.hardware
-        # NOTE: support dojo & wsgpu config in args -- direct assign to wsc_config
-        if args.hardware[i] == "dojo":
-            global_config.wsc_config = global_config.dojo_config
-            global_config.hardware = "wsc"
-            print(f"Set DOJO config = {global_config.wsc_config}")
-        elif args.hardware[i] == "wsgpu":
-            global_config.wsc_config = global_config.wsgpu_config
-            global_config.hardware = "wsc"
-            print(f"Set SW-GPU config = {global_config.wsc_config}")
-        else:
-            # NOTE: origin support for GPU & TX8 WSC
-            global_config.hardware = args.hardware[i]
+
 
         global_config.force_use_fp16 = args.force_use_fp16
 

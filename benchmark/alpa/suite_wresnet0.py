@@ -51,7 +51,11 @@ wresnet_dojo_params = {
 
 prefer_reduce_scatter = True
 use_remat = True
-force_dp_dict = {"force_batch_dim_to_mesh_dim": 0}
+# Force dp
+# auto_sharding_dict = {"force_batch_dim_to_mesh_dim": 0}
+# heuristic
+auto_sharding_dict = {"force_simple_heuristic": "shard-first"}
+# "shard-first", "shard-last", "shard-largest"
 
 
 def get_solution_cases(model_spec, num_micro_batches, num_auto_layers,
@@ -97,7 +101,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
             for dp, tp, pp in zip([25], [1], [1])
         ],
@@ -111,7 +115,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
             for dp, tp, pp in zip([1], [25], [1])
         ],
@@ -125,7 +129,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(5, 5)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
             for dp, tp, pp in zip([5], [5], [1])
         ],
@@ -138,7 +142,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
             for dp, tp, pp in zip([5], [1], [5])
         ],
@@ -152,7 +156,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(5, 1)]*5, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_dojo_models.values(), wresnet_dojo_params.values())
             for dp, tp, pp in zip([1], [5], [5])
         ],
@@ -169,7 +173,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 4)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([24], [1], [1])
         ],
@@ -183,7 +187,7 @@ wsc_perf_suite = {
                                num_auto_layers=params[0], forward_stage_layer_ids=get_list(
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 4)]*1, submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([1], [24], [1])
         ],
@@ -198,7 +202,7 @@ wsc_perf_suite = {
         #                            int(params[0]), int(params[0]/pp)),
         #                        submesh_physical_shapes=[(1, 1)]*24,
         #                        submesh_logical_shapes=[(dp, tp)]*pp,
-        #                        submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+        #                        submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
         #     for mod, params in zip(wresnet_models.values(), wresnet_params.values())
         #     for dp, tp, pp in zip([1], [1], [24])
         # ],
@@ -214,7 +218,7 @@ wsc_perf_suite = {
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 4)]*1,
                                submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([6], [4], [1])
         ],
@@ -228,7 +232,7 @@ wsc_perf_suite = {
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 1)]*4,
                                submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([6], [1], [4])
         ],
@@ -242,7 +246,7 @@ wsc_perf_suite = {
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 1)]*4,
                                submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([1], [6], [4])
         ],
@@ -257,7 +261,7 @@ wsc_perf_suite = {
                                    int(params[0]), int(params[0]/pp)),
                                submesh_physical_shapes=[(6, 2)]*2,
                                submesh_logical_shapes=[(dp, tp)]*pp,
-                               submesh_autosharding_option_dicts=[force_dp_dict] * pp)
+                               submesh_autosharding_option_dicts=[auto_sharding_dict] * pp)
             for mod, params in zip(wresnet_models.values(), wresnet_params.values())
             for dp, tp, pp in zip([6], [2], [2])
         ],
