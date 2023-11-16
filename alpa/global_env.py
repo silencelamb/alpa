@@ -8,9 +8,10 @@ from .mesh_search import gen_collective_cost_dict
 
 GB = 1 << 30  # Gigabyte
 MB = 1 << 20  # Megabyte
-TOPS =  10 ** 12 # TOPS
-ns = 10 ** -9 # ns
+TOPS = 10 ** 12  # TOPS
+ns = 10 ** -9  # ns
 us = 10**(-6)
+
 
 class PrimitiveType(Enum):
     INVALID = 0
@@ -31,7 +32,8 @@ class PrimitiveType(Enum):
     C128 = 18
     TUPLE = 13
     OPAQUE_TYPE = 14
-    TOKEN = 17   
+    TOKEN = 17
+
 
 class GlobalConfig:
     """The global configuration of alpa."""
@@ -62,7 +64,7 @@ class GlobalConfig:
         # resource is required until launching PipeshardExecutable.
         self.debug_with_pipeshard_runtime = True
         # Whether to use the whole cluster for stage profiling. If not, only
-        # use the given mesh. 
+        # use the given mesh.
         # it should be set as False, when we want to excute mapping in arbitrary mesh
         self.profile_with_whole_ray_cluster = False
         # Stage construction profiling time threshold.
@@ -120,7 +122,6 @@ class GlobalConfig:
         self.save_jaxpr_dir = "saved_jaxpr_json"
         self.save_jaxpr_json_file = "saved_jaxpr.json"
 
-
         ########## Options of mapping ################
         # when only_mapping is True, only do mapping, does not get excutable or do acutal compute
         self.only_mapping = True
@@ -150,8 +151,8 @@ class GlobalConfig:
             "analytical_perf_gpu::node_bw": int(25/8 * GB),   # alpa 里是 25Gbps
             # "analytical_perf_gpu::node_bw": 200 * GB,
             # "analytical_perf_gpu::node_bw": 600 * GB,   # nv link
-            "analytical_perf_gpu::ddr_bandwidth": 500 * GB, # ddr bandwidth, GB/s
-            "analytical_perf_gpu::pcie_bandwidth": 32 * GB, # PCIE 4.0 x 16 lane, GB/s
+            "analytical_perf_gpu::ddr_bandwidth": 500 * GB,  # ddr bandwidth, GB/s
+            "analytical_perf_gpu::pcie_bandwidth": 32 * GB,  # PCIE 4.0 x 16 lane, GB/s
             "analytical_perf::cmp_ul": 0.7,
             "analytical_perf::bw_ul": 0.7
         }
@@ -161,8 +162,8 @@ class GlobalConfig:
             "analytical_perf_wsc::die_r_num": 5,
             "analytical_perf_wsc::die_c_num": 4,
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 256/16 * TOPS),
-                PrimitiveType.F32.value: int( 256/16  * TOPS),
+                PrimitiveType.F16.value: int(256/16 * TOPS),
+                PrimitiveType.F32.value: int(256/16 * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
             "analytical_perf_wsc::tile_r_num": 4,
@@ -170,53 +171,57 @@ class GlobalConfig:
             "analytical_perf_wsc::tile_mem": 3 * MB,  # sram size / tile
             "analytical_perf_wsc::tile_bw": 128 * GB,
             "analytical_perf_wsc::die_bw": 25 * GB,
-            "analytical_perf_wsc::ddr_bandwidth": 100 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::ddr_bandwidth": 100 * GB,  # ddr bandwidth, GB/s
             "analytical_perf_wsc::ddr_mem":  12 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::pcie_bandwidth": 32 * GB, #  PCIE 4.0 x 16 lane, GB/s
-            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
-            "analytical_perf::use_greedy_coll_cost": False, # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf_wsc::pcie_bandwidth": 32 * GB,  # PCIE 4.0 x 16 lane, GB/s
+            "analytical_perf_wsc::die_alpha": 100 * ns,  # add 2023-10-31, d2d latency, ns
+            # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf::use_greedy_coll_cost": False,
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
 
         # Tesla DOJO  config
-        #TODO add dojo config @dehao
+        # TODO add dojo config @dehao
         self.dojo_config = {
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 5,
             "analytical_perf_wsc::die_c_num": 5,
             # NOTE: 361 match 19*19 instead of 354 -- single tile compute capacity is 362/22TFLOPS
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 362/361 * TOPS),
-                PrimitiveType.F32.value: int( 22/361  * TOPS),
+                PrimitiveType.F16.value: int(362/361 * TOPS),
+                PrimitiveType.F32.value: int(22/361 * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
             "analytical_perf_wsc::tile_r_num": 19,
             "analytical_perf_wsc::tile_c_num": 19,
-            "analytical_perf_wsc::tile_mem": 1 * MB,  # SRAM size / tile - int(1.25MB)
+            # SRAM size / tile - int(1.25MB)
+            "analytical_perf_wsc::tile_mem": 1 * MB,
             "analytical_perf_wsc::tile_bw": 14 * GB,
 
             "analytical_perf_wsc::die_bw": 2048 * GB,
             # NOTE: ddr only consider one, not 5 edge of training Tile
-            "analytical_perf_wsc::ddr_bandwidth": 800 * GB, # ddr bandwidth, GB/s
-            "analytical_perf_wsc::ddr_mem":  6553 * MB,   # add 2023-10-31, config as 32*5/25 for each die
-            "analytical_perf_wsc::pcie_bandwidth": 160 * GB, #  PCIE 4.0 x 80 lane, GB/s
+            "analytical_perf_wsc::ddr_bandwidth": 800 * GB,  # ddr bandwidth, GB/s
+            # add 2023-10-31, config as 32*5/25 for each die
+            "analytical_perf_wsc::ddr_mem":  6553 * MB,
+            "analytical_perf_wsc::pcie_bandwidth": 160 * GB,  # PCIE 4.0 x 80 lane, GB/s
 
-            "analytical_perf_wsc::die_alpha": 100 * ns, # add 2023-10-31, d2d latency, ns
-            "analytical_perf::use_greedy_coll_cost": False, # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf_wsc::die_alpha": 100 * ns,  # add 2023-10-31, d2d latency, ns
+            # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf::use_greedy_coll_cost": False,
             "analytical_perf::cmp_ul": 0.8,
             "analytical_perf::bw_ul": 0.8
         }
         # Wafer-Scale GPU config
-        #TODO add Wafer-Scale GPU config @dehao
+        # TODO add Wafer-Scale GPU config @dehao
         self.wsgpu_config = {
             "analytical_perf::hardware": "wsc",
             "analytical_perf_wsc::die_r_num": 6,
             "analytical_perf_wsc::die_c_num": 4,
             # NVIDIA T4 compute capacity
             "analytical_perf::compute_dict": {
-                PrimitiveType.F16.value: int( 65 * TOPS),
-                PrimitiveType.F32.value: int( 8.1  * TOPS),
+                PrimitiveType.F16.value: int(65 * TOPS),
+                PrimitiveType.F32.value: int(8.1 * TOPS),
                 # PrimitiveType.F32.value: int( 20/36  * TOPS),
             },
             "analytical_perf_wsc::tile_r_num": 1,
@@ -225,36 +230,41 @@ class GlobalConfig:
             "analytical_perf_wsc::tile_mem": 4*MB,  # SRAM size / tile
             "analytical_perf_wsc::tile_bw": 320 * GB,
 
-            "analytical_perf_wsc::die_bw": 1536 * GB, # 1.5TB
-            "analytical_perf_wsc::ddr_bandwidth": 1536 * GB, # ddr bandwidth, GB/s
+            "analytical_perf_wsc::die_bw": 1536 * GB,  # 1.5TB
+            "analytical_perf_wsc::ddr_bandwidth": 1536 * GB,  # ddr bandwidth, GB/s
             # NOTE: two 3D stacked-HBM = 2 * 4GB
             "analytical_perf_wsc::ddr_mem":  2 * 4 * GB,   # add 2023-10-31
-            "analytical_perf_wsc::pcie_bandwidth": 32 * GB, #  PCIE 4.0 x 16 lane, GB/s
+            "analytical_perf_wsc::pcie_bandwidth": 32 * GB,  # PCIE 4.0 x 16 lane, GB/s
 
             # GPM interconnect
-            "analytical_perf_wsc::die_alpha": 20 * ns, # add 2023-10-31, d2d latency, ns
-            "analytical_perf::use_greedy_coll_cost": False, # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf_wsc::die_alpha": 20 * ns,  # add 2023-10-31, d2d latency, ns
+            # add  2023-10-31, mesh topo-aware collective
+            "analytical_perf::use_greedy_coll_cost": False,
             "analytical_perf::cmp_ul": 0.8,
-            "analytical_perf::bw_ul": 0.8
+            "analytical_perf::bw_ul": 0.8,
         }
 
-
-        self.use_greedy_collective_cost = False  
+        self.use_greedy_collective_cost = False
         self.collective_cost_dict = None
         self.debug_mode = False
         self.use_memory_budget = False
 
+
 global_config = GlobalConfig()
+
 
 def get_global_config():
     return global_config
+
 
 def get_collective_cost_dict():
     die_row_num = global_config.wsc_config["analytical_perf_wsc::die_r_num"]
     die_col_num = global_config.wsc_config["analytical_perf_wsc::die_c_num"]
     if global_config.wsc_config["analytical_perf::use_greedy_coll_cost"]:
-        global_config.collective_cost_dict = gen_collective_cost_dict(die_row_num, die_col_num)
+        global_config.collective_cost_dict = gen_collective_cost_dict(
+            die_row_num, die_col_num)
         # print(global_config.collective_cost_dict)
+
 
 def set_global_config(global_config_new: GlobalConfig):
     global global_config

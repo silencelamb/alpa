@@ -29,17 +29,17 @@ model_config_dict = {
             "gpt":
                 {
                     "global_batch_size":1536,
-                    "num_microbatches":64
+                    "num_microbatches":1536 
                 },
             "bert":
                 {
                     "global_batch_size":1536,
-                    "num_microbatches":64
+                    "num_microbatches": 1536
                 },
             "wresnet":
                 {
                     "global_batch_size":1536,
-                    "num_microbatches":16
+                    "num_microbatches": 1536
                 }
         },
     "dojo":
@@ -47,17 +47,17 @@ model_config_dict = {
             "gpt":
                 {
                     "global_batch_size":1000,
-                    "num_microbatches":40
+                    "num_microbatches": 1000
                 },
             "bert":
                 {
                     "global_batch_size":1000,
-                    "num_microbatches":40
+                    "num_microbatches": 1000
                 },
             "wresnet":
                 {
                     "global_batch_size":1000,
-                    "num_microbatches":10
+                    "num_microbatches": 1000
                 }
         },
 }
@@ -180,7 +180,7 @@ class WSCMappingEnv(gym.Env):
             submeshes=self.rect_list,
             submesh_physical_shapes=None,
             submesh_logical_shapes=None,
-            submesh_autosharding_option_dicts=[{} for x in range(len(self.rect_list))]
+            submesh_autosharding_option_dicts=[{"force_simple_heuristic":"shard-first"} for x in range(len(self.rect_list))]
         )
         model_type = self.model_type
         if model_type == 'gpt':
