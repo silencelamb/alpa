@@ -292,7 +292,7 @@ def run_in_GA(args_=None, num_hosts=None, num_devices_per_host=None, log = None)
     log.logger.info('GA result : F' + str(res.F))
     log.logger.info('GA result : X' + str(res.X))
     key = res.F[0] if isinstance(res.F, (list, np.ndarray)) else res.F
-    log.logger.info('Result dict: ' + str(global_latency_2_res[key]))
+    log.logger.info(f"Result dict: {global_latency_2_res[key]}")
 
 
 class GA_problem_alpa(Problem):
@@ -602,8 +602,7 @@ if __name__ == "__main__":
     os.makedirs(args.rst_folder, exist_ok=True)
 
     global_config.rst_folder = args.rst_folder
-    global_config.hardware = args.hardware
-    global_config.force_use_fp16 = args.force_use_fp16
+    global_config.force_use_fp16 = True
 
     global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
     if args.use_greedy_collective_cost:
@@ -611,11 +610,12 @@ if __name__ == "__main__":
         
     set_global_config(global_config)
     global_config = get_global_config()
-    print(global_config.use_analytical_perf_model)
     save_path = args.rst_folder
     log_format = '%(asctime)s %(filename)s %(levelname)s %(message)s'
     log = Logger(os.path.join(save_path, 'log.log'), level='info')
     log.logger.info('begin search by GA')
+    log.logger.info(f"global_config.hardware: {global_config.hardware}")
+    log.logger.info(f"global_config.wsc_config: {global_config.wsc_config}")
     log.logger.info(f"args: {args}")
         
     run_in_GA(args, num_hosts, num_devices_per_host, log)

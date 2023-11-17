@@ -23,44 +23,6 @@ from benchmark_parallel_utils import BenchmarkCase, ConfigParallelArgs
 
 GraphData = namedtuple('GraphData', ['model_type', 'model_size', 'graph_data'])
 
-model_config_dict = {
-    "wsgpu":
-        {
-            "gpt":
-                {
-                    "global_batch_size":1536,
-                    "num_microbatches":1536 
-                },
-            "bert":
-                {
-                    "global_batch_size":1536,
-                    "num_microbatches": 1536
-                },
-            "wresnet":
-                {
-                    "global_batch_size":1536,
-                    "num_microbatches": 1536
-                }
-        },
-    "dojo":
-        {
-            "gpt":
-                {
-                    "global_batch_size":1000,
-                    "num_microbatches": 1000
-                },
-            "bert":
-                {
-                    "global_batch_size":1000,
-                    "num_microbatches": 1000
-                },
-            "wresnet":
-                {
-                    "global_batch_size":1000,
-                    "num_microbatches": 1000
-                }
-        },
-}
 
 class WSCMappingEnv(gym.Env):
     
@@ -69,25 +31,31 @@ class WSCMappingEnv(gym.Env):
                  hardware='wsc',
                  offload=False,
                  constrain_mem=False,
+                 logger=None,
                  render_mode='human'):
         super(WSCMappingEnv, self).__init__()
         
         # set global env
         global_env_new = get_global_config()
         self.hardware = hardware
+        self.num_microbatches = None
         if hardware == "dojo":
+            self.global_batch_size = 1000
             global_env_new.wsc_config = global_env_new.dojo_config
             global_env_new.hardware = "wsc"
             print(f"Set DOJO config = {global_env_new.wsc_config}")
         elif hardware == "wsgpu":
+            self.global_batch_size = 1536
             global_env_new.wsc_config = global_env_new.wsgpu_config
             global_env_new.hardware = "wsc"
             print(f"Set SW-GPU config = {global_env_new.wsc_config}")
         else:
             # NOTE: origin support for GPU & TX8 WSC
+            self.global_batch_size = 1024
             global_env_new.hardware = hardware
             
         global_env_new.only_mapping = True
+        global_env_new.force_use_fp16 = True
         global_env_new.use_analytical_perf_model = True
         global_env_new.use_greedy_collective_cost = True
         global_env_new.wsc_config["analytical_perf::use_greedy_coll_cost"] = True
@@ -95,6 +63,9 @@ class WSCMappingEnv(gym.Env):
 
         set_global_config(global_env_new)
         global_env = get_global_config()
+        self.logger = logger
+        self.logger.info(f'global_config.hardware: {global_env.hardware}')
+        self.logger.info(f'global_config.wsc_config: {global_env.wsc_config}')
         
         self.rows = global_env_new.wsc_config["analytical_perf_wsc::die_r_num"]
         self.cols = global_env_new.wsc_config["analytical_perf_wsc::die_c_num"]
@@ -126,8 +97,6 @@ class WSCMappingEnv(gym.Env):
         self.GraphDataSet = self.construct_graph_dataset()
         self.model_type = None
         self.model_size = None
-        self.global_batch_size = None
-        self.num_microbatches = None
         
         # for reward statistics
         self.total_reward = 0
@@ -137,6 +106,7 @@ class WSCMappingEnv(gym.Env):
         self.mae_reward = 0
         self.mae_param = 0.9
         self.max_ave_episode = 0
+        self.min_latency = 1000000000000
         
     def construct_graph_dataset(self):
         # load graph data, temporarily use mock data
@@ -214,7 +184,7 @@ class WSCMappingEnv(gym.Env):
         for benchmark_case in suite:
             benchmark_case: BenchmarkCase
             print(benchmark_case.batch_size)
-            print(self.grid)
+            self.logger.info(f'\n{self.grid}')
             model_config = benchmark_case.model_config
             num_micro_batches = benchmark_case.num_micro_batches
             try:
@@ -264,11 +234,12 @@ class WSCMappingEnv(gym.Env):
             
             values = [str(x) for x in values]
             result_dict = dict(zip(heads, values)) 
-            print('One result: ' + str(result_dict))
+            self.logger.info(f'One result: {result_dict}')
             total_latency = metadata['estimated_total_time']
-            print(f'total_latency is : {total_latency}')
             if self.constrain_mem and peak_mem > DDR_MEM:
                 total_latency = total_latency +  (peak_mem/DDR_MEM-1) * total_latency * 100
+            self.min_latency = min(self.min_latency, total_latency)
+            self.logger.info(f'total_latency: {total_latency}, after constrain_mem: {total_latency}, min_latency: {self.min_latency}')
         return -total_latency
 
     def reset(self, seed=None, options=None):
@@ -337,7 +308,7 @@ class WSCMappingEnv(gym.Env):
             self.reward_record.append(self.total_reward)
             self.average_reward = statistics.mean(self.reward_record)
             self.mae_reward = self.mae_reward * self.mae_param + self.total_reward * (1 - self.mae_param)
-            print(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
+            self.logger.info(f'average reward: {self.average_reward}, mae reward: {self.mae_reward}, total reward: {self.total_reward}')
             
         if self.use_image:
             return self.grid[np.newaxis, :], reward, done, truncted, {}
@@ -491,11 +462,10 @@ class WSCMappingEnv(gym.Env):
             if graph_data.model_type == model_type and graph_data.model_size == model_size:
                 return graph_data.graph_data
     
-    def set_model_type_size(self, model_type, model_size):
+    def set_model_type_size(self, model_type, model_size, micro_batchsize):
         self.model_type = model_type
         self.model_size = model_size
-        self.global_batch_size = model_config_dict[self.hardware][model_type]["global_batch_size"]
-        self.num_microbatches = model_config_dict[self.hardware][model_type]["num_microbatches"]
+        self.num_microbatches = int(self.global_batch_size/micro_batchsize)
     
     def get_graph_feature_dim(self):
         return self.GraphDataSet[0].graph_data.x.shape[1]
