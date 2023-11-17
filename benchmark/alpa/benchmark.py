@@ -100,6 +100,7 @@ def benchmark_suite(suite_name,
     assert num_gpus in benchmark_suites[suite_name], (
         f"No available benchmark suite for {suite_name} on {num_gpus} GPUs")
     # NOTE: First select suite_name, then select num_gpus
+
     suite = benchmark_suites[suite_name][num_gpus]
 
     for i in range(len(suite)):
@@ -328,7 +329,7 @@ if __name__ == "__main__":
         else:
             # NOTE: origin support for GPU & TX8 WSC
             global_config.hardware = args.hardware[i]
-            
+
         global_config.only_mapping = args.only_mapping
 
         # set whether use analytical model
@@ -351,12 +352,11 @@ if __name__ == "__main__":
 
         global_config.rst_folder = args.rst_folder
 
-
         # set whether use the greedy-collective cost in analytical model
         global_config.wsc_config["analytical_perf::use_greedy_coll_cost"] = args.use_greedy_collective_cost
         if args.use_greedy_collective_cost:
             get_collective_cost_dict()
-            
+
         global_config.force_use_fp16 = args.force_use_fp16
 
         set_global_config(global_config)

@@ -204,7 +204,8 @@ class GlobalConfig:
             "analytical_perf_wsc::ddr_bandwidth": 800 * GB,  # ddr bandwidth, GB/s
             # add 2023-10-31, config as 32*5/25 for each die
             "analytical_perf_wsc::ddr_mem":  6553 * MB,
-            "analytical_perf_wsc::pcie_bandwidth": 160 * GB,  # PCIE 4.0 x 80 lane, GB/s
+            # PCIE 4.0 x 80 lane, GB/s
+            "analytical_perf_wsc::pcie_bandwidth": int(160/25) * GB,
 
             "analytical_perf_wsc::die_alpha": 100 * ns,  # add 2023-10-31, d2d latency, ns
             # add  2023-10-31, mesh topo-aware collective
