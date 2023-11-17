@@ -248,6 +248,8 @@ class GlobalConfig:
         self.collective_cost_dict = None
         self.debug_mode = False
         self.use_memory_budget = False
+        self.global_batchsize = 1
+        self.num_micro_batches = 1
 
 
 global_config = GlobalConfig()

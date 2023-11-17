@@ -284,7 +284,7 @@ def run_auto_sharding_pass(
 
     # Temporarily disable this.
     grad_acc_num_micro_batches = None
-    print("as_option.force_simple_heuristic:", as_option.force_simple_heuristic)
+    
     with XlaPassContext({
             # Auto-sharding solver options
             "auto_sharding::enable":
