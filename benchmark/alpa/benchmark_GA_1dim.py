@@ -63,8 +63,8 @@ max_stage_num = device_num
 
 model_type = None   # "gpt", "bert", "wresnet"
 model_size = None   # e.g. for gpt: "350M"; for bert: "Tiny", "Large"; for wresnet: "M"
-global_bs = None    # global batch size
-num_micro_batches = None
+
+cur_min = 100000
     
 global_latency_2_res = {}
 
@@ -340,9 +340,10 @@ def get_alpa_value(args_, num_hosts, num_devices_per_host, paras_list=None, log 
         log.logger.warning(f"Wrong !!!!===========================================================")
         log.logger.info(e)
         result_ = 10e10
-    print("result_ : "+str(result_))
     log.logger.info(str(paras_list) + ' result : ' + str(result_))
-    log.logger.info('One Mid Result : ' + str(result_))
+    global cur_min
+    cur_min = min(result_, cur_min)
+    log.logger.info(f'One Mid Result : {result_}, cur_min: {cur_min}' )
     return result_ 
 
 def benchmark_suite(suite_name,
@@ -385,7 +386,7 @@ def benchmark_suite(suite_name,
     device_start = 0
     for i in range(stage_num):
         forward_stage_layer_ids.append([i])
-        submesh_autosharding_option_dicts.append({})
+        submesh_autosharding_option_dicts.append({"force_simple_heuristic":"shard-first"})
         device_end = device_start + len(device_per_stage[i]) -1   
         submeshes.append([device_start, 0, device_end, 0])
         device_start = device_end + 1
@@ -402,18 +403,8 @@ def benchmark_suite(suite_name,
     partition_index_sum = sum(partition_index)
     # convert to ratio
     partition_index = [sum(partition_index[:i])/partition_index_sum for i in range(len(partition_index))]
-    if hardware == "wsgpu":
-        global_bs = 1536
-        num_micro_batches = int(global_bs/6)
-        if model_type == "wresnet":
-            global_bs = 1536
-            num_micro_batches = 16
-    elif hardware == "dojo":
-        global_bs = 1000
-        num_micro_batches = 40
-        if model_type == "wresnet":
-            global_bs = 1000
-            num_micro_batches = 10
+    global_bs = global_config.global_batchsize
+    num_micro_batches = global_config.num_micro_batches
     if model_type == "gpt":
         suite = get_one_config_case_idx(
             global_bs,    # global_batch_size
@@ -553,7 +544,8 @@ if __name__ == "__main__":
                         help="if the peak mem exceeds the device mem, it is invalid, then set the latency to 10e10")
     parser.add_argument("--use-offload", action="store_true",
                         help="use offload strategy (zero offoad -like)")
-    
+    parser.add_argument("--micro-batchsize", type=int, help="micro batchsize")
+
     args = parser.parse_args()
     # when use use offload strategy, the memory contraint is off
     if args.use_offload:
@@ -595,25 +587,18 @@ if __name__ == "__main__":
         global_config.hardware = args.hardware
 
     if args.hardware == "wsgpu":
-        global_bs = 1536
-        num_micro_batches = int(global_bs/6)
-        if model_type == "wresnet":
-            global_bs = 1536
-            num_micro_batches = 16
+        global_config.global_batchsize = 1536
     elif args.hardware == "dojo":
-        global_bs = 1000
-        num_micro_batches = 40
-        if model_type == "wresnet":
-            global_bs = 1000
-            num_micro_batches = 10
+        global_config.global_batchsize = 1000
+
+    num_micro_batches = int(global_config.global_batchsize/args.micro_batchsize)
+    global_config.num_micro_batches = num_micro_batches
             
     # set device num
     assert num_hosts == 1, ("Only support 1 host now.")
     device_num = num_devices_per_host *num_hosts
     max_stage_num = device_num
-    micro_batchsize = global_bs/num_micro_batches
-    args.rst_folder = f"{args.rst_folder}/{args.suite}-{actual_or_virtual}-{num_devices_per_host}X{num_hosts}-{model_type}-{model_size}-{micro_batchsize}-{date_str}"
-    print(args.rst_folder)
+    args.rst_folder = f"{args.rst_folder}/{args.suite}-{args.hardware}-{model_type}-{model_size}-{args.micro_batchsize}-{date_str}"
     os.makedirs(args.rst_folder, exist_ok=True)
 
     global_config.rst_folder = args.rst_folder
@@ -631,5 +616,6 @@ if __name__ == "__main__":
     log_format = '%(asctime)s %(filename)s %(levelname)s %(message)s'
     log = Logger(os.path.join(save_path, 'log.log'), level='info')
     log.logger.info('begin search by GA')
+    log.logger.info(f"args: {args}")
         
     run_in_GA(args, num_hosts, num_devices_per_host, log)

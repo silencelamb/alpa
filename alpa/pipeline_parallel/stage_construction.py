@@ -950,8 +950,8 @@ def cluster_layers_and_slice_mesh(
         print(f"sliced = {sliced_meshes}")
     assert len(logical_mesh_shapes) == len(sliced_meshes)
 
-    print(
-        f"logical = {logical_mesh_shapes}, submesh = {sliced_meshes}")
+    # print(
+    #     f"logical = {logical_mesh_shapes}, submesh = {sliced_meshes}")
 
     for logical_mesh_shape, submesh in zip(logical_mesh_shapes, sliced_meshes):
         assert np.prod(logical_mesh_shape) == submesh.num_devices

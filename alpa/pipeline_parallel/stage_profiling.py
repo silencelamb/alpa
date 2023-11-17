@@ -503,8 +503,8 @@ class HloAnalysisSimulator:
         if self.total_latency is not None and self.peak_memory is not None \
                 and self.stage_latency is not None:
             return self.total_latency, self.peak_memory, self.stage_latency
-
-        self.stage_peak_memory = []
+        
+        self.stage_peak_memory = {}
         self.stage_latency = []
         self.peak_memory = self.total_latency = 0
         global_config = get_global_config()
@@ -515,7 +515,13 @@ class HloAnalysisSimulator:
             mesh_idx = list(self.schedule.stage_mesh_mapping[stage_idx])[0]
             mesh_shape = self.mesh_group[mesh_idx].shape
             peak_memory = xe.estimate_hlo_module_memory(spmd_module)
-            self.stage_peak_memory.append(peak_memory)
+            # TODO: remove this hack
+            if mesh_idx not in self.stage_peak_memory:
+                self.stage_peak_memory[mesh_idx] = []
+            if len(self.stage_peak_memory[mesh_idx]) == 1:
+                print("hack to 3 times of forward")
+                peak_memory = min(peak_memory, 3*self.stage_peak_memory[mesh_idx][0])
+            self.stage_peak_memory[mesh_idx].append(peak_memory)
             self.peak_memory = max(self.peak_memory, peak_memory)
             grad_sync_channel_ids = ""
             if True:
