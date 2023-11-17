@@ -6,19 +6,12 @@ from enum import Enum
 import pickle
 
 class Collective(Enum):
-    ALL_GATHER = 1
-    REDUCE_SCATTER = 2
-    ALL_REDUCE = 3
-    ALL_TO_ALL = 4
+    ALL_GATHER = 0
+    REDUCE_SCATTER = 1
+    ALL_REDUCE = 2
+    ALL_TO_ALL = 3
     
-@dataclass
-class Chunk:
-    chunk_id: int
-    rank_id: int
 
-    def __str__(self):
-        return f"({self.chunk_id}, {self.rank_id})"
-    
 class MeshNode(object):
     def __init__(self, idx: tuple, rank: int, links, coll: Collective, data=None):
         self.idx = idx              # (i, j) index in the node map
@@ -36,7 +29,7 @@ class MeshNode(object):
         # self.betas = betas # double side link bandwidth
         # self.data_size = 1024       # 1KB
 
-    def add_chunk(self, chunk):
+    def add_chunk(self, chunk: int):
         self.chunks.add(chunk)
     
     def del_chunk(self, chunk):
@@ -146,34 +139,6 @@ class Mesh(object):
         else:
             self.sent_dict[timestep].append((chunk, src_node, dst_node))
         
-    # def find_ring_path(self):
-    #     self.ring_path = []
-    #     matrix_size = self.row_len
-    #     current_position = (0, 0)
-
-    #     while matrix_size > 0:
-    #         (row, col) = current_position
-    #         cur_ring = []
-    #         # Traverse Right
-    #         for j in range(col, col + matrix_size):
-    #             cur_ring.append((row, j))
-    #         # Traverse Down
-    #         for i in range(row + 1, row + matrix_size):
-    #             cur_ring.append((i, col + matrix_size - 1))
-    #         # Traverse Left
-    #         if matrix_size > 1:
-    #             for j in range(col + matrix_size - 2, col - 1, -1):
-    #                 cur_ring.append((row + matrix_size - 1, j))
-    #         # Traverse Up
-    #         if matrix_size > 1:
-    #             for i in range(row + matrix_size - 2, row, -1):
-    #                 cur_ring.append((i, col))
-    #         current_position = (row + 1, col + 1)
-    #         matrix_size -= 2
-
-    #         self.ring_path.append(cur_ring)
-    #     return self.ring_path
-
     def is_finished(self):
         for node in self.node_map.values():
             if node.state == False:
@@ -215,45 +180,58 @@ def compute_all_gather_cost(mesh: Mesh):
     while queue: 
         count = 0
         # print(f"Time Step {time_steps}")
-        node_visited = []
+        node_visited = {}
+        send_pair = set()
         for _ in range(len(queue)):  # Go only through nodes present in the queue at current timestep
-            node = queue.popleft()
-            requsted_chunks = list(node.postcondition.difference(node.chunks))
+            dst_node = queue.popleft()
+            requsted_chunks = list(dst_node.postcondition.difference(dst_node.chunks))
             while len(requsted_chunks) > 0:
-                if node.recv_num == len(node.links) or node.sent_num == len(node.links):
+                if dst_node.recv_num == len(dst_node.links):
                     break
                 chunk = requsted_chunks.pop()
                 candidates = []
-                for source_idx in node.links:
+                for source_idx in dst_node.links:
                     source_node = mesh.node_map[source_idx]
                     if chunk not in source_node.chunks:
                         continue
                     candidates.append(source_idx)
                 if len(candidates) > 0:
                     match_cand_idx = random.choice(candidates) # randomly select a candidate
-                    match_cand = mesh.node_map[match_cand_idx]
-                    match_cand.sent_num += 1
-                    node.recv_num += 1
-                    node.add_chunk(chunk)
+                    # a link can only be used once in each timestep
+                    if (match_cand_idx, dst_node.idx) in send_pair:
+                        continue
+                    src_node = mesh.node_map[match_cand_idx]
+                    if src_node.sent_num == len(src_node.links):
+                        continue
+                    src_node.sent_num += 1
+                    dst_node.recv_num += 1
+                    # dst_node.add_chunk(chunk)
                     count += 1
-                    mesh.update_sent_dict(time_steps, chunk, match_cand.rank, node.rank)
-                    if node.idx not in node_visited:
-                        node_visited.append(node.idx)
+                    mesh.update_sent_dict(time_steps, chunk, src_node.rank, dst_node.rank)
+                    send_pair.add((match_cand_idx, dst_node.idx))
+                    if dst_node.idx not in node_visited:
+                        node_visited[dst_node.idx] = [chunk]
+                    else:
+                        node_visited[dst_node.idx].append(chunk)
                     if match_cand_idx not in node_visited:
-                        node_visited.append(match_cand_idx)                
-            if node.is_finished():
-                node.state = True
-                node.chunks = node.postcondition & node.chunks
+                        node_visited[match_cand_idx] = []
+                    # print(f"time: {time_steps} send {chunk} from {src_node.rank} to {dst_node.rank}")
+            if dst_node.is_finished():
+                dst_node.state = True
+                dst_node.chunks = dst_node.postcondition & dst_node.chunks
             
-            if node.state == False:
-                queue.append(node)
+            if dst_node.state == False:
+                queue.append(dst_node)
             # push unfinished nodes to queue
-            for idx in node.links:
+            for idx in dst_node.links:
                 neighbor = mesh.node_map[idx]
                 if neighbor.state == False and neighbor not in queue:
                     queue.append(neighbor)
-        
-        for idx in node_visited:
+        # add chunk for all nodes
+        for idx in node_visited.keys():
+            for chunk in node_visited[idx]:
+                mesh.node_map[idx].add_chunk(chunk)
+        for idx in node_visited.keys():
             mesh.node_map[idx].reset_links()
         if count > 0:
             time_steps += 1
@@ -311,12 +289,9 @@ class MeshCollectiveCostDatabase:
         key = (cluster_key, mesh_shape)
         return self.data[key]
 
-    def update_one_mesh(self, collective, mesh_shape, mesh_result):
+    def update_one_mesh(self, collective: Collective, mesh_shape: tuple, mesh_cost: int):
         key = (collective, mesh_shape)
-        if key not in self.data:
-            self.data[key] = mesh_result
-        else:
-            self.data[key].update(mesh_result)
+        self.data[key] = mesh_cost
     
     def update(self, data):
         self.data = data
@@ -364,24 +339,25 @@ def gen_collective_cost_dict(die_r_num, die_c_num):
     for coll in collectives.keys():
         for i in range(1, die_r_num + 1):
             for j in range(1, die_c_num + 1):
-                mesh = Mesh(i, j, Collective.ALL_GATHER)
-                mesh.init_mesh()
-                if collectives[coll] == Collective.ALL_GATHER:
-                    timesteps = compute_all_gather_cost(mesh)
-                elif collectives[coll] == Collective.REDUCE_SCATTER:
-                    timesteps = compute_reduce_scatter_cost(mesh)
-                else:
-                    timesteps = compute_all_reduce_cost(mesh)
+                timesteps = 9999999
+                for _ in range(10):
+                    mesh = Mesh(i, j, Collective.ALL_GATHER)
+                    mesh.init_mesh()
+                    if collectives[coll] == Collective.ALL_GATHER:
+                        timesteps = min(compute_all_gather_cost(mesh), timesteps)
+                    elif collectives[coll] == Collective.REDUCE_SCATTER:
+                        timesteps = min(compute_reduce_scatter_cost(mesh), timesteps)
+                    else:
+                        timesteps = min(compute_all_reduce_cost(mesh), timesteps)
                 mesh_db.update_one_mesh(coll, (i, j), timesteps)
-    # print(mesh_db.data)
+    print(mesh_db.data)
     mesh_db.save('mesh_coll_cost_database.pkl')
     return mesh_db.data
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, default='db')
-    parser.add_argument("--method", type=str, default='greedy')
-    parser.add_argument("--coll", type=int, default=1)
+    parser.add_argument("--coll", type=int, default=0)
     parser.add_argument("--row", type=int, default=3)
     parser.add_argument("--col", type=int, default=3)
     parser.add_argument("-v", action='store_true')
@@ -407,7 +383,11 @@ if __name__ == '__main__':
         timesteps, total_cost = 0, 0
 
         if collective == Collective.ALL_GATHER:
-            timesteps = compute_all_gather_cost(mesh)
+            timesteps = 9999999
+            for i in range(10):
+                mesh = Mesh(M, N, Collective.ALL_GATHER)
+                mesh.init_mesh()
+                timesteps = min(compute_all_gather_cost(mesh), timesteps)
         elif collective == Collective.REDUCE_SCATTER:
             timesteps = compute_reduce_scatter_cost(mesh)
         elif collective == Collective.ALL_REDUCE:
@@ -425,5 +405,5 @@ if __name__ == '__main__':
         print(f"{collective} Ring need {M * N - 1} steps")
         print(f"Finish {collective} in {timesteps} time steps")
     else:
-        # search for all mesh results and store in databaseg
+        # search for all mesh results and store in database
         gen_collective_cost_dict(6, 6)
