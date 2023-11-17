@@ -6,6 +6,11 @@ export XLA_PYTHON_CLIENT_PREALLOCATE=false
 # 定义硬件类型
 declare -a hardware_types=("wsgpu" "dojo")
 
+
+declare -A die_nums
+die_nums["wsgpu"]=24
+die_nums["dojo"]=25
+
 # 定义模型类型和对应的模型大小
 declare -A model_sizes
 model_sizes["gpt"]="125M 350M 760M 1.3B 2.6B 6.7B"
@@ -21,12 +26,14 @@ batchsizes["1.3B"]=1
 batchsizes["2.6B"]=1
 batchsizes["6.7B"]=1
 batchsizes["15B"]=1
+
 batchsizes["Base"]=6
 batchsizes["Large"]=6
 batchsizes["LL"]=1
 batchsizes["LLL"]=1
 batchsizes["LLLL"]=1
 batchsizes["LLLLL"]=1
+
 batchsizes["25.56M"]=20
 batchsizes["44.55M"]=18
 batchsizes["60.19M"]=16
@@ -34,23 +41,26 @@ batchsizes["68.88M"]=14
 batchsizes["126.88M"]=12
 
 # 循环遍历模型类型和模型大小
-for model in "${!model_sizes[@]}"; do
-    for size in ${model_sizes[$model]}; do
-        # 获取对应的 micro-batchsize
-        micro_batchsize=${batchsizes[$size]}
-        echo $micro_batchsize
-        # 调用脚本
-        python benchmark_GA_1dim.py  \
-            --hardware wsgpu \
-            --num-hosts 1 \
-            --num-devices-per-host 24 \
-            --model-type "$model" \
-            --model-size "$size" \
-            --micro-batchsize ${micro_batchsize} \
-            --constrain-mem \
-            --use-greedy-collective-cost \
-            --rst_folder GA_1117/wsgpu_gpt \
-            --no-separate-process --only-mapping  --use-analytical-perf-model &
+for hardware in "${hardware_types[@]}"; do
+    for model in "${!model_sizes[@]}"; do
+        for size in ${model_sizes[$model]}; do
+            # 获取对应的 micro-batchsize
+            micro_batchsize=${batchsizes[$size]}
+            die_num = ${die_nums[$hardware]}
+            echo $micro_batchsize
+            # 调用脚本
+            python benchmark_GA_1dim.py  \
+                --hardware "$hardware" \
+                --num-hosts 1 \
+                --num-devices-per-host $die_num \
+                --model-type "$model" \
+                --model-size "$size" \
+                --micro-batchsize ${micro_batchsize} \
+                --constrain-mem \
+                --use-greedy-collective-cost \
+                --rst_folder GA_1117_all/"$hardware"_"$model"_"$size" \
+                --no-separate-process --only-mapping  --use-analytical-perf-model &
+        done
     done
 done
 
